@@ -1,0 +1,2726 @@
+# ==================================================================================
+# ГЛАВНЫЙ ДАШБОРД HOME ASSISTANT
+# ==================================================================================
+# Переписан на стандартные карточки HA 2024+
+# Sections view с нативными складывающимися секциями
+# ==================================================================================
+
+views:
+  # ==============================================================================
+  # VIEW 1: HOME - Главная страница
+  # ==============================================================================
+  - title: Home
+    path: home
+    icon: mdi:home
+    type: sections
+    max_columns: 3
+    sections:
+      # --------------------------------------------------------------------------
+      # ЭКОСИСТЕМА - СТАТУС
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🌟 Экосистема"
+        cards:
+          - type: tile
+            entity: sensor.ecosystem_status
+            name: "Статус"
+            icon: mdi:home-heart
+            color: >
+              {% set st = states('sensor.ecosystem_status') %}
+              {% if st == 'optimal' %}green
+              {% elif st == 'good' %}light-green
+              {% elif st == 'attention' %}orange
+              {% else %}red{% endif %}
+          - type: tile
+            entity: sensor.day_mode
+            name: "Режим дня"
+          - type: tile
+            entity: sensor.house_mood
+            name: "Настроение"
+          - type: tile
+            entity: sensor.cognitive_load
+            name: "Нагрузка"
+          - type: markdown
+            content: |
+              ### {{ state_attr('sensor.ecosystem_status', 'emoji') | default('🏠') }} {{ state_attr('sensor.ecosystem_status', 'state_ru') | default('Загрузка...') }}
+
+              **Режим:** {{ state_attr('sensor.day_mode', 'state_ru') | default('Загрузка...') }}
+
+              **Рекомендация:** {{ state_attr('sensor.next_best_action', 'action_ru') | default('Загрузка...') }}
+
+              ---
+              {{ state_attr('sensor.ecosystem_status', 'summary_ru') | default('Загрузка данных...') }}
+
+      # --------------------------------------------------------------------------
+      # ПОГОДА
+      # --------------------------------------------------------------------------
+      - type: grid
+        cards:
+          - type: weather-forecast
+            entity: weather.forecast_home_assistant
+            forecast_type: daily
+
+      # --------------------------------------------------------------------------
+      # СЕМЬЯ И ДОМ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "👨‍👩‍👧 Семья"
+        cards:
+          - type: tile
+            entity: person.aleksandr_meshcheriakov
+            name: "AVM"
+            icon: mdi:face-man
+            vertical: true
+          - type: tile
+            entity: person.victoria_meshchryakovf
+            name: "VEM"
+            icon: mdi:face-woman
+            vertical: true
+          - type: tile
+            entity: sensor.house_activity
+            name: "Активность"
+          - type: tile
+            entity: binary_sensor.someone_home
+            name: "Дома"
+
+      # --------------------------------------------------------------------------
+      # ВЫХОД НА УЛИЦУ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🚶 Выход на улицу"
+        cards:
+          - type: tile
+            entity: sensor.go_out_score
+            name: "Оценка"
+            color: >
+              {% set score = states('sensor.go_out_score') | int(50) %}
+              {% if score >= 70 %}green
+              {% elif score >= 50 %}light-green
+              {% elif score >= 30 %}orange
+              {% else %}red{% endif %}
+          - type: tile
+            entity: sensor.city_stress_index
+            name: "Стресс города"
+          - type: tile
+            entity: binary_sensor.perfect_walk_time
+            name: "Время прогулки"
+            color: green
+          - type: markdown
+            content: |
+              ### {{ state_attr('sensor.go_out_score', 'level_emoji') | default('🌤️') }} {{ state_attr('sensor.go_out_score', 'level_ru') | default('Загрузка...') }} ({{ states('sensor.go_out_score') | default(50) }}%)
+
+              {{ state_attr('sensor.go_out_score', 'recommendation_ru') | default('Загрузка данных...') }}
+
+              **Проблемы:** {{ state_attr('sensor.go_out_score', 'all_issues_ru') | default('Загрузка...') }}
+
+      # --------------------------------------------------------------------------
+      # МОРЕ И ВОЛНЫ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🌊 Море"
+        cards:
+          - type: tile
+            entity: sensor.sea_temperature_openmeteo
+            name: "Температура моря"
+            icon: mdi:thermometer-water
+          - type: tile
+            entity: sensor.wave_height
+            name: "Высота волн"
+            icon: mdi:waves
+          - type: tile
+            entity: sensor.swimming_conditions
+            name: "Условия купания"
+            icon: mdi:swim
+          - type: tile
+            entity: sensor.uv_index
+            name: "UV индекс"
+            icon: mdi:white-balance-sunny
+
+      # --------------------------------------------------------------------------
+      # ПОГОДА И КОМФОРТ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🌤️ Погода"
+        cards:
+          - type: tile
+            entity: sensor.temperature
+            name: "Температура"
+            icon: mdi:thermometer
+          - type: tile
+            entity: sensor.humidity
+            name: "Влажность"
+            icon: mdi:water-percent
+          - type: tile
+            entity: sensor.precipitation_probability
+            name: "Осадки"
+            icon: mdi:weather-rainy
+          - type: tile
+            entity: sensor.wind_speed
+            name: "Ветер"
+            icon: mdi:weather-windy
+          - type: tile
+            entity: sensor.perfect_day_index
+            name: "Идеальный день"
+            icon: mdi:star
+
+      # --------------------------------------------------------------------------
+      # АСТРОНОМИЯ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🌙 Астрономия"
+        cards:
+          - type: tile
+            entity: sun.sun
+            name: "Солнце"
+          - type: tile
+            entity: sensor.sun2_next_sunrise
+            name: "Восход"
+            icon: mdi:weather-sunset-up
+          - type: tile
+            entity: sensor.sun2_next_sunset
+            name: "Закат"
+            icon: mdi:weather-sunset-down
+          - type: tile
+            entity: sensor.moon_phase
+            name: "Фаза луны"
+            icon: mdi:moon-waning-crescent
+
+      # --------------------------------------------------------------------------
+      # КАЧЕСТВО ВОЗДУХА
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🌬️ Качество воздуха"
+        cards:
+          - type: tile
+            entity: sensor.air_quality_european_aqi
+            name: "AQI"
+            icon: mdi:air-filter
+          - type: tile
+            entity: sensor.pollen_total
+            name: "Пыльца"
+            icon: mdi:flower-pollen
+          - type: tile
+            entity: sensor.saharan_dust_index
+            name: "Сахарская пыль"
+            icon: mdi:weather-dust
+
+      # --------------------------------------------------------------------------
+      # ЭНЕРГИЯ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "⚡ Энергия"
+        cards:
+          - type: tile
+            entity: sensor.electricity_tariff_period
+            name: "Тариф"
+            icon: mdi:clock-outline
+          - type: tile
+            entity: sensor.electricity_tariff_price
+            name: "Цена"
+            icon: mdi:currency-eur
+          - type: tile
+            entity: sensor.total_localtuya_power
+            name: "Потребление"
+            icon: mdi:flash
+
+      # --------------------------------------------------------------------------
+      # ФИНАНСЫ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "💰 Финансы"
+        cards:
+          - type: tile
+            entity: sensor.bitcoin_price
+            name: "Bitcoin"
+            icon: mdi:bitcoin
+          - type: tile
+            entity: sensor.ethereum_price
+            name: "Ethereum"
+            icon: mdi:ethereum
+          - type: tile
+            entity: sensor.eur_usd_rate
+            name: "EUR/USD"
+            icon: mdi:currency-usd
+          - type: tile
+            entity: sensor.gold_price
+            name: "Золото"
+            icon: mdi:gold
+          - type: tile
+            entity: sensor.silver_price
+            name: "Серебро"
+            icon: mdi:circle-outline
+          - type: tile
+            entity: sensor.ibex_35
+            name: "IBEX 35"
+            icon: mdi:chart-line
+
+      # --------------------------------------------------------------------------
+      # ТРАНСПОРТ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🚗 Транспорт"
+        cards:
+          - type: tile
+            entity: sensor.traffic_to_barcelona
+            name: "До Барселоны"
+            icon: mdi:car
+          - type: tile
+            entity: sensor.fuel_price_95
+            name: "Бензин 95"
+            icon: mdi:gas-station
+
+      # --------------------------------------------------------------------------
+      # БЕЗОПАСНОСТЬ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🚨 Безопасность"
+        cards:
+          - type: tile
+            entity: sensor.fire_risk_catalonia
+            name: "Риск пожаров"
+            icon: mdi:fire
+          - type: tile
+            entity: sensor.earthquakes_nearest
+            name: "Землетрясения"
+            icon: mdi:earth
+          - type: tile
+            entity: binary_sensor.camera_context_alert
+            name: "Камера алерт"
+            color: red
+          - type: tile
+            entity: sensor.camera_privacy_mode
+            name: "Режим камер"
+
+      # --------------------------------------------------------------------------
+      # ПИТОМЕЦ АБРИКОС (краткая сводка)
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🐕 Абрикос"
+        cards:
+          - type: tile
+            entity: sensor.abrikos_emotional_state
+            name: "Состояние"
+            color: >
+              {% set st = states('sensor.abrikos_emotional_state') %}
+              {% if st == 'calm' %}green
+              {% elif st == 'playful' %}light-green
+              {% elif st == 'tired' %}grey
+              {% else %}orange{% endif %}
+          - type: tile
+            entity: sensor.abrikos_energy_level
+            name: "Энергия"
+          - type: tile
+            entity: binary_sensor.abrikos_needs_attention
+            name: "Внимание"
+            color: red
+          - type: markdown
+            content: |
+              {{ state_attr('sensor.abrikos_emotional_state', 'emoji') | default('🐕') }} **{{ state_attr('sensor.abrikos_emotional_state', 'state_ru') | default('Загрузка...') }}**
+
+              🎂 Возраст: {{ state_attr('sensor.abrikos_age', 'age_ru') | default('Загрузка...') }}
+
+              {{ state_attr('sensor.abrikos_emotional_state', 'recommendation_ru') | default('') }}
+
+  # ==============================================================================
+  # VIEW 2: ROOMS - Комнаты
+  # ==============================================================================
+  - title: Rooms
+    path: rooms
+    icon: mdi:floor-plan
+    type: sections
+    max_columns: 2
+    sections:
+      # --------------------------------------------------------------------------
+      # КАБИНЕТ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "💼 Кабинет"
+        cards:
+          - type: tile
+            entity: light.wled
+            name: "WLED"
+          - type: tile
+            entity: light.oblako
+            name: "Облако"
+          - type: tile
+            entity: light.polki
+            name: "Полки"
+          - type: tile
+            entity: light.liustra_2
+            name: "Люстра"
+          - type: tile
+            entity: switch.labacin_socket_1
+            name: "Лаб Стол"
+          - type: tile
+            entity: switch.pitanie_ipad_socket_1
+            name: "iPad"
+
+      # --------------------------------------------------------------------------
+      # ГОСТИНАЯ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🛋️ Гостиная"
+        cards:
+          - type: tile
+            entity: light.lampa_5
+            name: "Лампа 5"
+          - type: tile
+            entity: light.liustra
+            name: "Люстра"
+          - type: tile
+            entity: light.lampa_6
+            name: "Лампа 6"
+
+      # --------------------------------------------------------------------------
+      # КЛИМАТ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🌡️ Климат"
+        cards:
+          - type: tile
+            entity: sensor.temperatura_kukhnia_temperature
+            name: "Кухня"
+            icon: mdi:thermometer
+          - type: tile
+            entity: sensor.temperatura_spalnia_temperature
+            name: "Спальня"
+            icon: mdi:thermometer
+          - type: tile
+            entity: sensor.temperatura_vannaia_temperature
+            name: "Ванная"
+            icon: mdi:thermometer
+          - type: tile
+            entity: sensor.temperatura_tualet_temperature
+            name: "Туалет"
+            icon: mdi:thermometer
+          - type: tile
+            entity: sensor.temperatura_kabinet_temperatura
+            name: "Кабинет"
+            icon: mdi:thermometer
+
+      # --------------------------------------------------------------------------
+      # ВОЗДУХ В ПОМЕЩЕНИИ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🌬️ Воздух в помещении"
+        cards:
+          - type: tile
+            entity: sensor.mt15_mt29_carbon_dioxide
+            name: "CO2"
+            icon: mdi:molecule-co2
+          - type: tile
+            entity: sensor.mt15_mt29_pm2_5
+            name: "PM2.5"
+            icon: mdi:blur
+          - type: tile
+            entity: sensor.mt15_mt29_pm10
+            name: "PM10"
+            icon: mdi:blur-radial
+          - type: tile
+            entity: sensor.mt15_mt29_voc
+            name: "VOC"
+            icon: mdi:cloud-outline
+          - type: tile
+            entity: sensor.mt15_mt29_formaldehyde
+            name: "Формальдегид"
+            icon: mdi:flask
+
+  # ==============================================================================
+  # VIEW 3: СТАВНИ
+  # ==============================================================================
+  - title: Ставни
+    path: shutters
+    icon: mdi:window-shutter
+    type: sections
+    max_columns: 2
+    sections:
+      # --------------------------------------------------------------------------
+      # СТАВНИ 1
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🪟 Ставни 1"
+        cards:
+          - type: tile
+            entity: cover.stavni_1
+            name: "Ставни 1"
+            features:
+              - type: cover-open-close
+              - type: cover-position
+          - type: horizontal-stack
+            cards:
+              - type: button
+                name: "▲"
+                icon: mdi:chevron-up
+                show_name: true
+                show_icon: true
+                hold_action:
+                  action: perform-action
+                  perform_action: script.turn_on
+                  target:
+                    entity_id: script.stavni_1_hold_open
+                tap_action:
+                  action: perform-action
+                  perform_action: script.turn_on
+                  target:
+                    entity_id: script.stavni_1_stop
+              - type: button
+                name: "■"
+                icon: mdi:stop
+                show_name: true
+                show_icon: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.turn_on
+                  target:
+                    entity_id: script.stavni_1_stop
+              - type: button
+                name: "▼"
+                icon: mdi:chevron-down
+                show_name: true
+                show_icon: true
+                hold_action:
+                  action: perform-action
+                  perform_action: script.turn_on
+                  target:
+                    entity_id: script.stavni_1_hold_close
+                tap_action:
+                  action: perform-action
+                  perform_action: script.turn_on
+                  target:
+                    entity_id: script.stavni_1_stop
+          - type: horizontal-stack
+            cards:
+              - type: button
+                name: "Открыть"
+                icon: mdi:window-shutter-open
+                tap_action:
+                  action: perform-action
+                  perform_action: script.turn_on
+                  target:
+                    entity_id: script.stavni_1_open_full
+              - type: button
+                name: "Закрыть"
+                icon: mdi:window-shutter
+                tap_action:
+                  action: perform-action
+                  perform_action: script.turn_on
+                  target:
+                    entity_id: script.stavni_1_close_full
+
+      # --------------------------------------------------------------------------
+      # СТАВНИ 2
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🪟 Ставни 2"
+        cards:
+          - type: tile
+            entity: cover.stavni_2
+            name: "Ставни 2"
+            features:
+              - type: cover-open-close
+              - type: cover-position
+          - type: horizontal-stack
+            cards:
+              - type: button
+                name: "▲"
+                icon: mdi:chevron-up
+                show_name: true
+                show_icon: true
+                hold_action:
+                  action: perform-action
+                  perform_action: script.turn_on
+                  target:
+                    entity_id: script.stavni_2_hold_open
+                tap_action:
+                  action: perform-action
+                  perform_action: script.turn_on
+                  target:
+                    entity_id: script.stavni_2_stop
+              - type: button
+                name: "■"
+                icon: mdi:stop
+                show_name: true
+                show_icon: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.turn_on
+                  target:
+                    entity_id: script.stavni_2_stop
+              - type: button
+                name: "▼"
+                icon: mdi:chevron-down
+                show_name: true
+                show_icon: true
+                hold_action:
+                  action: perform-action
+                  perform_action: script.turn_on
+                  target:
+                    entity_id: script.stavni_2_hold_close
+                tap_action:
+                  action: perform-action
+                  perform_action: script.turn_on
+                  target:
+                    entity_id: script.stavni_2_stop
+          - type: horizontal-stack
+            cards:
+              - type: button
+                name: "Открыть"
+                icon: mdi:window-shutter-open
+                tap_action:
+                  action: perform-action
+                  perform_action: script.turn_on
+                  target:
+                    entity_id: script.stavni_2_open_full
+              - type: button
+                name: "Закрыть"
+                icon: mdi:window-shutter
+                tap_action:
+                  action: perform-action
+                  perform_action: script.turn_on
+                  target:
+                    entity_id: script.stavni_2_close_full
+
+      # --------------------------------------------------------------------------
+      # ВСЕ СТАВНИ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🏠 Все ставни"
+        cards:
+          - type: horizontal-stack
+            cards:
+              - type: button
+                name: "Все открыть"
+                icon: mdi:window-shutter-open
+                tap_action:
+                  action: perform-action
+                  perform_action: script.turn_on
+                  target:
+                    entity_id: script.all_shutters_open
+              - type: button
+                name: "Все стоп"
+                icon: mdi:stop-circle
+                tap_action:
+                  action: perform-action
+                  perform_action: script.turn_on
+                  target:
+                    entity_id: script.all_shutters_stop
+              - type: button
+                name: "Все закрыть"
+                icon: mdi:window-shutter
+                tap_action:
+                  action: perform-action
+                  perform_action: script.turn_on
+                  target:
+                    entity_id: script.all_shutters_close
+
+  # ==============================================================================
+  # VIEW 4: SCENES - Сцены
+  # ==============================================================================
+  - title: Scenes
+    path: scenes
+    icon: mdi:palette
+    type: sections
+    max_columns: 3
+    sections:
+      # --------------------------------------------------------------------------
+      # РЕЖИМЫ ОСВЕЩЕНИЯ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "💡 Режимы освещения"
+        cards:
+          - type: button
+            entity: scene.work
+            name: "Работа"
+            icon: mdi:desk-lamp
+            tap_action:
+              action: perform-action
+              perform_action: scene.turn_on
+              target:
+                entity_id: scene.work
+          - type: button
+            entity: scene.relax
+            name: "Отдых"
+            icon: mdi:sofa
+            tap_action:
+              action: perform-action
+              perform_action: scene.turn_on
+              target:
+                entity_id: scene.relax
+          - type: button
+            entity: scene.cinema
+            name: "Кино"
+            icon: mdi:movie
+            tap_action:
+              action: perform-action
+              perform_action: scene.turn_on
+              target:
+                entity_id: scene.cinema
+          - type: button
+            entity: scene.sleep
+            name: "Сон"
+            icon: mdi:sleep
+            tap_action:
+              action: perform-action
+              perform_action: scene.turn_on
+              target:
+                entity_id: scene.sleep
+          - type: button
+            entity: scene.night
+            name: "Ночь"
+            icon: mdi:weather-night
+            tap_action:
+              action: perform-action
+              perform_action: scene.turn_on
+              target:
+                entity_id: scene.night
+          - type: button
+            entity: scene.morning
+            name: "Утро"
+            icon: mdi:weather-sunset-up
+            tap_action:
+              action: perform-action
+              perform_action: scene.turn_on
+              target:
+                entity_id: scene.morning
+          - type: button
+            entity: scene.evening
+            name: "Вечер"
+            icon: mdi:weather-sunset
+            tap_action:
+              action: perform-action
+              perform_action: scene.turn_on
+              target:
+                entity_id: scene.evening
+
+      # --------------------------------------------------------------------------
+      # РЕЖИМЫ ДОМА
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🏠 Режимы дома"
+        cards:
+          - type: button
+            name: "Спокойной ночи"
+            icon: mdi:bed
+            tap_action:
+              action: perform-action
+              perform_action: script.turn_on
+              target:
+                entity_id: script.goodnight
+          - type: button
+            name: "Доброе утро"
+            icon: mdi:white-balance-sunny
+            tap_action:
+              action: perform-action
+              perform_action: script.turn_on
+              target:
+                entity_id: script.good_morning
+          - type: button
+            name: "Ухожу"
+            icon: mdi:door-open
+            tap_action:
+              action: perform-action
+              perform_action: script.turn_on
+              target:
+                entity_id: script.leaving_home
+
+      # --------------------------------------------------------------------------
+      # БЫСТРЫЕ ДЕЙСТВИЯ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "⚡ Быстрые действия"
+        cards:
+          - type: button
+            name: "Всё выключить"
+            icon: mdi:power-off
+            tap_action:
+              action: perform-action
+              perform_action: light.turn_off
+              target:
+                entity_id: all
+          - type: button
+            name: "Закрыть ставни"
+            icon: mdi:window-shutter
+            tap_action:
+              action: perform-action
+              perform_action: script.turn_on
+              target:
+                entity_id: script.close_all_shutters
+          - type: button
+            name: "Открыть ставни"
+            icon: mdi:window-shutter-open
+            tap_action:
+              action: perform-action
+              perform_action: script.turn_on
+              target:
+                entity_id: script.open_all_shutters
+
+  # ==============================================================================
+  # VIEW 5: SYSTEM - Система
+  # ==============================================================================
+  - title: System
+    path: system
+    icon: mdi:cog
+    type: sections
+    max_columns: 2
+    sections:
+      # --------------------------------------------------------------------------
+      # СИСТЕМНАЯ УСТОЙЧИВОСТЬ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🛡️ Устойчивость системы"
+        cards:
+          - type: tile
+            entity: binary_sensor.all_systems_operational
+            name: "Все системы"
+            color: green
+          - type: tile
+            entity: sensor.data_quality_score
+            name: "Качество данных"
+            color: >
+              {% set score = states('sensor.data_quality_score') | int(100) %}
+              {% if score >= 90 %}green
+              {% elif score >= 70 %}light-green
+              {% elif score >= 50 %}orange
+              {% else %}red{% endif %}
+          - type: tile
+            entity: sensor.automation_health
+            name: "Автоматизации"
+          - type: tile
+            entity: binary_sensor.system_degraded
+            name: "Деградация"
+            color: red
+          - type: tile
+            entity: sensor.system_operating_mode
+            name: "Режим работы"
+          - type: markdown
+            content: |
+              ### {{ state_attr('binary_sensor.all_systems_operational', 'status_ru') }}
+
+              | Метрика | Значение |
+              |---------|----------|
+              | **Качество данных** | {{ states('sensor.data_quality_score') }}% ({{ state_attr('sensor.data_quality_score', 'level_ru') }}) |
+              | **Автоматизации** | {{ state_attr('sensor.automation_health', 'state_ru') }} |
+              | **Режим** | {{ state_attr('sensor.system_operating_mode', 'state_ru') }} |
+              | **Безопасность** | {{ state_attr('sensor.security_surface', 'state_ru') }} |
+
+              {% if state_attr('sensor.data_quality_score', 'unavailable_count') | int(0) > 0 %}
+              ⚠️ **Недоступно:** {{ state_attr('sensor.data_quality_score', 'unavailable_count') }} сенсоров
+              {% endif %}
+
+      # --------------------------------------------------------------------------
+      # HOME ASSISTANT
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🏠 Home Assistant"
+        cards:
+          - type: tile
+            entity: sensor.processor_use_percent
+            name: "CPU"
+            icon: mdi:cpu-64-bit
+          - type: tile
+            entity: sensor.memory_use_percent
+            name: "RAM"
+            icon: mdi:memory
+          - type: tile
+            entity: sensor.disk_use_percent
+            name: "Диск"
+            icon: mdi:harddisk
+          - type: tile
+            entity: sensor.last_boot
+            name: "Uptime"
+            icon: mdi:clock-outline
+          - type: tile
+            entity: update.home_assistant_core_update
+            name: "HA Update"
+            icon: mdi:update
+
+      # --------------------------------------------------------------------------
+      # ADGUARD
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🛡️ AdGuard"
+        cards:
+          - type: tile
+            entity: switch.adguard_protection
+            name: "Защита"
+          - type: tile
+            entity: sensor.adguard_dns_queries
+            name: "Запросы"
+            icon: mdi:dns
+          - type: tile
+            entity: sensor.adguard_dns_queries_blocked_ratio
+            name: "Заблокировано"
+            icon: mdi:shield-check
+
+      # --------------------------------------------------------------------------
+      # 3D ПРИНТЕР
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🖨️ 3D Принтер"
+        cards:
+          - type: tile
+            entity: sensor.k1c_current_print_state
+            name: "Статус"
+            icon: mdi:printer-3d
+          - type: tile
+            entity: sensor.k1c_progress
+            name: "Прогресс"
+            icon: mdi:percent
+          - type: tile
+            entity: sensor.k1c_nozzle_temperature
+            name: "Сопло"
+            icon: mdi:thermometer-high
+          - type: tile
+            entity: sensor.k1c_bed_temperature
+            name: "Стол"
+            icon: mdi:thermometer
+
+      # --------------------------------------------------------------------------
+      # СЕТЬ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🌐 Сеть"
+        cards:
+          - type: tile
+            entity: binary_sensor.internet_connection
+            name: "Интернет"
+            icon: mdi:web
+          - type: tile
+            entity: sensor.speedtest_download
+            name: "Download"
+            icon: mdi:download
+          - type: tile
+            entity: sensor.speedtest_upload
+            name: "Upload"
+            icon: mdi:upload
+
+      # --------------------------------------------------------------------------
+      # СИСТЕМНЫЕ ДЕЙСТВИЯ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "⚙️ Действия"
+        cards:
+          - type: button
+            name: "Перезагрузить HA"
+            icon: mdi:restart
+            tap_action:
+              action: perform-action
+              perform_action: homeassistant.restart
+            confirmation:
+              text: "Перезагрузить Home Assistant?"
+          - type: button
+            name: "Тест Browser Mod"
+            icon: mdi:test-tube
+            tap_action:
+              action: perform-action
+              perform_action: script.turn_on
+              target:
+                entity_id: script.test_browser_mod
+
+      # --------------------------------------------------------------------------
+      # ПЕРЕЗАГРУЗКА YAML
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🔄 Перезагрузка YAML"
+        cards:
+          - type: button
+            name: "Reload All"
+            icon: mdi:reload
+            tap_action:
+              action: perform-action
+              perform_action: homeassistant.reload_all
+          - type: button
+            name: "Automations"
+            icon: mdi:robot
+            tap_action:
+              action: perform-action
+              perform_action: automation.reload
+          - type: button
+            name: "Scripts"
+            icon: mdi:script-text
+            tap_action:
+              action: perform-action
+              perform_action: script.reload
+          - type: button
+            name: "Scenes"
+            icon: mdi:palette
+            tap_action:
+              action: perform-action
+              perform_action: scene.reload
+          - type: button
+            name: "Templates"
+            icon: mdi:code-braces
+            tap_action:
+              action: perform-action
+              perform_action: template.reload
+          - type: button
+            name: "Groups"
+            icon: mdi:group
+            tap_action:
+              action: perform-action
+              perform_action: group.reload
+          - type: button
+            name: "Core Config"
+            icon: mdi:cog
+            tap_action:
+              action: perform-action
+              perform_action: homeassistant.reload_core_config
+          - type: button
+            name: "Input Bool"
+            icon: mdi:toggle-switch
+            tap_action:
+              action: perform-action
+              perform_action: input_boolean.reload
+          - type: button
+            name: "Input Number"
+            icon: mdi:numeric
+            tap_action:
+              action: perform-action
+              perform_action: input_number.reload
+          - type: button
+            name: "Input Select"
+            icon: mdi:form-dropdown
+            tap_action:
+              action: perform-action
+              perform_action: input_select.reload
+          - type: button
+            name: "Input Text"
+            icon: mdi:form-textbox
+            tap_action:
+              action: perform-action
+              perform_action: input_text.reload
+          - type: button
+            name: "Utility Meter"
+            icon: mdi:counter
+            tap_action:
+              action: perform-action
+              perform_action: utility_meter.reload
+
+      # --------------------------------------------------------------------------
+      # ЛОГИ И ОТЛАДКА
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "📋 Логи и отладка"
+        cards:
+          - type: button
+            name: "System Log"
+            icon: mdi:file-document
+            tap_action:
+              action: url
+              url_path: /config/logs
+          - type: button
+            name: "YAML Tools"
+            icon: mdi:hammer-wrench
+            tap_action:
+              action: url
+              url_path: /developer-tools/yaml
+          - type: button
+            name: "States"
+            icon: mdi:state-machine
+            tap_action:
+              action: url
+              url_path: /developer-tools/state
+          - type: button
+            name: "Services"
+            icon: mdi:room-service
+            tap_action:
+              action: url
+              url_path: /developer-tools/service
+          - type: button
+            name: "Events"
+            icon: mdi:calendar-star
+            tap_action:
+              action: url
+              url_path: /developer-tools/event
+          - type: button
+            name: "Template"
+            icon: mdi:code-braces-box
+            tap_action:
+              action: url
+              url_path: /developer-tools/template
+
+  # ==============================================================================
+  # VIEW 6: CRYPTO - Криптовалютная аналитика
+  # ==============================================================================
+  - title: Crypto
+    path: crypto
+    icon: mdi:bitcoin
+    type: sections
+    max_columns: 3
+    sections:
+      # ==========================================================================
+      # ROW 0: ВЫБОР МОНЕТЫ
+      # ==========================================================================
+      - type: grid
+        title: "🎯 Выбор монеты для анализа"
+        cards:
+          - type: entities
+            entities:
+              - entity: input_select.crypto_currency
+                name: "Валюта"
+              - entity: input_select.crypto_main_coin
+                name: "Основная монета"
+              - entity: input_select.crypto_compare_coin
+                name: "Для сравнения"
+          - type: tile
+            entity: sensor.crypto_selected_price
+            name: "Выбранная монета"
+            icon: mdi:bitcoin
+          - type: markdown
+            content: |
+              {% set curr = states('input_select.crypto_currency') | default('EUR') %}
+              {% set sym = '€' if curr == 'EUR' else '$' %}
+              ### 📊 {{ states('input_select.crypto_main_coin') }} Анализ
+              | Метрика | Значение |
+              |---------|----------|
+              | **Цена {{ curr }}** | {{ sym }}{{ states('sensor.crypto_selected_price') | default(0) }} |
+              | **Цена {{ 'USD' if curr == 'EUR' else 'EUR' }}** | {{ '$' if curr == 'EUR' else '€' }}{{ state_attr('sensor.crypto_selected_price', 'usd' if curr == 'EUR' else 'eur') | default(0) }} |
+              | **24h** | {{ state_attr('sensor.crypto_selected_price', 'change_24h') | default(0) }}% |
+              | **RSI** | {{ states('sensor.crypto_selected_rsi') | default(50) }} {{ state_attr('sensor.crypto_selected_rsi', 'status') | default('') }} |
+              | **MTF Score** | {{ states('sensor.crypto_selected_mtf') | default(50) }}% |
+              | **MTF Signal** | {{ state_attr('sensor.crypto_selected_mtf', 'signal') | default('N/A') }} |
+          - type: markdown
+            content: |
+              {% set curr = states('input_select.crypto_currency') | default('EUR') %}
+              {% set sym = '€' if curr == 'EUR' else '$' %}
+              ### ⚖️ Сравнение: {{ states('input_select.crypto_main_coin') }} vs {{ states('input_select.crypto_compare_coin') }}
+              {% if states('input_select.crypto_compare_coin') != 'Нет' %}
+              | Монета | Цена {{ curr }} | 24h |
+              |--------|----------|-----|
+              | **{{ states('input_select.crypto_main_coin') }}** | {{ sym }}{{ states('sensor.crypto_selected_price') }} | {{ state_attr('sensor.crypto_selected_price', 'change_24h') }}% |
+              | **{{ states('input_select.crypto_compare_coin') }}** | {{ sym }}{{ states('sensor.crypto_compare_price') }} | {{ state_attr('sensor.crypto_compare_price', 'change_24h') }}% |
+              {% else %}
+              Выберите монету для сравнения
+              {% endif %}
+
+      # ==========================================================================
+      # ROW 1: СТАТУС ИНВЕСТОРА (новые индикаторы)
+      # ==========================================================================
+      - type: grid
+        title: "🧘 Статус инвестора"
+        cards:
+          - type: tile
+            entity: sensor.crypto_do_nothing_ok
+            name: "Действие"
+            icon: mdi:meditation
+            color: >
+              {% set state = states('sensor.crypto_do_nothing_ok') %}
+              {% if '🟢' in state %}green
+              {% elif '🟡' in state %}amber
+              {% else %}red{% endif %}
+          - type: tile
+            entity: sensor.crypto_investor_phase
+            name: "Фаза рынка"
+            icon: mdi:chart-timeline-variant-shimmer
+            color: >
+              {% set state = states('sensor.crypto_investor_phase') %}
+              {% if 'Accumulation' in state %}green
+              {% elif 'Growth' in state %}light-green
+              {% elif 'Euphoria' in state %}red
+              {% else %}grey{% endif %}
+          - type: tile
+            entity: sensor.crypto_calm_indicator
+            name: "Спокойствие"
+            icon: mdi:emoticon-cool
+          - type: tile
+            entity: sensor.crypto_next_action_timer
+            name: "След. DCA"
+            icon: mdi:timer-outline
+          - type: markdown
+            content: |
+              ### {{ states('sensor.crypto_do_nothing_ok') }}
+              {{ state_attr('sensor.crypto_do_nothing_ok', 'reason') | default('Нет данных') }}
+
+              ---
+              **Фаза:** {{ states('sensor.crypto_investor_phase') }}
+
+              {{ state_attr('sensor.crypto_investor_phase', 'description') | default('') }}
+
+              ---
+              **{{ state_attr('sensor.crypto_calm_indicator', 'message') | default('') }}**
+
+      # ==========================================================================
+      # ROW 1b: КРАСНЫЕ ФЛАГИ И НАПРЯЖЁННОСТЬ
+      # ==========================================================================
+      - type: grid
+        title: "⚠️ Риски и контекст"
+        cards:
+          - type: tile
+            entity: sensor.crypto_red_flags
+            name: "Флаги"
+            icon: mdi:flag-variant
+            color: >
+              {% set count = state_attr('sensor.crypto_red_flags', 'flags_count') | default(0) | int %}
+              {% if count == 0 %}green
+              {% elif count <= 2 %}amber
+              {% else %}red{% endif %}
+          - type: tile
+            entity: sensor.crypto_market_tension
+            name: "Напряжённость"
+            icon: mdi:gauge
+            color: >
+              {% set state = states('sensor.crypto_market_tension') %}
+              {% if '🟢' in state %}green
+              {% elif '🟡' in state %}amber
+              {% else %}red{% endif %}
+          - type: tile
+            entity: sensor.crypto_price_context
+            name: "Контекст цены"
+            icon: mdi:chart-box
+          - type: markdown
+            content: |
+              ### 🚩 Красные флаги
+              {{ state_attr('sensor.crypto_red_flags', 'flags_list') | default('Проверка...') }}
+
+              ---
+              ### 📊 Контекст цены BTC
+              **{{ states('sensor.crypto_price_context') }}**
+
+              Текущая: ${{ state_attr('sensor.crypto_price_context', 'current_price') | default('N/A') }}
+              Среднее 6м: ${{ state_attr('sensor.crypto_price_context', 'avg_6m') | default('N/A') }}
+              Отклонение: {{ state_attr('sensor.crypto_price_context', 'diff_percent') | default(0) }}%
+
+              *{{ state_attr('sensor.crypto_price_context', 'recommendation') | default('') }}*
+
+      # ==========================================================================
+      # ROW 1c: ПОРТФЕЛЬ (из Bybit)
+      # ==========================================================================
+      - type: grid
+        title: "💼 Портфель Bybit"
+        cards:
+          - type: markdown
+            content: |
+              {% set raw = state_attr('sensor.crypto_bybit_balance_raw', 'total_usd') | float(0) %}
+              {% set balances = state_attr('sensor.crypto_bybit_balance_raw', 'balances') %}
+              {% set status = states('sensor.crypto_bybit_balance_raw') %}
+
+              ### 💰 Всего: ${{ raw | int }}
+
+              {% if status == 'ok' and balances %}
+              **Позиции:**
+              {% for coin, data in balances.items() %}
+              {% set usd_val = data.usd | default(0) | float %}
+              {% if usd_val > 1 %}
+              - **{{ coin }}**: {{ (data.qty | default(0) | float) | round(4) }} (${{ usd_val | int }})
+              {% endif %}
+              {% endfor %}
+              {% elif status == 'ok' %}
+              ✅ Подключено, пусто
+              {% else %}
+              ⏳ Статус: {{ status | default('загрузка') }}
+              {% endif %}
+          - type: button
+            name: "🔄 Обновить"
+            icon: mdi:refresh
+            tap_action:
+              action: perform-action
+              perform_action: homeassistant.update_entity
+              target:
+                entity_id: sensor.crypto_bybit_balance_raw
+
+      # ==========================================================================
+      # ROW 1d: DCA РЕЗУЛЬТАТ
+      # ==========================================================================
+      - type: grid
+        title: "💵 DCA на эту неделю"
+        cards:
+          - type: tile
+            entity: sensor.crypto_dca_result
+            name: "Сумма DCA"
+            icon: mdi:cash-check
+          - type: tile
+            entity: sensor.crypto_dca
+            name: "Сигнал"
+            icon: mdi:cash-plus
+            color: >
+              {% set state = states('sensor.crypto_dca') %}
+              {% if '🟢' in state %}green
+              {% elif '🟡' in state %}amber
+              {% else %}red{% endif %}
+          - type: markdown
+            content: |
+              ### 💰 Распределение DCA
+              | Актив | Сумма |
+              |-------|------:|
+              | **BTC** | €{{ state_attr('sensor.crypto_dca_result', 'btc_amount') | default(0) }} |
+              | **ETH** | €{{ state_attr('sensor.crypto_dca_result', 'eth_amount') | default(0) }} |
+              | **Alts** | €{{ state_attr('sensor.crypto_dca_result', 'alts_amount') | default(0) }} |
+              | **Итого** | **€{{ states('sensor.crypto_dca_result') | default(0) }}** |
+
+              {{ state_attr('sensor.crypto_dca_result', 'reason') | default('') }}
+
+              📅 {{ states('sensor.crypto_next_action_timer') }}
+
+      # ==========================================================================
+      # ROW 1e: ЕЖЕНЕДЕЛЬНЫЙ ИНСАЙТ
+      # ==========================================================================
+      - type: grid
+        title: "📰 Что происходит на рынке"
+        cards:
+          - type: markdown
+            content: |
+              ### {{ states('sensor.crypto_weekly_insight') }}
+
+              | Актив | Статус |
+              |-------|--------|
+              | **BTC** | {{ state_attr('sensor.crypto_weekly_insight', 'btc_status') | default('N/A') }} |
+              | **ETH vs BTC** | {{ state_attr('sensor.crypto_weekly_insight', 'eth_vs_btc') | default('N/A') }} |
+              | **Альткоины** | {{ state_attr('sensor.crypto_weekly_insight', 'alts_status') | default('N/A') }} |
+              | **AI сектор** | {{ state_attr('sensor.crypto_weekly_insight', 'ai_sector') | default('N/A') }} |
+              | **Доминация** | {{ state_attr('sensor.crypto_weekly_insight', 'dominance_trend') | default('N/A') }} |
+
+              ---
+              **Сводка:** {{ state_attr('sensor.crypto_weekly_insight', 'summary') | default('Нет данных') }}
+
+      # ==========================================================================
+      # ROW 2: ОБЗОР РЫНКА
+      # ==========================================================================
+      - type: grid
+        title: "📊 Обзор рынка"
+        cards:
+          - type: tile
+            entity: sensor.crypto_fear_greed_index
+            name: "Fear & Greed"
+            icon: mdi:emoticon-neutral
+            color: >
+              {% set val = states('sensor.crypto_fear_greed_index') | int(50) %}
+              {% if val <= 25 %}red
+              {% elif val <= 45 %}orange
+              {% elif val <= 55 %}grey
+              {% elif val <= 75 %}light-green
+              {% else %}green{% endif %}
+          - type: tile
+            entity: sensor.crypto_market_extended
+            name: "Extended Score"
+            icon: mdi:star-four-points
+            color: >
+              {% set val = states('sensor.crypto_market_extended') | int(50) %}
+              {% if val >= 70 %}green
+              {% elif val >= 55 %}light-green
+              {% elif val >= 45 %}grey
+              {% elif val >= 30 %}orange
+              {% else %}red{% endif %}
+          - type: tile
+            entity: sensor.crypto_btc_dominance
+            name: "BTC Доминация"
+            icon: mdi:crown
+          - type: tile
+            entity: sensor.crypto_total_market_cap
+            name: "Market Cap"
+            icon: mdi:chart-bar
+          - type: markdown
+            content: |
+              ### 📈 Сводка рынка
+              | Метрика | Значение |
+              |---------|----------|
+              | **F&G Index** | {{ states('sensor.crypto_fear_greed_index') | default(50) }}/100 |
+              | **Extended Score** | {{ states('sensor.crypto_market_extended') | default(50) }}/100 |
+              | **BTC Доминация** | {{ states('sensor.crypto_btc_dominance') | default('N/A') }}% |
+              | **Market Cap** | {{ states('sensor.crypto_total_market_cap') | default('N/A') }} |
+              | **Сигнал** | {{ state_attr('sensor.crypto_market_extended', 'overall_signal') | default('⚪ N/A') }} |
+
+      # ==========================================================================
+      # ROW 3: ЦЕНЫ КРИПТОВАЛЮТ
+      # ==========================================================================
+      - type: grid
+        title: "💰 Цены криптовалют"
+        cards:
+          - type: markdown
+            content: |
+              {% set curr = states('input_select.crypto_currency') | default('EUR') %}
+              {% set sym = '€' if curr == 'EUR' else '$' %}
+              {% set c = curr | lower %}
+              ### 💵 Топ монеты ({{ curr }})
+              | Монета | Цена | 24h |
+              |--------|-----:|----:|
+              | **₿ BTC** | {{ sym }}{{ state_attr('sensor.crypto_prices_raw', 'bitcoin')[c] | default(0) | round(0) }} | {{ state_attr('sensor.crypto_prices_raw', 'bitcoin')[c ~ '_24h_change'] | default(0) | round(1) }}% |
+              | **Ξ ETH** | {{ sym }}{{ state_attr('sensor.crypto_prices_raw', 'ethereum')[c] | default(0) | round(0) }} | {{ state_attr('sensor.crypto_prices_raw', 'ethereum')[c ~ '_24h_change'] | default(0) | round(1) }}% |
+              | **◎ SOL** | {{ sym }}{{ state_attr('sensor.crypto_prices_raw', 'solana')[c] | default(0) | round(2) }} | {{ state_attr('sensor.crypto_prices_raw', 'solana')[c ~ '_24h_change'] | default(0) | round(1) }}% |
+              | **💎 TON** | {{ sym }}{{ state_attr('sensor.crypto_prices_raw', 'the-open-network')[c] | default(0) | round(2) }} | {{ state_attr('sensor.crypto_prices_raw', 'the-open-network')[c ~ '_24h_change'] | default(0) | round(1) }}% |
+              | **🗄️ AR** | {{ sym }}{{ state_attr('sensor.crypto_prices_raw', 'arweave')[c] | default(0) | round(2) }} | {{ state_attr('sensor.crypto_prices_raw', 'arweave')[c ~ '_24h_change'] | default(0) | round(1) }}% |
+          - type: markdown
+            content: |
+              {% set curr = states('input_select.crypto_currency') | default('EUR') %}
+              {% set sym = '€' if curr == 'EUR' else '$' %}
+              {% set c = curr | lower %}
+              ### 🤖 AI токены ({{ curr }})
+              | Монета | Цена | 24h |
+              |--------|-----:|----:|
+              | **RNDR** | {{ sym }}{{ state_attr('sensor.crypto_prices_raw', 'render-token')[c] | default(0) | round(2) }} | {{ state_attr('sensor.crypto_prices_raw', 'render-token')[c ~ '_24h_change'] | default(0) | round(1) }}% |
+              | **FET** | {{ sym }}{{ state_attr('sensor.crypto_prices_raw', 'fetch-ai')[c] | default(0) | round(3) }} | {{ state_attr('sensor.crypto_prices_raw', 'fetch-ai')[c ~ '_24h_change'] | default(0) | round(1) }}% |
+              | **TAO** | {{ sym }}{{ state_attr('sensor.crypto_prices_raw', 'bittensor')[c] | default(0) | round(0) }} | {{ state_attr('sensor.crypto_prices_raw', 'bittensor')[c ~ '_24h_change'] | default(0) | round(1) }}% |
+              | **AGIX** | {{ sym }}{{ state_attr('sensor.crypto_prices_raw', 'singularitynet')[c] | default(0) | round(3) }} | {{ state_attr('sensor.crypto_prices_raw', 'singularitynet')[c ~ '_24h_change'] | default(0) | round(1) }}% |
+              | **OCEAN** | {{ sym }}{{ state_attr('sensor.crypto_prices_raw', 'ocean-protocol')[c] | default(0) | round(3) }} | {{ state_attr('sensor.crypto_prices_raw', 'ocean-protocol')[c ~ '_24h_change'] | default(0) | round(1) }}% |
+              | **AKT** | {{ sym }}{{ state_attr('sensor.crypto_prices_raw', 'akash-network')[c] | default(0) | round(2) }} | {{ state_attr('sensor.crypto_prices_raw', 'akash-network')[c ~ '_24h_change'] | default(0) | round(1) }}% |
+          - type: tile
+            entity: sensor.eth_gas_price
+            name: "ETH Gas"
+            icon: mdi:gas-station
+            color: >
+              {% set gas = states('sensor.eth_gas_price') | int(30) %}
+              {% if gas > 100 %}red
+              {% elif gas > 50 %}orange
+              {% elif gas > 30 %}grey
+              {% else %}green{% endif %}
+
+      # ==========================================================================
+      # ROW 3: ДЕРИВАТИВЫ (Binance Futures)
+      # ==========================================================================
+      - type: grid
+        title: "📊 Деривативы (Binance)"
+        cards:
+          - type: tile
+            entity: sensor.crypto_derivatives
+            name: "Деривативы"
+            icon: mdi:chart-timeline-variant-shimmer
+          - type: tile
+            entity: sensor.crypto_btc_open_interest_raw
+            name: "BTC OI"
+            icon: mdi:bitcoin
+          - type: tile
+            entity: sensor.crypto_eth_open_interest_raw
+            name: "ETH OI"
+            icon: mdi:ethereum
+          - type: tile
+            entity: sensor.crypto_btc_long_short_raw
+            name: "Long/Short"
+            icon: mdi:scale-balance
+            color: >
+              {% set ratio = states('sensor.crypto_btc_long_short_raw') | float(1) %}
+              {% if ratio > 1.3 %}red
+              {% elif ratio < 0.8 %}green
+              {% else %}grey{% endif %}
+          - type: markdown
+            content: |
+              ### 📈 Funding & Sentiment
+              | Метрика | Значение | Интерпретация |
+              |---------|----------|---------------|
+              | **Funding Rate** | {{ state_attr('sensor.crypto_derivatives', 'btc_funding') | default('N/A') }}% | {{ state_attr('sensor.crypto_derivatives', 'btc_funding_status') | default('N/A') }} |
+              | **BTC OI** | {{ state_attr('sensor.crypto_derivatives', 'btc_oi') | default('N/A') }} BTC | |
+              | **ETH OI** | {{ state_attr('sensor.crypto_derivatives', 'eth_oi') | default('N/A') }} ETH | |
+              | **Long/Short** | {{ state_attr('sensor.crypto_derivatives', 'btc_long_pct') | default(50) }}% / {{ state_attr('sensor.crypto_derivatives', 'btc_short_pct') | default(50) }}% | |
+
+              **Сигнал:** {{ state_attr('sensor.crypto_derivatives', 'signal') | default('⚪ N/A') }}
+          - type: tile
+            entity: binary_sensor.crypto_funding_extreme
+            name: "Funding Extreme"
+            icon: mdi:alert-rhombus
+            color: red
+
+      # ==========================================================================
+      # ROW 4: СЕТЬ BITCOIN
+      # ==========================================================================
+      - type: grid
+        title: "⛓️ Bitcoin Network"
+        cards:
+          - type: tile
+            entity: sensor.crypto_btc_network
+            name: "Hashrate"
+            icon: mdi:server-network
+          - type: tile
+            entity: sensor.crypto_btc_fees
+            name: "BTC Fees"
+            icon: mdi:speedometer
+            color: >
+              {% set fee = states('sensor.crypto_btc_fees') | int(10) %}
+              {% if fee > 50 %}red
+              {% elif fee > 20 %}orange
+              {% elif fee > 10 %}grey
+              {% else %}green{% endif %}
+          - type: tile
+            entity: sensor.crypto_btc_difficulty_raw
+            name: "Diff Change"
+            icon: mdi:chart-bell-curve
+          - type: tile
+            entity: binary_sensor.crypto_btc_network_healthy
+            name: "Network OK"
+            icon: mdi:check-network
+            color: green
+          - type: markdown
+            content: |
+              ### ⛓️ BTC Network Stats
+              | Метрика | Значение |
+              |---------|----------|
+              | **Hashrate** | {{ state_attr('sensor.crypto_btc_network', 'hashrate') | default('N/A') }} |
+              | **Difficulty** | {{ state_attr('sensor.crypto_btc_network', 'difficulty') | default('N/A') }} |
+              | **Следующая корр.** | {{ state_attr('sensor.crypto_btc_network', 'difficulty_change') | default('N/A') }} |
+              | **Прогресс** | {{ state_attr('sensor.crypto_btc_network', 'difficulty_progress') | default('N/A') }} |
+              | **Блоков до корр.** | {{ state_attr('sensor.crypto_btc_network', 'blocks_to_adjustment') | default('N/A') }} |
+              | **TX за 24h** | {{ state_attr('sensor.crypto_btc_network', 'tx_24h') | default('N/A') }} |
+              | **Avg Block Time** | {{ state_attr('sensor.crypto_btc_network', 'avg_block_time') | default('N/A') }} |
+          - type: markdown
+            content: |
+              ### 💸 BTC Fees (sat/vB)
+              | Приоритет | Стоимость |
+              |-----------|-----------|
+              | **⚡ Fastest** | {{ state_attr('sensor.crypto_btc_fees', 'fastest') | default('N/A') }} sat/vB |
+              | **🚀 30 min** | {{ state_attr('sensor.crypto_btc_fees', 'half_hour') | default('N/A') }} sat/vB |
+              | **⏱️ 1 hour** | {{ state_attr('sensor.crypto_btc_fees', 'hour') | default('N/A') }} sat/vB |
+              | **🐢 Economy** | {{ state_attr('sensor.crypto_btc_fees', 'economy') | default('N/A') }} sat/vB |
+
+              **Статус:** {{ state_attr('sensor.crypto_btc_fees', 'recommendation') | default('N/A') }}
+
+      # ==========================================================================
+      # ROW 5: DeFi & Staking
+      # ==========================================================================
+      - type: grid
+        title: "🏦 DeFi & Staking"
+        cards:
+          - type: tile
+            entity: sensor.crypto_defi
+            name: "DeFi TVL"
+            icon: mdi:bank
+          - type: tile
+            entity: sensor.crypto_eth_staking_apy_raw
+            name: "ETH Staking APY"
+            icon: mdi:percent
+            color: green
+          - type: markdown
+            content: |
+              ### 🏦 DeFi Метрики
+              | Метрика | Значение |
+              |---------|----------|
+              | **Total DeFi TVL** | ${{ states('sensor.crypto_defi') | default(0) }}B |
+              | **ETH Staking APY** | {{ states('sensor.crypto_eth_staking_apy_raw') | default(0) }}% |
+              | **Статус ликвидности** | {{ state_attr('sensor.crypto_defi', 'status') | default('N/A') }} |
+
+      # ==========================================================================
+      # ROW 6: ТЕХНИЧЕСКИЙ АНАЛИЗ - НАСТРОЙКИ
+      # ==========================================================================
+      - type: grid
+        title: "📊 Технический анализ - Настройки"
+        cards:
+          - type: entities
+            entities:
+              - entity: input_select.crypto_ta_coin
+                name: "Монета"
+              - entity: input_select.crypto_ta_timeframe
+                name: "Таймфрейм"
+          - type: markdown
+            content: |
+              {% if is_state('input_boolean.crypto_updating', 'on') %}
+              ### ⏳ Обновление...
+              *Идёт обновление данных, подождите...*
+              {% else %}
+              ### 🕐 Обновление данных
+              **Последнее:** {{ state_attr('sensor.crypto_last_update', 'formatted') | default('Нет данных') }}
+
+              **Статус:** {{ state_attr('sensor.crypto_last_update', 'status') | default('⚪ Нет данных') }}
+
+              *{{ state_attr('sensor.crypto_last_update', 'ago') | default('') }}*
+              {% endif %}
+          - type: button
+            name: "🔄 Обновить"
+            icon: mdi:refresh
+            tap_action:
+              action: perform-action
+              perform_action: script.turn_on
+              target:
+                entity_id: script.crypto_force_update
+          - type: button
+            name: "📥 Backfill анализа"
+            icon: mdi:database-import
+            tap_action:
+              action: perform-action
+              perform_action: script.turn_on
+              target:
+                entity_id: script.crypto_backfill_data
+            confirmation:
+              text: "Загрузить исторические данные анализа? Это может занять несколько минут."
+          - type: button
+            name: "📊 Импорт истории цен"
+            icon: mdi:chart-timeline-variant
+            tap_action:
+              action: perform-action
+              perform_action: script.turn_on
+              target:
+                entity_id: script.crypto_import_price_history
+            confirmation:
+              text: "Загрузить 90-дневную историю цен из CoinGecko? Это займёт ~30 секунд."
+
+      # ==========================================================================
+      # ROW 6b: ТЕХНИЧЕСКИЙ АНАЛИЗ - ДАННЫЕ
+      # ==========================================================================
+      - type: grid
+        title: "📈 Тех. анализ (30m свечи)"
+        cards:
+          - type: tile
+            entity: sensor.crypto_rsi
+            name: "RSI"
+            icon: mdi:chart-line-variant
+            color: >
+              {% set val = states('sensor.crypto_rsi') | int(50) %}
+              {% if val >= 70 %}red{% elif val <= 30 %}green{% else %}grey{% endif %}
+          - type: tile
+            entity: sensor.crypto_mtf_score
+            name: "MTF Score"
+            icon: mdi:chart-bell-curve-cumulative
+            color: >
+              {% set val = states('sensor.crypto_mtf_score') | int(50) %}
+              {% if val >= 65 %}green{% elif val >= 50 %}light-green{% elif val >= 35 %}orange{% else %}red{% endif %}
+          - type: tile
+            entity: sensor.crypto_score
+            name: "Total Score"
+            icon: mdi:star-four-points
+          - type: tile
+            entity: sensor.crypto_cycle
+            name: "Фаза цикла"
+            icon: mdi:chart-timeline-variant
+          - type: tile
+            entity: sensor.crypto_from_ath
+            name: "От ATH"
+            icon: mdi:chart-bell-curve
+          - type: tile
+            entity: sensor.crypto_patterns
+            name: "Паттерны"
+            icon: mdi:chart-areaspline
+          - type: markdown
+            content: |
+              {% set coin = states('input_select.crypto_ta_coin') | default('BTC') %}
+              {% set data = state_attr('sensor.crypto_analysis_raw', 'data') %}
+              ### 📊 {{ coin }} Детальный анализ
+              | Метрика | Значение |
+              |---------|----------|
+              | **RSI (30m)** | {{ data['crypto_' ~ coin | lower ~ '_rsi'] | default(50) | round(1) if data else 'N/A' }} |
+              | **MTF Score** | {{ data['crypto_' ~ coin | lower ~ '_mtf_score'] | default(50) | round(0) if data else 'N/A' }}% |
+              | **Сигнал** | {{ data['crypto_' ~ coin | lower ~ '_mtf_signal'] | default('N/A') if data else 'N/A' }} |
+              | **Тренд 30m** | {{ data['crypto_' ~ coin | lower ~ '_30m_trend'] | default('N/A') if data else 'N/A' }} |
+              | **Тренд 1h** | {{ data['crypto_' ~ coin | lower ~ '_1h_trend'] | default('N/A') if data else 'N/A' }} |
+              | **Тренд 4h** | {{ data['crypto_' ~ coin | lower ~ '_4h_trend'] | default('N/A') if data else 'N/A' }} |
+              | **От ATH** | {{ data['crypto_' ~ coin | lower ~ '_from_ath_pct'] | default(0) | round(1) if data else 'N/A' }}% |
+          - type: markdown
+            content: |
+              ### ₿ BTC vs Ξ ETH
+              | Метрика | BTC | ETH |
+              |---------|:---:|:---:|
+              | **RSI** | {{ state_attr('sensor.crypto_rsi', 'btc') | default('N/A') }} | {{ state_attr('sensor.crypto_rsi', 'eth') | default('N/A') }} |
+              | **MTF Score** | {{ state_attr('sensor.crypto_mtf_score', 'btc') | default('N/A') }}% | {{ state_attr('sensor.crypto_mtf_score', 'eth') | default('N/A') }}% |
+              | **Паттерны** | {{ state_attr('sensor.crypto_patterns', 'btc_count') | default(0) }} | {{ state_attr('sensor.crypto_patterns', 'eth_count') | default(0) }} |
+
+              **Фаза цикла BTC:** {{ states('sensor.crypto_cycle') | default('N/A') }}
+
+      # ==========================================================================
+      # ROW 7: DCA КАЛЬКУЛЯТОР
+      # ==========================================================================
+      - type: grid
+        title: "💵 DCA Калькулятор"
+        cards:
+          - type: tile
+            entity: sensor.crypto_dca
+            name: "Сигнал DCA"
+            icon: mdi:cash-plus
+            color: >
+              {% set signal = states('sensor.crypto_dca') | default('') %}
+              {% if '🟢' in signal %}green
+              {% elif '🔴' in signal %}red
+              {% elif '🟡' in signal %}orange
+              {% else %}grey{% endif %}
+          - type: tile
+            entity: binary_sensor.crypto_dca_good_time
+            name: "Хорошее время"
+            icon: mdi:thumb-up
+            color: green
+          - type: tile
+            entity: input_number.crypto_dca_weekly_amount
+            name: "💵 Базовая сумма"
+            icon: mdi:cash
+            features:
+              - type: numeric-input
+                mode: box
+          - type: markdown
+            content: |
+              ### 💰 DCA Рекомендация
+              | Параметр | Значение |
+              |----------|----------|
+              | **F&G Index** | {{ state_attr('sensor.crypto_dca', 'fear_greed') | default('N/A') }} |
+              | **Множитель** | x{{ state_attr('sensor.crypto_dca', 'multiplier') | default(1.0) }} |
+              | **Рекомендуемая** | €{{ state_attr('sensor.crypto_dca', 'recommended') | default(100) }} |
+
+              **Распределение:**
+              | Монета | Сумма |
+              |--------|------:|
+              | **BTC** | €{{ state_attr('sensor.crypto_dca', 'alloc_btc') | default(0) }} |
+              | **ETH** | €{{ state_attr('sensor.crypto_dca', 'alloc_eth') | default(0) }} |
+              | **Alts** | €{{ state_attr('sensor.crypto_dca', 'alloc_alts') | default(0) }} |
+
+              *{{ state_attr('sensor.crypto_dca', 'reason') | default('') }}*
+
+              📅 След. DCA: {{ state_attr('sensor.crypto_dca', 'next_dca') | default('N/A') }}
+
+      # ==========================================================================
+      # ROW 8: АЛЕРТЫ И СИГНАЛЫ
+      # ==========================================================================
+      - type: grid
+        title: "🚨 Алерты"
+        cards:
+          - type: tile
+            entity: binary_sensor.crypto_strong_buy_signal
+            name: "Strong Buy"
+            icon: mdi:arrow-up-bold-circle
+            color: green
+          - type: tile
+            entity: binary_sensor.crypto_strong_sell_signal
+            name: "Strong Sell"
+            icon: mdi:arrow-down-bold-circle
+            color: red
+          - type: tile
+            entity: binary_sensor.crypto_fg_extreme
+            name: "F&G Extreme"
+            icon: mdi:alert-circle
+          - type: tile
+            entity: binary_sensor.crypto_halving_soon
+            name: "Халвинг"
+            icon: mdi:timer-sand
+          - type: tile
+            entity: binary_sensor.crypto_price_alert_high
+            name: "Price High"
+            icon: mdi:arrow-up-circle
+            color: green
+          - type: tile
+            entity: binary_sensor.crypto_price_alert_low
+            name: "Price Low"
+            icon: mdi:arrow-down-circle
+            color: red
+          - type: tile
+            entity: binary_sensor.crypto_btc_fees_high
+            name: "Fees High"
+            icon: mdi:currency-btc
+            color: orange
+          - type: tile
+            entity: binary_sensor.crypto_exchange_flow_alert
+            name: "Exchange Flow"
+            icon: mdi:bank-transfer
+
+      # ==========================================================================
+      # ROW 9: КИТЫ
+      # ==========================================================================
+      - type: grid
+        title: "🐋 Киты"
+        cards:
+          - type: tile
+            entity: sensor.crypto_whale_activity
+            name: "Whale Activity"
+            icon: mdi:whale
+          - type: markdown
+            content: |
+              ### 🐋 Whale Tracking
+              | Параметр | Значение |
+              |----------|----------|
+              | **BTC Порог** | {{ states('input_number.crypto_whale_btc_threshold') | default(100) }} BTC |
+              | **ETH Порог** | {{ states('input_number.crypto_whale_eth_threshold') | default(1000) }} ETH |
+
+              *Для полной функциональности требуется Whale Alert API*
+
+      # ==========================================================================
+      # ROW 10: ГРАФИКИ ЦЕН (90 дней)
+      # ==========================================================================
+      - type: grid
+        title: "📈 Графики цен (статистика)"
+        cards:
+          - type: history-graph
+            title: "BTC / ETH (USD)"
+            hours_to_show: 2160
+            entities:
+              - entity: sensor.crypto_history_btc_usd
+                name: "BTC"
+              - entity: sensor.crypto_history_eth_usd
+                name: "ETH"
+          - type: history-graph
+            title: "Альткоины (USD)"
+            hours_to_show: 2160
+            entities:
+              - entity: sensor.crypto_history_sol_usd
+                name: "SOL"
+              - entity: sensor.crypto_history_ton_usd
+                name: "TON"
+              - entity: sensor.crypto_history_ar_usd
+                name: "AR"
+          - type: history-graph
+            title: "AI токены (USD)"
+            hours_to_show: 2160
+            entities:
+              - entity: sensor.crypto_history_rndr_usd
+                name: "RNDR"
+              - entity: sensor.crypto_history_fet_usd
+                name: "FET"
+              - entity: sensor.crypto_history_tao_usd
+                name: "TAO"
+          - type: history-graph
+            title: "Fear & Greed / BTC Dominance"
+            hours_to_show: 2160
+            entities:
+              - entity: sensor.crypto_history_fear_greed
+                name: "Fear & Greed"
+              - entity: sensor.crypto_history_btc_dominance
+                name: "BTC Dom %"
+          - type: history-graph
+            title: "RSI (BTC / ETH)"
+            hours_to_show: 720
+            entities:
+              - entity: sensor.crypto_history_btc_rsi
+                name: "BTC RSI"
+              - entity: sensor.crypto_history_eth_rsi
+                name: "ETH RSI"
+          - type: statistic
+            entity: sensor.crypto_history_btc_usd
+            name: "BTC (7д)"
+            period:
+              calendar:
+                period: week
+            stat_type: mean
+          - type: statistic
+            entity: sensor.crypto_history_eth_usd
+            name: "ETH (7д)"
+            period:
+              calendar:
+                period: week
+            stat_type: mean
+
+      - type: grid
+        title: "📉 Статистика BTC за периоды"
+        cards:
+          - type: markdown
+            content: |
+              ### 📊 Bitcoin USD - Статистика
+              | Период | Min | Max | Среднее |
+              |--------|-----|-----|---------|
+              | **Сегодня** | - | - | {{ states('sensor.crypto_history_btc_usd') }} |
+
+              *Долгосрочная статистика накапливается автоматически.*
+              *Полные данные появятся через несколько дней.*
+          - type: statistics-graph
+            title: "BTC USD (месяц)"
+            entities:
+              - sensor.crypto_history_btc_usd
+            days_to_show: 30
+            stat_types:
+              - mean
+              - min
+              - max
+          - type: statistics-graph
+            title: "ETH USD (месяц)"
+            entities:
+              - sensor.crypto_history_eth_usd
+            days_to_show: 30
+            stat_types:
+              - mean
+              - min
+              - max
+          - type: statistics-graph
+            title: "Fear & Greed (месяц)"
+            entities:
+              - sensor.crypto_history_fear_greed
+            days_to_show: 30
+            stat_types:
+              - mean
+              - min
+              - max
+
+      # ==========================================================================
+      # ROW 12: НАСТРОЙКИ
+      # ==========================================================================
+      - type: grid
+        title: "⚙️ Настройки"
+        cards:
+          - type: tile
+            entity: input_number.crypto_dca_weekly_amount
+            name: "DCA Бюджет"
+            icon: mdi:cash
+            features:
+              - type: numeric-input
+                mode: box
+          - type: tile
+            entity: input_number.crypto_dca_btc_weight
+            name: "Вес BTC"
+            icon: mdi:bitcoin
+            features:
+              - type: numeric-input
+                mode: slider
+          - type: tile
+            entity: input_number.crypto_dca_eth_weight
+            name: "Вес ETH"
+            icon: mdi:ethereum
+            features:
+              - type: numeric-input
+                mode: slider
+          - type: tile
+            entity: input_number.crypto_dca_alt_weight
+            name: "Вес Alts"
+            icon: mdi:currency-usd
+            features:
+              - type: numeric-input
+                mode: slider
+          - type: tile
+            entity: input_number.crypto_rsi_oversold
+            name: "RSI Oversold"
+            icon: mdi:chart-line
+            features:
+              - type: numeric-input
+                mode: slider
+          - type: tile
+            entity: input_number.crypto_rsi_overbought
+            name: "RSI Overbought"
+            icon: mdi:chart-line
+            features:
+              - type: numeric-input
+                mode: slider
+          - type: tile
+            entity: input_number.crypto_fg_extreme_fear
+            name: "F&G Fear"
+            icon: mdi:emoticon-cry
+            features:
+              - type: numeric-input
+                mode: slider
+          - type: tile
+            entity: input_number.crypto_fg_extreme_greed
+            name: "F&G Greed"
+            icon: mdi:emoticon-happy
+            features:
+              - type: numeric-input
+                mode: slider
+          - type: tile
+            entity: input_number.crypto_whale_btc_threshold
+            name: "Whale BTC"
+            icon: mdi:whale
+            features:
+              - type: numeric-input
+                mode: box
+          - type: tile
+            entity: input_number.crypto_whale_eth_threshold
+            name: "Whale ETH"
+            icon: mdi:whale
+            features:
+              - type: numeric-input
+                mode: box
+          - type: tile
+            entity: input_number.crypto_btc_price_alert_low
+            name: "BTC Alert Low"
+            icon: mdi:arrow-down-circle
+            features:
+              - type: numeric-input
+                mode: box
+
+  # ==============================================================================
+  # VIEW 7: FINANCE - Валюты, Индексы, Металлы
+  # ==============================================================================
+  - title: Finance
+    path: finance
+    icon: mdi:finance
+    type: sections
+    max_columns: 3
+    sections:
+      # ==========================================================================
+      # ROW 1: ВАЛЮТЫ
+      # ==========================================================================
+      - type: grid
+        title: "💱 Курсы валют (от EUR)"
+        cards:
+          - type: markdown
+            content: |
+              ### 🌍 Основные валюты
+              | Валюта | Курс | Код |
+              |--------|-----:|-----|
+              | 🇺🇸 **Доллар США** | ${{ states('sensor.eur_usd_rate') }} | USD |
+              | 🇬🇧 **Фунт** | £{{ states('sensor.eur_gbp_rate') }} | GBP |
+              | 🇨🇭 **Франк** | {{ states('sensor.eur_chf_rate') }} | CHF |
+              | 🇯🇵 **Йена** | ¥{{ states('sensor.eur_jpy_rate') }} | JPY |
+
+              *Источник: ECB (Frankfurter API)*
+          - type: markdown
+            content: |
+              ### 🌏 Региональные валюты
+              | Валюта | Курс | Код |
+              |--------|-----:|-----|
+              | 🇷🇺 **Рубль** | ₽{{ states('sensor.eur_rub_rate') }} | RUB |
+              | 🇺🇦 **Гривна** | ₴{{ states('sensor.eur_uah_rate') }} | UAH |
+              | 🇨🇳 **Юань** | ¥{{ states('sensor.eur_cny_rate') }} | CNY |
+              | 🇮🇱 **Шекель** | ₪{{ states('sensor.eur_ils_rate') }} | ILS |
+
+              *Источник: FloatRates*
+          - type: tile
+            entity: sensor.eur_usd_rate
+            name: "EUR/USD"
+            icon: mdi:currency-usd
+          - type: tile
+            entity: sensor.eur_gbp_rate
+            name: "EUR/GBP"
+            icon: mdi:currency-gbp
+          - type: tile
+            entity: sensor.eur_rub_rate
+            name: "EUR/RUB"
+            icon: mdi:currency-rub
+
+      # ==========================================================================
+      # КОНВЕРТОР ВАЛЮТ
+      # ==========================================================================
+      - type: grid
+        title: "💱 Конвертор валют"
+        cards:
+          - type: entities
+            entities:
+              - entity: input_select.converter_currency
+                name: "Валюта"
+              - entity: input_number.converter_amount
+                name: "Сумма"
+          - type: markdown
+            content: |
+              ### 💵 Фиатные валюты
+              | Валюта | Сумма |
+              |--------|------:|
+              | 🇪🇺 **EUR** | € {{ state_attr('sensor.currency_converter', 'to_eur') }} |
+              | 🇺🇸 **USD** | $ {{ state_attr('sensor.currency_converter', 'to_usd') }} |
+              | 🇺🇦 **UAH** | ₴ {{ state_attr('sensor.currency_converter', 'to_uah') }} |
+              | 🇷🇺 **RUB** | ₽ {{ state_attr('sensor.currency_converter', 'to_rub') }} |
+
+              ### ₿ Криптовалюты
+              | Валюта | Сумма |
+              |--------|------:|
+              | ₮ **USDT** | {{ state_attr('sensor.currency_converter', 'to_usdt') }} |
+              | ₿ **BTC** | {{ state_attr('sensor.currency_converter', 'to_btc') }} |
+              | 🗄️ **AR** | {{ state_attr('sensor.currency_converter', 'to_ar') }} |
+
+      # ==========================================================================
+      # ROW 2: БИРЖЕВЫЕ ИНДЕКСЫ
+      # ==========================================================================
+      - type: grid
+        title: "📈 Биржевые индексы"
+        cards:
+          - type: markdown
+            content: |
+              ### 📊 Основные индексы
+              | Индекс | Значение | Изменение |
+              |--------|----------|-----------|
+              | 🇪🇸 **IBEX 35** | {{ states('sensor.ibex_35') }} | {% set chg = state_attr('sensor.ibex_35', 'change_percent') | float(0) %}{{ '🟢' if chg > 0 else '🔴' if chg < 0 else '⚪' }} {{ chg }}% |
+              | 🇺🇸 **S&P 500** | {{ states('sensor.s_p_500') }} | {% set chg = state_attr('sensor.s_p_500', 'change_percent') | float(0) %}{{ '🟢' if chg > 0 else '🔴' if chg < 0 else '⚪' }} {{ chg }}% |
+
+              *Источник: Alpha Vantage*
+          - type: tile
+            entity: sensor.ibex_35
+            name: "IBEX 35"
+            icon: mdi:chart-line
+          - type: tile
+            entity: sensor.s_p_500
+            name: "S&P 500"
+            icon: mdi:chart-areaspline
+
+      # ==========================================================================
+      # ROW 3: ДРАГОЦЕННЫЕ МЕТАЛЛЫ
+      # ==========================================================================
+      - type: grid
+        title: "🥇 Драгоценные металлы"
+        cards:
+          - type: markdown
+            content: |
+              ### 💰 Цены на металлы ($/oz)
+              | Металл | Цена | 24h |
+              |--------|-----:|----:|
+              | 🥇 **Золото** | ${{ states('sensor.gold_price') }} | {% set chg = state_attr('sensor.gold_price', 'change_percent') | default(0) | float %}{{ '🟢' if chg > 0 else '🔴' if chg < 0 else '⚪' }} {{ chg | round(2) }}% |
+              | 🥈 **Серебро** | ${{ states('sensor.silver_price') }} | {% set chg = state_attr('sensor.silver_price', 'change_percent') | default(0) | float %}{{ '🟢' if chg > 0 else '🔴' if chg < 0 else '⚪' }} {{ chg | round(2) }}% |
+              | ⬜ **Платина** | ${{ states('sensor.platinum_price') }} | {% set chg = state_attr('sensor.platinum_price', 'change_percent') | default(0) | float %}{{ '🟢' if chg > 0 else '🔴' if chg < 0 else '⚪' }} {{ chg | round(2) }}% |
+              | 🔷 **Палладий** | ${{ states('sensor.palladium_price') }} | {% set chg = state_attr('sensor.palladium_price', 'change_percent') | default(0) | float %}{{ '🟢' if chg > 0 else '🔴' if chg < 0 else '⚪' }} {{ chg | round(2) }}% |
+
+              *Источники: goldprice.org, Alpha Vantage*
+          - type: tile
+            entity: sensor.gold_price
+            name: "Золото"
+            icon: mdi:gold
+          - type: tile
+            entity: sensor.silver_price
+            name: "Серебро"
+            icon: mdi:circle-outline
+          - type: tile
+            entity: sensor.platinum_price
+            name: "Платина"
+            icon: mdi:shimmer
+          - type: tile
+            entity: sensor.palladium_price
+            name: "Палладий"
+            icon: mdi:atom
+
+      # ==========================================================================
+      # ROW 4: СВОДКА
+      # ==========================================================================
+      - type: grid
+        title: "📋 Сводка рынка"
+        cards:
+          - type: markdown
+            content: |
+              ### 🌐 Обзор рынков
+
+              **Валюты (EUR):**
+              - USD: ${{ states('sensor.eur_usd_rate') }} | GBP: £{{ states('sensor.eur_gbp_rate') }}
+              - RUB: ₽{{ states('sensor.eur_rub_rate') }} | UAH: ₴{{ states('sensor.eur_uah_rate') }}
+
+              **Индексы:**
+              - IBEX: {{ states('sensor.ibex_35') }} ({{ state_attr('sensor.ibex_35', 'change_percent') | default(0) }}%)
+              - S&P: {{ states('sensor.s_p_500') }} ({{ state_attr('sensor.s_p_500', 'change_percent') | default(0) }}%)
+
+              **Металлы ($/oz):**
+              - 🥇 ${{ states('sensor.gold_price') | float(0) | round(0) }} | 🥈 ${{ states('sensor.silver_price') | float(0) | round(0) }}
+              - ⬜ ${{ states('sensor.platinum_price') | float(0) | round(0) }} | 🔷 ${{ states('sensor.palladium_price') | float(0) | round(0) }}
+
+      # ==========================================================================
+      # ROW 5: ГРАФИКИ ВАЛЮТ
+      # ==========================================================================
+      - type: grid
+        title: "📊 История курсов валют"
+        cards:
+          - type: history-graph
+            title: "EUR/USD, EUR/GBP (90 дней)"
+            hours_to_show: 2160
+            entities:
+              - entity: sensor.eur_usd_rate
+                name: "USD"
+              - entity: sensor.eur_gbp_rate
+                name: "GBP"
+          - type: history-graph
+            title: "EUR/RUB, EUR/UAH (90 дней)"
+            hours_to_show: 2160
+            entities:
+              - entity: sensor.eur_rub_rate
+                name: "RUB"
+              - entity: sensor.eur_uah_rate
+                name: "UAH"
+          - type: statistics-graph
+            title: "EUR/USD (месяц)"
+            entities:
+              - sensor.eur_usd_rate
+            days_to_show: 30
+            stat_types:
+              - mean
+              - min
+              - max
+
+      # ==========================================================================
+      # ROW 6: ГРАФИКИ МЕТАЛЛОВ
+      # ==========================================================================
+      - type: grid
+        title: "📊 История цен металлов"
+        cards:
+          - type: history-graph
+            title: "Золото, Серебро (90 дней)"
+            hours_to_show: 2160
+            entities:
+              - entity: sensor.gold_price
+                name: "Золото"
+              - entity: sensor.silver_price
+                name: "Серебро"
+          - type: history-graph
+            title: "Платина, Палладий (90 дней)"
+            hours_to_show: 2160
+            entities:
+              - entity: sensor.platinum_price
+                name: "Платина"
+              - entity: sensor.palladium_price
+                name: "Палладий"
+          - type: statistics-graph
+            title: "Золото (месяц)"
+            entities:
+              - sensor.gold_price
+            days_to_show: 30
+            stat_types:
+              - mean
+              - min
+              - max
+          - type: statistics-graph
+            title: "Серебро (месяц)"
+            entities:
+              - sensor.silver_price
+            days_to_show: 30
+            stat_types:
+              - mean
+              - min
+              - max
+
+      # ==========================================================================
+      # ROW 7: ГРАФИКИ ИНДЕКСОВ
+      # ==========================================================================
+      - type: grid
+        title: "📊 История индексов"
+        cards:
+          - type: history-graph
+            title: "IBEX 35, S&P 500 (90 дней)"
+            hours_to_show: 2160
+            entities:
+              - entity: sensor.ibex_35
+                name: "IBEX 35"
+              - entity: sensor.s_p_500
+                name: "S&P 500"
+          - type: statistics-graph
+            title: "IBEX 35 (месяц)"
+            entities:
+              - sensor.ibex_35
+            days_to_show: 30
+            stat_types:
+              - mean
+              - min
+              - max
+
+  # ==============================================================================
+  # VIEW 8: CONTEXT - Контекст и поведение дома
+  # ==============================================================================
+  - title: Context
+    path: context
+    icon: mdi:home-analytics
+    type: sections
+    max_columns: 2
+    sections:
+      # --------------------------------------------------------------------------
+      # РЕЖИМ ДНЯ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "📅 Режим дня"
+        cards:
+          - type: tile
+            entity: sensor.day_mode
+            name: "Текущий режим"
+          - type: tile
+            entity: input_select.day_mode_override
+            name: "Переопределение"
+          - type: markdown
+            content: |
+              ### {{ state_attr('sensor.day_mode', 'state_ru') }}
+
+              {{ state_attr('sensor.day_mode', 'description_ru') }}
+
+              | Параметр | Значение |
+              |----------|----------|
+              | **Режим** | {{ state_attr('sensor.day_mode', 'state_ru') }} |
+              | **Ручной** | {{ 'Да' if state_attr('sensor.day_mode', 'is_manual_override') == 'True' else 'Нет' }} |
+              | **Активность** | {{ state_attr('sensor.day_mode', 'activity_level') }} |
+          - type: entities
+            entities:
+              - entity: input_select.day_mode_override
+                name: "Установить режим"
+
+      # --------------------------------------------------------------------------
+      # КОГНИТИВНАЯ НАГРУЗКА
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🧠 Когнитивная нагрузка"
+        cards:
+          - type: tile
+            entity: sensor.cognitive_load
+            name: "Уровень"
+            color: >
+              {% set load = states('sensor.cognitive_load') %}
+              {% if load == 'low' %}green
+              {% elif load == 'medium' %}orange
+              {% else %}red{% endif %}
+          - type: tile
+            entity: binary_sensor.overload_detected
+            name: "Перегрузка"
+            color: red
+          - type: tile
+            entity: binary_sensor.break_recommended
+            name: "Нужен перерыв"
+            color: orange
+          - type: markdown
+            content: |
+              ### {{ state_attr('sensor.cognitive_load', 'state_ru') }} нагрузка
+
+              **Фильтр уведомлений:** {{ state_attr('sensor.cognitive_load', 'notification_filter_ru') }}
+
+              **Факторы:** {{ state_attr('sensor.cognitive_load', 'factors') }}
+
+              {% if is_state('binary_sensor.break_recommended', 'on') %}
+              ---
+              {{ state_attr('binary_sensor.break_recommended', 'suggestion_ru') }}
+              {% endif %}
+
+      # --------------------------------------------------------------------------
+      # СЛЕДУЮЩЕЕ ЛУЧШЕЕ ДЕЙСТВИЕ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "💡 Рекомендации"
+        cards:
+          - type: tile
+            entity: sensor.next_best_action
+            name: "Действие"
+          - type: markdown
+            content: |
+              ### {{ state_attr('sensor.next_best_action', 'action_ru') }}
+
+              {{ state_attr('sensor.next_best_action', 'description_ru') }}
+
+              ---
+              **Контекст:** {{ state_attr('sensor.next_best_action', 'context') }}
+
+      # --------------------------------------------------------------------------
+      # ПОВЕДЕНИЕ ДОМА
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🏠 Поведение дома"
+        cards:
+          - type: tile
+            entity: sensor.house_activity
+            name: "Активность"
+            color: >
+              {% set act = states('sensor.house_activity') %}
+              {% if act == 'empty' %}grey
+              {% elif act == 'quiet_presence' %}light-green
+              {% else %}green{% endif %}
+          - type: tile
+            entity: sensor.house_mood
+            name: "Настроение"
+            color: >
+              {% set mood = states('sensor.house_mood') %}
+              {% if mood == 'calm' %}green
+              {% elif mood == 'focused' %}blue
+              {% elif mood == 'tense' %}orange
+              {% else %}red{% endif %}
+          - type: tile
+            entity: sensor.anomaly_home_behavior
+            name: "Аномалии"
+          - type: tile
+            entity: binary_sensor.suspicious_silence
+            name: "Подозр. тишина"
+            color: red
+          - type: markdown
+            content: |
+              ### {{ state_attr('sensor.house_mood', 'state_ru') }}
+
+              {{ state_attr('sensor.house_mood', 'recommendation_ru') }}
+
+              | Параметр | Значение |
+              |----------|----------|
+              | **Активность** | {{ state_attr('sensor.house_activity', 'state_ru') }} |
+              | **CO2** | {{ state_attr('sensor.house_mood', 'co2_level') }} |
+              | **Нагрузка** | {{ state_attr('sensor.house_mood', 'cognitive_load') }} |
+              | **Потребление** | {{ state_attr('sensor.house_activity', 'power_consumption') }} |
+
+      # --------------------------------------------------------------------------
+      # УСЛОВИЯ ДЛЯ РАБОТЫ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "💼 Условия для работы"
+        cards:
+          - type: tile
+            entity: binary_sensor.optimal_work_conditions
+            name: "Оптимально"
+            color: green
+          - type: markdown
+            content: |
+              ### {% if is_state('binary_sensor.optimal_work_conditions', 'on') %}✅ Отличные условия{% else %}⚠️ Условия не оптимальны{% endif %}
+
+              {{ state_attr('binary_sensor.optimal_work_conditions', 'factors') }}
+
+              {{ state_attr('binary_sensor.optimal_work_conditions', 'recommendation_ru') }}
+
+      # --------------------------------------------------------------------------
+      # ГОРОД И ВЫХОД
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🚶 Город и выход"
+        cards:
+          - type: tile
+            entity: sensor.go_out_score
+            name: "Оценка выхода"
+            color: >
+              {% set score = states('sensor.go_out_score') | int(50) %}
+              {% if score >= 70 %}green
+              {% elif score >= 50 %}light-green
+              {% elif score >= 30 %}orange
+              {% else %}red{% endif %}
+          - type: tile
+            entity: sensor.city_stress_index
+            name: "Стресс города"
+          - type: tile
+            entity: binary_sensor.perfect_walk_time
+            name: "Время прогулки"
+            color: green
+          - type: tile
+            entity: binary_sensor.travel_context
+            name: "Путешествие"
+          - type: markdown
+            content: |
+              ### {{ state_attr('sensor.go_out_score', 'level_emoji') }} {{ state_attr('sensor.go_out_score', 'level_ru') }} - {{ states('sensor.go_out_score') }}%
+
+              {{ state_attr('sensor.go_out_score', 'recommendation_ru') }}
+
+              **Погода:** {{ state_attr('sensor.go_out_score', 'weather_details') }}
+
+              **Проблемы:** {{ state_attr('sensor.go_out_score', 'all_issues_ru') }}
+
+              ---
+              **Стресс города:** {{ state_attr('sensor.city_stress_index', 'state_ru') }}
+
+              {{ state_attr('sensor.city_stress_index', 'recommendation_ru') }}
+
+      # --------------------------------------------------------------------------
+      # УВЕДОМЛЕНИЯ И БАЛАНС
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🔔 Уведомления"
+        cards:
+          - type: tile
+            entity: sensor.notification_intensity
+            name: "Интенсивность"
+          - type: tile
+            entity: sensor.recommended_notification_mode
+            name: "Рекомендуемый режим"
+          - type: tile
+            entity: binary_sensor.night_watch_active
+            name: "Ночной сторож"
+          - type: markdown
+            content: |
+              ### {{ state_attr('sensor.notification_intensity', 'level_ru') }}
+
+              {{ state_attr('sensor.notification_intensity', 'description_ru') }}
+
+              **Рекомендуемый режим:** {{ state_attr('sensor.recommended_notification_mode', 'state_ru') }}
+
+              *Причина: {{ state_attr('sensor.recommended_notification_mode', 'reason_ru') }}*
+
+  # ==============================================================================
+  # VIEW 9: ABRIKOS - Питомец
+  # ==============================================================================
+  - title: Abrikos
+    path: abrikos
+    icon: mdi:dog
+    type: sections
+    max_columns: 2
+    sections:
+      # --------------------------------------------------------------------------
+      # ОСНОВНАЯ ИНФОРМАЦИЯ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🐕 Абрикос"
+        cards:
+          - type: markdown
+            content: |
+              # 🐕 Абрикос
+
+              **Порода:** {{ state_attr('sensor.abrikos_age', 'breed_ru') | default('Английский кокер-спаниель') }}
+
+              **День рождения:** {{ state_attr('sensor.abrikos_age', 'birth_date') | default('01.09.2025') }}
+
+              **Возраст:** {{ state_attr('sensor.abrikos_age', 'age_ru') | default('Вычисляется...') }} ({{ states('sensor.abrikos_age') | default(0) }} дней)
+
+              **Жизненный этап:** {{ state_attr('sensor.abrikos_age', 'life_stage_ru') | default('Вычисляется...') }}
+          - type: tile
+            entity: sensor.abrikos_age
+            name: "Возраст (дней)"
+            icon: mdi:cake-variant
+
+      # --------------------------------------------------------------------------
+      # СОСТОЯНИЕ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "💚 Состояние"
+        cards:
+          - type: tile
+            entity: sensor.abrikos_emotional_state
+            name: "Эмоции"
+            color: >
+              {% set st = states('sensor.abrikos_emotional_state') %}
+              {% if st == 'calm' %}green
+              {% elif st == 'playful' %}light-green
+              {% elif st == 'tired' %}grey
+              {% else %}orange{% endif %}
+          - type: tile
+            entity: sensor.abrikos_energy_level
+            name: "Энергия"
+            color: >
+              {% set lvl = states('sensor.abrikos_energy_level') %}
+              {% if lvl == 'high' %}green
+              {% elif lvl == 'normal' %}light-green
+              {% else %}grey{% endif %}
+          - type: tile
+            entity: binary_sensor.abrikos_needs_attention
+            name: "Нужно внимание"
+            color: red
+          - type: markdown
+            content: |
+              ### {{ state_attr('sensor.abrikos_emotional_state', 'emoji') | default('🐕') }} {{ state_attr('sensor.abrikos_emotional_state', 'state_ru') | default('Загрузка...') }}
+
+              **Причина:** {{ state_attr('sensor.abrikos_emotional_state', 'reason_ru') | default('Загрузка...') }}
+
+              {{ state_attr('sensor.abrikos_emotional_state', 'recommendation_ru') | default('') }}
+
+              ---
+              **Энергия:** {{ state_attr('sensor.abrikos_energy_level', 'state_ru') | default('Загрузка...') }}
+
+              {{ state_attr('sensor.abrikos_energy_level', 'activity_recommendation_ru') | default('') }}
+
+              **Подходящие активности:** {{ state_attr('sensor.abrikos_energy_level', 'suitable_activities_ru') | default('Загрузка...') }}
+
+      # --------------------------------------------------------------------------
+      # ПРОГУЛКИ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🚶 Прогулки"
+        cards:
+          - type: tile
+            entity: sensor.abrikos_time_since_walk
+            name: "С прогулки"
+            color: >
+              {% set hrs = states('sensor.abrikos_time_since_walk') | float(0) %}
+              {% if hrs > 6 %}red
+              {% elif hrs > 4 %}orange
+              {% else %}green{% endif %}
+          - type: tile
+            entity: binary_sensor.abrikos_good_walk_time
+            name: "Хорошее время"
+            color: green
+          - type: tile
+            entity: input_datetime.abrikos_last_walk
+            name: "Последняя прогулка"
+          - type: markdown
+            content: |
+              ### {{ state_attr('sensor.abrikos_time_since_walk', 'status_ru') | default('Нет данных') }}
+
+              **С последней прогулки:** {{ states('sensor.abrikos_time_since_walk') | default(0) }} часов
+
+              **Последняя прогулка:** {{ state_attr('sensor.abrikos_time_since_walk', 'last_walk_formatted') | default('Не записано') }}
+
+              ---
+              **Условия для прогулки:**
+              {{ state_attr('binary_sensor.abrikos_good_walk_time', 'factors_ru') | default('Загрузка...') }}
+
+              {% if is_state('binary_sensor.abrikos_good_walk_time', 'on') %}
+              ✅ **Сейчас хорошее время для прогулки!**
+              {% endif %}
+          - type: button
+            name: "🦮 Записать прогулку"
+            icon: mdi:paw
+            tap_action:
+              action: perform-action
+              perform_action: input_datetime.set_datetime
+              target:
+                entity_id: input_datetime.abrikos_last_walk
+              data:
+                timestamp: "{{ as_timestamp(now()) | int }}"
+
+      # --------------------------------------------------------------------------
+      # ОБУЧЕНИЕ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🎓 Обучение"
+        cards:
+          - type: tile
+            entity: sensor.abrikos_training_progress
+            name: "Прогресс"
+            color: >
+              {% set prog = states('sensor.abrikos_training_progress') | int(0) %}
+              {% if prog >= 80 %}green
+              {% elif prog >= 50 %}light-green
+              {% elif prog >= 20 %}orange
+              {% else %}grey{% endif %}
+          - type: tile
+            entity: input_number.abrikos_training_progress
+            name: "Установить прогресс"
+            features:
+              - type: numeric-input
+                mode: slider
+          - type: markdown
+            content: |
+              ### {{ state_attr('sensor.abrikos_training_progress', 'level_ru') | default('Новичок') }} - {{ states('sensor.abrikos_training_progress') | default(0) }}%
+
+              {{ state_attr('sensor.abrikos_training_progress', 'description_ru') | default('Только начинаем обучение.') }}
+
+              ---
+              **Следующие цели:**
+              {{ state_attr('sensor.abrikos_training_progress', 'next_goals_ru') | default('Базовые команды') }}
+
+      # --------------------------------------------------------------------------
+      # КОРМЛЕНИЕ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🍖 Кормление"
+        cards:
+          - type: tile
+            entity: input_datetime.abrikos_last_feeding
+            name: "Последнее кормление"
+          - type: button
+            name: "🍖 Записать кормление"
+            icon: mdi:food-drumstick
+            tap_action:
+              action: perform-action
+              perform_action: input_datetime.set_datetime
+              target:
+                entity_id: input_datetime.abrikos_last_feeding
+              data:
+                datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+
+      # --------------------------------------------------------------------------
+      # КАМЕРА И МОНИТОРИНГ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "📹 Мониторинг на камере"
+        cards:
+          - type: tile
+            entity: sensor.abrikos_camera_activity
+            name: "На камере"
+          - type: markdown
+            content: |
+              ### {{ state_attr('sensor.abrikos_camera_activity', 'state_ru') }}
+
+              **Последний раз на камере:** {{ state_attr('sensor.abrikos_camera_activity', 'last_seen_on_camera') }}
+
+              {{ state_attr('sensor.abrikos_camera_activity', 'recommendation_ru') }}
+
+  # ==============================================================================
+  # VIEW 10: SECURITY - Безопасность и камеры
+  # ==============================================================================
+  - title: Security
+    path: security
+    icon: mdi:shield-home
+    type: sections
+    max_columns: 2
+    sections:
+      # --------------------------------------------------------------------------
+      # СТАТУС БЕЗОПАСНОСТИ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🛡️ Статус безопасности"
+        cards:
+          - type: tile
+            entity: sensor.security_surface
+            name: "Поверхность атаки"
+            color: >
+              {% set surf = states('sensor.security_surface') %}
+              {% if surf == 'low' %}green
+              {% elif surf == 'medium' %}orange
+              {% else %}red{% endif %}
+          - type: tile
+            entity: binary_sensor.camera_context_alert
+            name: "Камера алерт"
+            color: red
+          - type: tile
+            entity: binary_sensor.camera_unusual_activity
+            name: "Необычная активность"
+            color: orange
+          - type: markdown
+            content: |
+              ### Безопасность: {{ state_attr('sensor.security_surface', 'state_ru') }}
+
+              **Факторы риска:** {{ state_attr('sensor.security_surface', 'factors_ru') }}
+
+              {{ state_attr('sensor.security_surface', 'recommendation_ru') }}
+
+      # --------------------------------------------------------------------------
+      # РЕЖИМ КАМЕР
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "📹 Камеры"
+        cards:
+          - type: tile
+            entity: sensor.camera_privacy_mode
+            name: "Режим приватности"
+            color: >
+              {% set mode = states('sensor.camera_privacy_mode') %}
+              {% if mode == 'open' %}green
+              {% elif mode == 'limited' %}orange
+              {% else %}grey{% endif %}
+          - type: tile
+            entity: binary_sensor.camera_ai_available
+            name: "AI доступен"
+            color: green
+          - type: tile
+            entity: binary_sensor.camera_presence_detected
+            name: "Обнаружение"
+          - type: tile
+            entity: sensor.camera_activity_type
+            name: "Тип активности"
+          - type: markdown
+            content: |
+              ### {{ state_attr('sensor.camera_privacy_mode', 'state_ru') }}
+
+              {{ state_attr('sensor.camera_privacy_mode', 'description_ru') }}
+
+              **Причина:** {{ state_attr('sensor.camera_privacy_mode', 'reason_ru') }}
+
+              ---
+              **AI анализ:** {{ 'Доступен' if is_state('binary_sensor.camera_ai_available', 'on') else 'Недоступен' }}
+
+              {{ state_attr('binary_sensor.camera_ai_available', 'reason_ru') }}
+
+      # --------------------------------------------------------------------------
+      # ДЕТЕКЦИЯ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "👁️ Детекция"
+        cards:
+          - type: tile
+            entity: sensor.camera_activity_type
+            name: "Обнаружено"
+            color: >
+              {% set act = states('sensor.camera_activity_type') %}
+              {% if act == 'human' %}blue
+              {% elif act == 'dog' %}green
+              {% elif act == 'unknown' %}orange
+              {% else %}grey{% endif %}
+          - type: markdown
+            content: |
+              ### {{ state_attr('sensor.camera_activity_type', 'state_ru') }}
+
+              | Параметр | Значение |
+              |----------|----------|
+              | **Тип** | {{ state_attr('sensor.camera_activity_type', 'state_ru') }} |
+              | **Уверенность** | {{ state_attr('sensor.camera_activity_type', 'confidence') }}% |
+              | **Время** | {{ state_attr('sensor.camera_activity_type', 'last_analysis') }} |
+
+      # --------------------------------------------------------------------------
+      # АЛЕРТЫ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🚨 Алерты"
+        cards:
+          - type: tile
+            entity: binary_sensor.camera_unusual_activity
+            name: "Необычная активность"
+            color: red
+          - type: tile
+            entity: binary_sensor.camera_context_alert
+            name: "Контекстный алерт"
+            color: red
+          - type: tile
+            entity: binary_sensor.suspicious_silence
+            name: "Подозрительная тишина"
+            color: orange
+          - type: tile
+            entity: sensor.anomaly_home_behavior
+            name: "Аномалия поведения"
+          - type: markdown
+            content: |
+              {% if is_state('binary_sensor.camera_unusual_activity', 'on') %}
+              ### ⚠️ Необычная активность!
+              {{ state_attr('binary_sensor.camera_unusual_activity', 'reason_ru') }}
+
+              **Уровень:** {{ state_attr('binary_sensor.camera_unusual_activity', 'severity') }}
+              {% endif %}
+
+              {% if is_state('binary_sensor.camera_context_alert', 'on') %}
+              ### 🚨 Контекстное предупреждение!
+              {{ state_attr('binary_sensor.camera_context_alert', 'description_ru') }}
+
+              {{ state_attr('binary_sensor.camera_context_alert', 'action_ru') }}
+              {% endif %}
+
+              {% if is_state('binary_sensor.suspicious_silence', 'on') %}
+              ### 🔇 Подозрительная тишина
+              {{ state_attr('binary_sensor.suspicious_silence', 'reason_ru') }}
+
+              {{ state_attr('binary_sensor.suspicious_silence', 'recommendation_ru') }}
+              {% endif %}
+
+              {% if not is_state('binary_sensor.camera_unusual_activity', 'on') and not is_state('binary_sensor.camera_context_alert', 'on') and not is_state('binary_sensor.suspicious_silence', 'on') %}
+              ### ✅ Всё спокойно
+              Нет активных алертов безопасности.
+              {% endif %}
+
+      # --------------------------------------------------------------------------
+      # ТРАДИЦИОННАЯ БЕЗОПАСНОСТЬ
+      # --------------------------------------------------------------------------
+      - type: grid
+        title: "🌍 Региональная безопасность"
+        cards:
+          - type: tile
+            entity: sensor.fire_risk_catalonia
+            name: "Риск пожаров"
+            icon: mdi:fire
+          - type: tile
+            entity: sensor.earthquakes_nearest
+            name: "Землетрясения"
+            icon: mdi:earth

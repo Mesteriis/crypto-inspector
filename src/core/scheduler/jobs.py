@@ -121,8 +121,6 @@ async def fetch_and_save_candlesticks(
     Returns:
         True if successful, False otherwise.
     """
-    from db.repositories.candlestick import CandlestickRepository
-    from db.session import async_session_maker
     from services.candlestick.fetcher import CandlestickFetcher
     from services.candlestick.models import CandleInterval
 
@@ -142,11 +140,55 @@ async def fetch_and_save_candlesticks(
             logger.warning(f"No candlesticks returned for {symbol} {interval_str}")
             return False
 
-        # Save to database
+        # Save to database using raw SQL to avoid circular imports
+        from sqlalchemy import text
+
+        from db.session import async_session_maker
+
         async with async_session_maker() as session:
-            repo = CandlestickRepository(session)
-            count = await repo.upsert_candlesticks(result)
-            logger.info(f"Saved {count} candlesticks for {symbol} {interval_str}")
+            for candle in result.candlesticks:
+                stmt = text("""
+                    INSERT INTO candlestick_records
+                    (exchange, symbol, interval, timestamp, open_price, high_price,
+                     low_price, close_price, volume, quote_volume, trades_count,
+                     fetch_time_ms, is_complete, loaded_at)
+                    VALUES (:exchange, :symbol, :interval, :timestamp, :open_price,
+                            :high_price, :low_price, :close_price, :volume,
+                            :quote_volume, :trades_count, :fetch_time_ms,
+                            :is_complete, :loaded_at)
+                    ON CONFLICT (exchange, symbol, interval, timestamp)
+                    DO UPDATE SET
+                        open_price = EXCLUDED.open_price,
+                        high_price = EXCLUDED.high_price,
+                        low_price = EXCLUDED.low_price,
+                        close_price = EXCLUDED.close_price,
+                        volume = EXCLUDED.volume,
+                        is_complete = EXCLUDED.is_complete,
+                        loaded_at = EXCLUDED.loaded_at
+                """)
+                await session.execute(
+                    stmt,
+                    {
+                        "exchange": result.exchange,
+                        "symbol": result.symbol,
+                        "interval": result.interval.value,
+                        "timestamp": candle.timestamp,
+                        "open_price": float(candle.open_price),
+                        "high_price": float(candle.high_price),
+                        "low_price": float(candle.low_price),
+                        "close_price": float(candle.close_price),
+                        "volume": float(candle.volume),
+                        "quote_volume": float(candle.quote_volume) if candle.quote_volume else None,
+                        "trades_count": candle.trades_count,
+                        "fetch_time_ms": result.fetch_time_ms,
+                        "is_complete": True,
+                        "loaded_at": datetime.utcnow(),
+                    },
+                )
+            await session.commit()
+            logger.info(
+                f"Saved {len(result.candlesticks)} candlesticks for {symbol} {interval_str}"
+            )
 
         return True
 

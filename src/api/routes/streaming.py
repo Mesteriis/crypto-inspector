@@ -24,19 +24,27 @@ async def get_stream_status() -> dict[str, Any]:
     Returns:
         Stream status including active sources and connection states
     """
+    from services.candlestick.buffer import get_candle_buffer
     from services.candlestick.websocket import get_stream_manager
 
     manager = get_stream_manager()
+    buffer = get_candle_buffer()
+
     if not manager:
         return {
             "enabled": False,
             "message": "WebSocket streaming not initialized",
         }
 
-    return {
+    result = {
         "enabled": True,
         **manager.get_status(),
     }
+
+    if buffer:
+        result["buffer"] = buffer.stats
+
+    return result
 
 
 @router.post("/retry")

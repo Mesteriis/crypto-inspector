@@ -27,12 +27,18 @@ async def start_websocket_streaming() -> None:
         logger.warning("No streaming symbols configured")
         return
 
+    from services.candlestick.buffer import get_candle_buffer, init_candle_buffer
     from services.candlestick.models import CandleInterval
     from services.candlestick.websocket import init_stream_manager
+
+    # Initialize candle buffer for DB writes
+    await init_candle_buffer()
+    logger.info("Candle buffer initialized")
 
     # Parse interval
     interval_map = {i.value: i for i in CandleInterval}
     interval = interval_map.get(settings.STREAMING_INTERVAL, CandleInterval.MINUTE_1)
+    interval_str = settings.STREAMING_INTERVAL
 
     async def on_candle(symbol: str, candle, is_closed: bool, source: str) -> None:
         """Handle received candle."""
@@ -42,7 +48,15 @@ async def start_websocket_streaming() -> None:
                 f"O={candle.open_price} H={candle.high_price} "
                 f"L={candle.low_price} C={candle.close_price} V={candle.volume}"
             )
-            # TODO: Save to database when candle closes
+            # Save closed candle to buffer
+            buffer = get_candle_buffer()
+            if buffer:
+                await buffer.add(
+                    symbol=symbol,
+                    candle=candle,
+                    exchange=source,
+                    interval=interval_str,
+                )
 
     async def on_source_change(symbol: str, old_source, new_source) -> None:
         """Handle source change."""
@@ -61,9 +75,11 @@ async def start_websocket_streaming() -> None:
 
 async def stop_websocket_streaming() -> None:
     """Stop WebSocket streaming."""
+    from services.candlestick.buffer import stop_candle_buffer
     from services.candlestick.websocket import stop_stream_manager
 
     await stop_stream_manager()
+    await stop_candle_buffer()
     logger.info("WebSocket streaming stopped")
 
 
