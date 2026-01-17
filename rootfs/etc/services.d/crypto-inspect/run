@@ -1,0 +1,92 @@
+#!/usr/bin/with-contenv bashio
+# shellcheck shell=bash
+# ==============================================================================
+# Home Assistant Add-on: Crypto Inspect
+# Runs the Crypto Inspect application
+# ==============================================================================
+
+set -e
+
+# Read configuration from Home Assistant add-on options
+CONFIG_PATH=/data/options.json
+
+bashio::log.info "Starting Crypto Inspect add-on..."
+
+# Export configuration as environment variables
+export API_PORT=$(bashio::config 'api_port')
+export LOG_LEVEL=$(bashio::config 'log_level')
+export APP_NAME="Crypto Inspect"
+export DEBUG=false
+
+# Database configuration based on type
+DB_TYPE=$(bashio::config 'database_type')
+bashio::log.info "Database type: ${DB_TYPE}"
+
+if [[ "${DB_TYPE}" == "postgres" ]]; then
+    PG_HOST=$(bashio::config 'postgres_host')
+    PG_PORT=$(bashio::config 'postgres_port')
+    PG_DB=$(bashio::config 'postgres_database')
+    PG_USER=$(bashio::config 'postgres_username')
+    PG_PASS=$(bashio::config 'postgres_password')
+
+    if [[ -z "${PG_HOST}" ]]; then
+        bashio::log.error "PostgreSQL host is required when using postgres database type"
+        exit 1
+    fi
+
+    export DATABASE_URL="postgresql+asyncpg://${PG_USER}:${PG_PASS}@${PG_HOST}:${PG_PORT}/${PG_DB}"
+    export DATABASE_URL_SYNC="postgresql://${PG_USER}:${PG_PASS}@${PG_HOST}:${PG_PORT}/${PG_DB}"
+    bashio::log.info "Using PostgreSQL database at ${PG_HOST}:${PG_PORT}/${PG_DB}"
+else
+    # SQLite - embedded, no external dependencies
+    export DATABASE_URL="sqlite+aiosqlite:////data/crypto_inspect.db"
+    export DATABASE_URL_SYNC="sqlite:////data/crypto_inspect.db"
+    bashio::log.info "Using embedded SQLite database at /data/crypto_inspect.db"
+fi
+
+# Redis configuration (optional)
+if bashio::config.has_value 'redis_url'; then
+    export REDIS_URL=$(bashio::config 'redis_url')
+    export CELERY_BROKER_URL=$(bashio::config 'redis_url')
+    export CELERY_RESULT_BACKEND=$(bashio::config 'redis_url')
+fi
+
+# Export HA-specific configuration
+export HA_EXCHANGES=$(bashio::config 'exchanges' | jq -r '. | join(",")')
+export HA_SYMBOLS=$(bashio::config 'symbols' | jq -r '. | join(",")')
+export HA_INTERVALS=$(bashio::config 'intervals' | jq -r '. | join(",")')
+export HA_FETCH_INTERVAL=$(bashio::config 'fetch_interval_minutes')
+
+# Handle ingress
+export INGRESS_PATH=$(bashio::addon.ingress_entry)
+bashio::log.info "Ingress path: ${INGRESS_PATH}"
+
+# Create data directory if it doesn't exist
+mkdir -p /data
+
+# Run database migrations
+bashio::log.info "Running database migrations..."
+cd /app
+
+if [[ "${DB_TYPE}" == "sqlite" ]]; then
+    # For SQLite, create tables directly
+    python -c "
+from db.base import Base
+from sqlalchemy import create_engine
+engine = create_engine('sqlite:////data/crypto_inspect.db')
+Base.metadata.create_all(engine)
+print('SQLite database tables created successfully')
+"
+else
+    # For PostgreSQL, run alembic migrations
+    bashio::log.info "Running Alembic migrations for PostgreSQL..."
+    alembic upgrade head || bashio::log.warning "Migration failed or not needed"
+fi
+
+bashio::log.info "Starting web server on port ${API_PORT}..."
+
+# Start the FastAPI application with uvicorn
+exec python -m uvicorn main:app \
+    --host 0.0.0.0 \
+    --port "${API_PORT}" \
+    --log-level "${LOG_LEVEL}"

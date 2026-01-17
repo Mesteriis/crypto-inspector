@@ -1,0 +1,35 @@
+# Pre-commit hooks configuration
+# https://pre-commit.com/
+
+repos:
+  # General hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: detect-private-key
+
+  # Ruff - linting and formatting (replaces black, isort, flake8)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.0
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+  # Local hooks
+  - repo: local
+    hooks:
+      # Sync requirements.txt from pyproject.toml
+      - id: sync-requirements
+        name: Sync requirements.txt from pyproject.toml
+        entry: scripts/sync-requirements.sh
+        language: script
+        files: ^pyproject\.toml$
+        pass_filenames: false

@@ -1,0 +1,56 @@
+{
+  "configuration": {
+    "api_port": {
+      "name": "API Port",
+      "description": "Port for external API access (used by Home Assistant sensors and REST commands)"
+    },
+    "database_type": {
+      "name": "Database Type",
+      "description": "Choose 'sqlite' for embedded database (no dependencies) or 'postgres' for external PostgreSQL server"
+    },
+    "postgres_host": {
+      "name": "PostgreSQL Host",
+      "description": "Hostname or IP address of PostgreSQL server (only when using postgres type)"
+    },
+    "postgres_port": {
+      "name": "PostgreSQL Port",
+      "description": "Port of PostgreSQL server (default: 5432)"
+    },
+    "postgres_database": {
+      "name": "PostgreSQL Database",
+      "description": "Database name on PostgreSQL server"
+    },
+    "postgres_username": {
+      "name": "PostgreSQL Username",
+      "description": "Username for PostgreSQL authentication"
+    },
+    "postgres_password": {
+      "name": "PostgreSQL Password",
+      "description": "Password for PostgreSQL authentication"
+    },
+    "redis_url": {
+      "name": "Redis URL (Optional)",
+      "description": "Redis connection string for Celery task queue. Leave empty to disable background tasks"
+    },
+    "log_level": {
+      "name": "Log Level",
+      "description": "Application logging verbosity"
+    },
+    "exchanges": {
+      "name": "Exchanges",
+      "description": "List of cryptocurrency exchanges to fetch data from (binance, coinbase, kraken, bybit, kucoin, okx)"
+    },
+    "symbols": {
+      "name": "Trading Pairs",
+      "description": "List of trading pair symbols to track (e.g., BTC/USDT, ETH/USDT)"
+    },
+    "intervals": {
+      "name": "Candle Intervals",
+      "description": "Candlestick time intervals to fetch (1m, 5m, 15m, 1h, 4h, 1d, 1w)"
+    },
+    "fetch_interval_minutes": {
+      "name": "Fetch Interval (minutes)",
+      "description": "How often to fetch new candlestick data from exchanges"
+    }
+  }
+}

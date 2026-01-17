@@ -1,0 +1,56 @@
+{
+  "configuration": {
+    "api_port": {
+      "name": "Порт API",
+      "description": "Порт для внешнего доступа к API (используется сенсорами Home Assistant и REST командами)"
+    },
+    "database_type": {
+      "name": "Тип базы данных",
+      "description": "Выберите 'sqlite' для встроенной БД (без зависимостей) или 'postgres' для внешнего сервера PostgreSQL"
+    },
+    "postgres_host": {
+      "name": "Хост PostgreSQL",
+      "description": "Имя хоста или IP-адрес сервера PostgreSQL (только при выборе типа postgres)"
+    },
+    "postgres_port": {
+      "name": "Порт PostgreSQL",
+      "description": "Порт сервера PostgreSQL (по умолчанию: 5432)"
+    },
+    "postgres_database": {
+      "name": "База данных PostgreSQL",
+      "description": "Имя базы данных на сервере PostgreSQL"
+    },
+    "postgres_username": {
+      "name": "Имя пользователя PostgreSQL",
+      "description": "Имя пользователя для аутентификации PostgreSQL"
+    },
+    "postgres_password": {
+      "name": "Пароль PostgreSQL",
+      "description": "Пароль для аутентификации PostgreSQL"
+    },
+    "redis_url": {
+      "name": "URL Redis (опционально)",
+      "description": "Строка подключения к Redis для очереди задач Celery. Оставьте пустым для отключения фоновых задач"
+    },
+    "log_level": {
+      "name": "Уровень логирования",
+      "description": "Детализация логов приложения"
+    },
+    "exchanges": {
+      "name": "Биржи",
+      "description": "Список криптобирж для получения данных (binance, coinbase, kraken, bybit, kucoin, okx)"
+    },
+    "symbols": {
+      "name": "Торговые пары",
+      "description": "Список торговых пар для отслеживания (например, BTC/USDT, ETH/USDT)"
+    },
+    "intervals": {
+      "name": "Интервалы свечей",
+      "description": "Временные интервалы свечей для загрузки (1m, 5m, 15m, 1h, 4h, 1d, 1w)"
+    },
+    "fetch_interval_minutes": {
+      "name": "Интервал обновления (минуты)",
+      "description": "Как часто загружать новые данные свечей с бирж"
+    }
+  }
+}

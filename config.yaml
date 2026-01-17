@@ -1,0 +1,80 @@
+# Home Assistant Add-on Configuration
+# https://developers.home-assistant.io/docs/add-ons/configuration
+
+name: "Crypto Inspect"
+description: "Cryptocurrency candlestick data collector and analyzer"
+version: "0.1.0"
+slug: "crypto_inspect"
+url: "https://github.com/your-username/crypto-inspect"
+arch:
+  - amd64
+  - aarch64
+  - armv7
+init: false
+homeassistant_api: true
+ingress: true
+ingress_port: 0
+host_network: true
+panel_icon: "mdi:chart-line"
+panel_title: "Crypto Inspect"
+
+# Services provided by other add-ons
+services:
+  - mysql:want
+  - mqtt:want
+
+# Port mapping for external access (sensors, automations)
+ports:
+  9999/tcp: 9999
+ports_description:
+  9999/tcp: "API port for Home Assistant sensors and external access"
+
+# Configuration options shown in add-on UI
+options:
+  api_port: 9999
+  database_type: "sqlite"
+  postgres_host: ""
+  postgres_port: 5432
+  postgres_database: "crypto_inspect"
+  postgres_username: ""
+  postgres_password: ""
+  redis_url: ""
+  log_level: "info"
+  exchanges:
+    - binance
+    - coinbase
+  symbols:
+    - "BTC/USDT"
+    - "ETH/USDT"
+  intervals:
+    - "1h"
+    - "1d"
+  fetch_interval_minutes: 60
+
+schema:
+  api_port: port
+  database_type: list(sqlite|postgres)
+  postgres_host: str?
+  postgres_port: port?
+  postgres_database: str?
+  postgres_username: str?
+  postgres_password: password?
+  redis_url: str?
+  log_level: list(debug|info|warning|error)
+  exchanges: list(str)
+  symbols: list(str)
+  intervals: list(str)
+  fetch_interval_minutes: int(1,1440)
+
+# Map configuration directory
+map:
+  - config:rw
+  - ssl:ro
+  - share:rw
+
+# Startup order
+startup: services
+stage: experimental
+
+# Resources
+image: "ghcr.io/{arch}-addon-crypto-inspect"

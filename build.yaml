@@ -1,0 +1,16 @@
+# Home Assistant Add-on Build Configuration
+# https://developers.home-assistant.io/docs/add-ons/configuration#add-on-extended-build
+
+build_from:
+  amd64: ghcr.io/home-assistant/amd64-base-python:3.12-alpine3.20
+  aarch64: ghcr.io/home-assistant/aarch64-base-python:3.12-alpine3.20
+  armv7: ghcr.io/home-assistant/armv7-base-python:3.12-alpine3.20
+
+args:
+  BUILD_ARCH: amd64
+
+labels:
+  org.opencontainers.image.title: "Crypto Inspect"
+  org.opencontainers.image.description: "Cryptocurrency candlestick data collector"
+  org.opencontainers.image.source: "https://github.com/your-username/crypto-inspect"
+  org.opencontainers.image.licenses: "MIT"
