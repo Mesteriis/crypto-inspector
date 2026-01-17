@@ -21,7 +21,7 @@ class Settings(BaseSettings):
 
     # WebSocket Streaming
     STREAMING_ENABLED: bool = True
-    STREAMING_SYMBOLS: str = "BTC/USDT,ETH/USDT"  # comma-separated
+    STREAMING_SYMBOLS: str = "BTC/USDT,ETH/USDT,SOL/USDT,TON/USDT,AR/USDT"
     STREAMING_INTERVAL: str = "1m"  # 1m, 5m, 15m, 1h, etc.
 
     def get_streaming_symbols(self) -> list[str]:
