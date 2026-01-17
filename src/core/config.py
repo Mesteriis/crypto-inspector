@@ -19,5 +19,14 @@ class Settings(BaseSettings):
     CELERY_BROKER_URL: str = "redis://localhost:6379/0"
     CELERY_RESULT_BACKEND: str = "redis://localhost:6379/0"
 
+    # WebSocket Streaming
+    STREAMING_ENABLED: bool = True
+    STREAMING_SYMBOLS: str = "BTC/USDT,ETH/USDT"  # comma-separated
+    STREAMING_INTERVAL: str = "1m"  # 1m, 5m, 15m, 1h, etc.
+
+    def get_streaming_symbols(self) -> list[str]:
+        """Parse streaming symbols from config."""
+        return [s.strip() for s in self.STREAMING_SYMBOLS.split(",") if s.strip()]
+
 
 settings = Settings()
