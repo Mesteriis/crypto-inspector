@@ -246,3 +246,127 @@ async def hello_world_job() -> None:
     message = f"[{current_time}] Hello World! (Scheduled job executed)"
     print(message)
     logger.info(message)
+
+
+async def market_analysis_job() -> None:
+    """
+    Market analysis job.
+
+    Runs every 4 hours to fetch on-chain metrics, derivatives data,
+    and calculate composite scores. Sends alerts for significant signals.
+    """
+    from services.analysis import (
+        CycleDetector,
+        DerivativesAnalyzer,
+        OnChainAnalyzer,
+        ScoringEngine,
+    )
+    from services.ha_integration import notify
+
+    start_time = time.time()
+    now = datetime.now()
+    current_time = now.strftime("%Y-%m-%d %H:%M:%S")
+
+    logger.info(f"[{current_time}] Starting market analysis job")
+
+    symbols = get_symbols()
+    base_symbols = [s.split("/")[0] for s in symbols]  # BTC/USDT -> BTC
+
+    results = {}
+    onchain = OnChainAnalyzer()
+    derivatives = DerivativesAnalyzer()
+    scoring = ScoringEngine()
+    cycles = CycleDetector()
+
+    try:
+        # Fetch Fear & Greed
+        fg_value = None
+        try:
+            onchain_data = await onchain.analyze()
+            if onchain_data.fear_greed:
+                fg_value = onchain_data.fear_greed.value
+                results["fear_greed"] = {
+                    "value": fg_value,
+                    "classification": onchain_data.fear_greed.classification,
+                }
+                logger.info(f"Fear & Greed: {fg_value} ({onchain_data.fear_greed.classification})")
+        except Exception as e:
+            logger.warning(f"On-chain fetch failed: {e}")
+
+        # Analyze each symbol
+        for symbol in base_symbols:
+            try:
+                # Fetch derivatives
+                deriv_data = None
+                try:
+                    deriv_result = await derivatives.analyze(symbol)
+                    deriv_data = {
+                        "funding_rate": deriv_result.funding.rate if deriv_result.funding else None,
+                        "long_short_ratio": (
+                            deriv_result.long_short.long_short_ratio
+                            if deriv_result.long_short
+                            else None
+                        ),
+                    }
+                except Exception as e:
+                    logger.warning(f"Derivatives fetch failed for {symbol}: {e}")
+
+                # Cycle data for BTC
+                cycle_data = None
+                if symbol == "BTC":
+                    current_price = 100000  # Placeholder
+                    if deriv_result and deriv_result.funding:
+                        current_price = deriv_result.funding.mark_price
+                    cycle_info = cycles.detect_cycle(current_price)
+                    cycle_data = {
+                        "phase": cycle_info.phase.value,
+                        "phase_name_ru": cycle_info.phase_name_ru,
+                        "days_since_halving": cycle_info.days_since_halving,
+                        "distance_from_ath_pct": cycle_info.distance_from_ath_pct,
+                    }
+
+                # Calculate score
+                score = scoring.calculate(
+                    symbol=symbol,
+                    fg_value=fg_value,
+                    deriv_data=deriv_data,
+                    cycle_data=cycle_data,
+                )
+
+                results[symbol] = {
+                    "score": score.total_score,
+                    "signal": score.signal,
+                    "action": score.action,
+                }
+
+                logger.info(
+                    f"{symbol}: Score={score.total_score:.0f}, "
+                    f"Signal={score.signal}, Action={score.action}"
+                )
+
+                # Alert on strong signals
+                if score.action in ["strong_buy", "strong_sell"]:
+                    await notify(
+                        message=(
+                            f"{symbol} {score.signal_ru}\n"
+                            f"Score: {score.total_score:.0f}/100\n"
+                            f"{score.recommendation_ru}"
+                        ),
+                        title=f"Crypto Alert - {symbol}",
+                        notification_id=f"crypto_alert_{symbol.lower()}",
+                    )
+
+            except Exception as e:
+                logger.error(f"Analysis error for {symbol}: {e}")
+
+            await asyncio.sleep(0.5)  # Rate limiting
+
+    finally:
+        await onchain.close()
+        await derivatives.close()
+
+    duration = time.time() - start_time
+    logger.info(
+        f"[{current_time}] Market analysis completed in {duration:.1f}s, "
+        f"analyzed {len(results)} items"
+    )

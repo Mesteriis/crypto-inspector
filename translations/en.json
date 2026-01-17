@@ -43,6 +43,26 @@
     "fetch_interval_minutes": {
       "name": "Fetch Interval (minutes)",
       "description": "How often to fetch new candlestick data from exchanges"
+    },
+    "analysis_enabled": {
+      "name": "Enable Analysis",
+      "description": "Enable market analysis (Fear & Greed, derivatives, scoring)"
+    },
+    "analysis_interval_hours": {
+      "name": "Analysis Interval (hours)",
+      "description": "How often to run market analysis (1-24 hours)"
+    },
+    "alert_on_strong_signals": {
+      "name": "Alert on Strong Signals",
+      "description": "Send notifications when strong buy/sell signals are detected"
+    },
+    "alert_threshold_buy": {
+      "name": "Buy Alert Threshold",
+      "description": "Score threshold for strong buy alerts (50-100)"
+    },
+    "alert_threshold_sell": {
+      "name": "Sell Alert Threshold",
+      "description": "Score threshold for strong sell alerts (0-50)"
     }
   }
 }

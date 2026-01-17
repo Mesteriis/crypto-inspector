@@ -39,7 +39,7 @@ packages = ["src"]
 [tool.ruff]
 line-length = 100
 src = ["src"]
-exclude = ["alembic/versions/*"]
+exclude = ["alembic/versions/*", "crypto_analyzer/*"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
