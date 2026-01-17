@@ -7,6 +7,7 @@ with the APScheduler.
 import asyncio
 import logging
 import os
+import time
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -171,7 +172,11 @@ async def candlestick_sync_job() -> None:
 
     Runs every 5 minutes and fetches candlesticks for all configured
     symbols and appropriate intervals based on current time.
+    Sends notifications to Home Assistant on completion.
     """
+    from services.ha_integration import notify_error, notify_sync_complete
+
+    start_time = time.time()
     now = datetime.now()
     current_time = now.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -204,12 +209,35 @@ async def candlestick_sync_job() -> None:
             # Small delay between requests to avoid rate limiting
             await asyncio.sleep(0.5)
 
+    # Calculate duration
+    duration = time.time() - start_time
+
     # Summary
     total = success_count + failure_count
     logger.info(
         f"[{current_time}] Candlestick sync completed: "
-        f"{success_count}/{total} successful, {failure_count} failed"
+        f"{success_count}/{total} successful, {failure_count} failed, "
+        f"duration: {duration:.1f}s"
     )
+
+    # Send notification to Home Assistant
+    try:
+        if failure_count > 0:
+            # Notify about errors
+            await notify_error(
+                error_message=f"{failure_count} fetch operations failed",
+                context=f"Sync job at {current_time}",
+            )
+        else:
+            # Notify success (only for significant syncs, e.g., hourly)
+            if "1h" in intervals or "1d" in intervals:
+                await notify_sync_complete(
+                    success_count=success_count,
+                    failure_count=failure_count,
+                    duration_seconds=duration,
+                )
+    except Exception as e:
+        logger.warning(f"Failed to send HA notification: {e}")
 
 
 async def hello_world_job() -> None:
