@@ -49,16 +49,27 @@ def _register_jobs(sched: AsyncIOScheduler) -> None:
     Args:
         sched: The scheduler instance to register jobs with.
     """
-    from core.scheduler.jobs import hello_world_job
+    from core.scheduler.jobs import candlestick_sync_job
 
-    # Hello World test job - runs every 5 minutes at :00, :05, :10, etc.
+    # Candlestick sync job - runs every 5 minutes at :00, :05, :10, etc.
     sched.add_job(
-        hello_world_job,
-        trigger=CronTrigger(minute="*/5"),  # Every 5 minutes, aligned to clock
-        id="hello_world_job",
-        name="Hello World Test Job",
+        candlestick_sync_job,
+        trigger=CronTrigger(minute="*/5"),
+        id="candlestick_sync_job",
+        name="Candlestick Sync Job",
         replace_existing=True,
+        max_instances=1,  # Prevent overlapping runs
+        coalesce=True,  # Combine missed runs into one
     )
+
+    # Hello World test job (can be disabled in production)
+    # sched.add_job(
+    #     hello_world_job,
+    #     trigger=CronTrigger(minute="*/5"),
+    #     id="hello_world_job",
+    #     name="Hello World Test Job",
+    #     replace_existing=True,
+    # )
 
     logger.info("Registered scheduled jobs")
 
