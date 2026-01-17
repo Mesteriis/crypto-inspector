@@ -39,15 +39,9 @@ options:
   postgres_password: ""
   redis_url: ""
   log_level: "info"
-  exchanges:
-    - binance
-    - coinbase
   symbols:
     - "BTC/USDT"
     - "ETH/USDT"
-  intervals:
-    - "1h"
-    - "1d"
   fetch_interval_minutes: 60
 
 schema:
@@ -60,14 +54,12 @@ schema:
   postgres_password: password?
   redis_url: str?
   log_level: list(debug|info|warning|error)
-  exchanges: list(str)
   symbols: list(str)
-  intervals: list(str)
   fetch_interval_minutes: int(1,1440)
 
-# Map configuration directory
+# Map configuration directory - include secrets for API keys
 map:
-  - config:rw
+  - config:ro
   - ssl:ro
   - share:rw
 

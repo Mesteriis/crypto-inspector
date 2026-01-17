@@ -36,17 +36,9 @@
       "name": "Log Level",
       "description": "Application logging verbosity"
     },
-    "exchanges": {
-      "name": "Exchanges",
-      "description": "List of cryptocurrency exchanges to fetch data from (binance, coinbase, kraken, bybit, kucoin, okx)"
-    },
     "symbols": {
       "name": "Trading Pairs",
-      "description": "List of trading pair symbols to track (e.g., BTC/USDT, ETH/USDT)"
-    },
-    "intervals": {
-      "name": "Candle Intervals",
-      "description": "Candlestick time intervals to fetch (1m, 5m, 15m, 1h, 4h, 1d, 1w)"
+      "description": "List of trading pair symbols to track (e.g., BTC/USDT, ETH/USDT). API keys can be stored in secrets.yaml"
     },
     "fetch_interval_minutes": {
       "name": "Fetch Interval (minutes)",

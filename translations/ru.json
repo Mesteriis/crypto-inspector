@@ -36,17 +36,9 @@
       "name": "Уровень логирования",
       "description": "Детализация логов приложения"
     },
-    "exchanges": {
-      "name": "Биржи",
-      "description": "Список криптобирж для получения данных (binance, coinbase, kraken, bybit, kucoin, okx)"
-    },
     "symbols": {
       "name": "Торговые пары",
-      "description": "Список торговых пар для отслеживания (например, BTC/USDT, ETH/USDT)"
-    },
-    "intervals": {
-      "name": "Интервалы свечей",
-      "description": "Временные интервалы свечей для загрузки (1m, 5m, 15m, 1h, 4h, 1d, 1w)"
+      "description": "Список торговых пар для отслеживания (например, BTC/USDT, ETH/USDT). API ключи можно хранить в secrets.yaml"
     },
     "fetch_interval_minutes": {
       "name": "Интервал обновления (минуты)",
