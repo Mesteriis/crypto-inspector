@@ -12,5 +12,5 @@ args:
 labels:
   org.opencontainers.image.title: "Crypto Inspect"
   org.opencontainers.image.description: "Cryptocurrency candlestick data collector"
-  org.opencontainers.image.source: "https://github.com/your-username/crypto-inspect"
+  org.opencontainers.image.source: "https://github.com/Mesteriis/crypto-inspector"
   org.opencontainers.image.licenses: "MIT"

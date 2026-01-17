@@ -5,12 +5,11 @@ name: "Crypto Inspect"
 description: "Cryptocurrency candlestick data collector and analyzer"
 version: "0.1.0"
 slug: "crypto_inspect"
-url: "https://github.com/your-username/crypto-inspect"
+url: "https://github.com/Mesteriis/crypto-inspector"
 arch:
   - amd64
   - aarch64
   - armv7
-init: false
 homeassistant_api: true
 ingress: true
 ingress_port: 0
@@ -75,6 +74,3 @@ map:
 # Startup order
 startup: services
 stage: experimental
-
-# Resources
-image: "ghcr.io/{arch}-addon-crypto-inspect"
