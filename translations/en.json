@@ -2,35 +2,35 @@
   "configuration": {
     "api_port": {
       "name": "API Port",
-      "description": "Port for external API access (used by Home Assistant sensors and REST commands)"
+      "description": "Port for external API access (used by Home Assistant sensors)"
     },
     "database_type": {
       "name": "Database Type",
-      "description": "Choose 'sqlite' for embedded database (no dependencies) or 'postgres' for external PostgreSQL server"
+      "description": "SQLite (embedded, no dependencies) or PostgreSQL (external server)"
     },
     "postgres_host": {
       "name": "PostgreSQL Host",
-      "description": "Hostname or IP address of PostgreSQL server (only when using postgres type)"
+      "description": "IP address or hostname of PostgreSQL server"
     },
     "postgres_port": {
       "name": "PostgreSQL Port",
-      "description": "Port of PostgreSQL server (default: 5432)"
+      "description": "PostgreSQL server port (default: 5432)"
     },
     "postgres_database": {
-      "name": "PostgreSQL Database",
-      "description": "Database name on PostgreSQL server"
+      "name": "Database Name",
+      "description": "PostgreSQL database name"
     },
     "postgres_username": {
-      "name": "PostgreSQL Username",
-      "description": "Username for PostgreSQL authentication"
+      "name": "PostgreSQL User",
+      "description": "Username for PostgreSQL connection"
     },
     "postgres_password": {
       "name": "PostgreSQL Password",
-      "description": "Password for PostgreSQL authentication"
+      "description": "Password for PostgreSQL connection"
     },
     "redis_url": {
-      "name": "Redis URL (Optional)",
-      "description": "Redis connection string for Celery task queue. Leave empty to disable background tasks"
+      "name": "Redis URL",
+      "description": "Redis connection string for background tasks (optional)"
     },
     "log_level": {
       "name": "Log Level",
@@ -38,31 +38,115 @@
     },
     "symbols": {
       "name": "Trading Pairs",
-      "description": "List of trading pair symbols to track (e.g., BTC/USDT, ETH/USDT). API keys can be stored in secrets.yaml"
+      "description": "List of pairs to track (e.g., BTCUSDT, ETHUSDT)"
     },
     "fetch_interval_minutes": {
-      "name": "Fetch Interval (minutes)",
-      "description": "How often to fetch new candlestick data from exchanges"
+      "name": "Fetch Interval",
+      "description": "How often to fetch candlestick data (in minutes)"
     },
     "analysis_enabled": {
       "name": "Enable Analysis",
-      "description": "Enable market analysis (Fear & Greed, derivatives, scoring)"
+      "description": "Market analysis: Fear & Greed, derivatives, scoring"
     },
     "analysis_interval_hours": {
-      "name": "Analysis Interval (hours)",
+      "name": "Analysis Interval",
       "description": "How often to run market analysis (1-24 hours)"
     },
     "alert_on_strong_signals": {
-      "name": "Alert on Strong Signals",
-      "description": "Send notifications when strong buy/sell signals are detected"
+      "name": "Signal Alerts",
+      "description": "Notifications on strong buy/sell signals"
     },
     "alert_threshold_buy": {
-      "name": "Buy Alert Threshold",
-      "description": "Score threshold for strong buy alerts (50-100)"
+      "name": "Buy Threshold",
+      "description": "Score threshold for buy signals (50-100)"
     },
     "alert_threshold_sell": {
-      "name": "Sell Alert Threshold",
-      "description": "Score threshold for strong sell alerts (0-50)"
+      "name": "Sell Threshold",
+      "description": "Score threshold for sell signals (0-50)"
+    },
+    "bybit_api_key": {
+      "name": "Bybit API Key",
+      "description": "Bybit exchange API key for trading portfolio"
+    },
+    "bybit_api_secret": {
+      "name": "Bybit API Secret",
+      "description": "Bybit exchange API secret key"
+    },
+    "bybit_testnet": {
+      "name": "Bybit Testnet",
+      "description": "Use Bybit testnet instead of mainnet"
+    },
+    "mcp_enabled": {
+      "name": "Enable MCP",
+      "description": "Enable MCP server for AI agents (Claude, GPT)"
+    },
+    "mcp_port": {
+      "name": "MCP Port",
+      "description": "Port for MCP server"
+    },
+    "backfill_enabled": {
+      "name": "History Backfill",
+      "description": "Load historical data on startup"
+    },
+    "backfill_crypto_years": {
+      "name": "Crypto History Depth",
+      "description": "How many years of historical data to load (1-15)"
+    },
+    "backfill_traditional_years": {
+      "name": "Asset History Depth",
+      "description": "Traditional assets history depth (1-5 years)"
+    },
+    "ai_enabled": {
+      "name": "Enable AI Analysis",
+      "description": "AI market analysis via Ollama or OpenAI"
+    },
+    "ai_provider": {
+      "name": "AI Provider",
+      "description": "Choose provider: Ollama (local) or OpenAI"
+    },
+    "openai_api_key": {
+      "name": "OpenAI API Key",
+      "description": "API key for OpenAI (ChatGPT)"
+    },
+    "ollama_host": {
+      "name": "Ollama Address",
+      "description": "Ollama server URL (e.g., http://localhost:11434)"
+    },
+    "ollama_model": {
+      "name": "Ollama Model",
+      "description": "Ollama model name (e.g., llama3.2, mistral)"
+    },
+    "ai_analysis_interval_hours": {
+      "name": "AI Analysis Interval",
+      "description": "How often to run AI analysis (1-168 hours)"
+    },
+    "ai_language": {
+      "name": "AI Language",
+      "description": "AI assistant response language"
+    },
+    "goal_enabled": {
+      "name": "Enable Goal",
+      "description": "Track progress towards financial goal"
+    },
+    "goal_target_value": {
+      "name": "Target Amount",
+      "description": "Target portfolio value in USD"
+    },
+    "goal_name": {
+      "name": "Goal Name",
+      "description": "Name of your financial goal"
+    },
+    "briefing_morning_enabled": {
+      "name": "Morning Briefing",
+      "description": "Send morning market overview"
+    },
+    "briefing_evening_enabled": {
+      "name": "Evening Briefing",
+      "description": "Send evening daily summary"
+    },
+    "notification_mode": {
+      "name": "Notification Mode",
+      "description": "all - all notifications, smart - intelligent, digest_only - digest only, critical_only - critical only, silent - no notifications"
     }
   }
 }

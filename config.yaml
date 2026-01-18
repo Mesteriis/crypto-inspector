@@ -1,15 +1,14 @@
-# Home Assistant Add-on Configuration
+# Конфигурация Home Assistant Add-on
 # https://developers.home-assistant.io/docs/add-ons/configuration
 
 name: "Crypto Inspect"
-description: "Cryptocurrency candlestick data collector and analyzer"
-version: "0.2.2"
+description: "Сбор и анализ данных криптовалютных свечей"
+version: "0.2.3"
 slug: "crypto_inspect"
 url: "https://github.com/Mesteriis/crypto-inspector"
 arch:
   - amd64
   - aarch64
-  - armv7
 homeassistant_api: true
 ingress: true
 ingress_port: 0
@@ -17,20 +16,20 @@ host_network: true
 panel_icon: "mdi:chart-line"
 panel_title: "Crypto Inspect"
 
-# Services provided by other add-ons
+# Сервисы от других аддонов
 services:
   - mysql:want
   - mqtt:want
 
-# Port mapping for external access (sensors, automations)
+# Порты для внешнего доступа
 ports:
   9999/tcp: 9999
   9998/tcp: 9998
 ports_description:
-  9999/tcp: "API port for Home Assistant sensors and external access"
-  9998/tcp: "MCP server port for AI agent integration"
+  9999/tcp: "API порт для сенсоров Home Assistant"
+  9998/tcp: "MCP сервер для интеграции с AI-агентами"
 
-# Configuration options shown in add-on UI
+# Настройки, отображаемые в UI аддона
 options:
   api_port: 9999
   database_type: "sqlite"
@@ -42,39 +41,32 @@ options:
   redis_url: ""
   log_level: "info"
   symbols:
-    - "BTC/USDT"
-    - "ETH/USDT"
+    - "BTCUSDT"
+    - "ETHUSDT"
   fetch_interval_minutes: 60
-  # Analysis options
   analysis_enabled: true
   analysis_interval_hours: 4
   alert_on_strong_signals: true
   alert_threshold_buy: 75
   alert_threshold_sell: 25
-  # Bybit Exchange API (supports !secret)
   bybit_api_key: ""
   bybit_api_secret: ""
   bybit_testnet: false
-  # MCP Server (Model Context Protocol for AI agents)
   mcp_enabled: true
   mcp_port: 9998
-  # Historical Data Backfill
   backfill_enabled: true
   backfill_crypto_years: 10
   backfill_traditional_years: 1
-  # AI Analysis (ChatGPT / Ollama)
   ai_enabled: false
   ai_provider: "ollama"
   openai_api_key: ""
-  ollama_host: "http://192.168.1.2:11434"
+  ollama_host: "http://localhost:11434"
   ollama_model: "llama3.2"
   ai_analysis_interval_hours: 24
   ai_language: "ru"
-  # UX Features
   goal_enabled: false
   goal_target_value: 100000
-  goal_name: "Financial Freedom"
-  goal_name_ru: "Финансовая свобода"
+  goal_name: "Финансовая свобода"
   briefing_morning_enabled: true
   briefing_evening_enabled: true
   notification_mode: "smart"
@@ -89,7 +81,8 @@ schema:
   postgres_password: password?
   redis_url: str?
   log_level: list(debug|info|warning|error)
-  symbols: list(str)
+  symbols:
+    - str
   fetch_interval_minutes: int(1,1440)
   analysis_enabled: bool?
   analysis_interval_hours: int(1,24)?
@@ -114,17 +107,15 @@ schema:
   goal_enabled: bool?
   goal_target_value: int(1000,100000000)?
   goal_name: str?
-  goal_name_ru: str?
   briefing_morning_enabled: bool?
   briefing_evening_enabled: bool?
   notification_mode: list(all|smart|digest_only|critical_only|silent)?
 
-# Map configuration directory - include secrets for API keys
+# Маппинг директорий
 map:
   - config:ro
   - ssl:ro
   - share:rw
 
-# Startup order
 startup: services
 stage: experimental

@@ -2,67 +2,151 @@
   "configuration": {
     "api_port": {
       "name": "Порт API",
-      "description": "Порт для внешнего доступа к API (используется сенсорами Home Assistant и REST командами)"
+      "description": "Порт для внешнего доступа к API (используется сенсорами Home Assistant)"
     },
     "database_type": {
       "name": "Тип базы данных",
-      "description": "Выберите 'sqlite' для встроенной БД (без зависимостей) или 'postgres' для внешнего сервера PostgreSQL"
+      "description": "SQLite (встроенная, без зависимостей) или PostgreSQL (внешний сервер)"
     },
     "postgres_host": {
       "name": "Хост PostgreSQL",
-      "description": "Имя хоста или IP-адрес сервера PostgreSQL (только при выборе типа postgres)"
+      "description": "IP-адрес или имя хоста сервера PostgreSQL"
     },
     "postgres_port": {
       "name": "Порт PostgreSQL",
       "description": "Порт сервера PostgreSQL (по умолчанию: 5432)"
     },
     "postgres_database": {
-      "name": "База данных PostgreSQL",
-      "description": "Имя базы данных на сервере PostgreSQL"
+      "name": "База данных",
+      "description": "Имя базы данных PostgreSQL"
     },
     "postgres_username": {
-      "name": "Имя пользователя PostgreSQL",
-      "description": "Имя пользователя для аутентификации PostgreSQL"
+      "name": "Пользователь PostgreSQL",
+      "description": "Имя пользователя для подключения к PostgreSQL"
     },
     "postgres_password": {
       "name": "Пароль PostgreSQL",
-      "description": "Пароль для аутентификации PostgreSQL"
+      "description": "Пароль для подключения к PostgreSQL"
     },
     "redis_url": {
-      "name": "URL Redis (опционально)",
-      "description": "Строка подключения к Redis для очереди задач Celery. Оставьте пустым для отключения фоновых задач"
+      "name": "URL Redis",
+      "description": "Строка подключения к Redis для фоновых задач (опционально)"
     },
     "log_level": {
-      "name": "Уровень логирования",
-      "description": "Детализация логов приложения"
+      "name": "Уровень логов",
+      "description": "Детализация логирования приложения"
     },
     "symbols": {
       "name": "Торговые пары",
-      "description": "Список торговых пар для отслеживания (например, BTC/USDT, ETH/USDT). API ключи можно хранить в secrets.yaml"
+      "description": "Список пар для отслеживания (например: BTCUSDT, ETHUSDT)"
     },
     "fetch_interval_minutes": {
-      "name": "Интервал обновления (минуты)",
-      "description": "Как часто загружать новые данные свечей с бирж"
+      "name": "Интервал обновления",
+      "description": "Как часто загружать данные свечей (в минутах)"
     },
     "analysis_enabled": {
       "name": "Включить анализ",
-      "description": "Включить анализ рынка (Fear & Greed, деривативы, скоринг)"
+      "description": "Анализ рынка: Fear & Greed, деривативы, скоринг"
     },
     "analysis_interval_hours": {
-      "name": "Интервал анализа (часы)",
+      "name": "Интервал анализа",
       "description": "Как часто запускать анализ рынка (1-24 часа)"
     },
     "alert_on_strong_signals": {
-      "name": "Оповещения о сильных сигналах",
-      "description": "Отправлять уведомления при обнаружении сильных сигналов покупки/продажи"
+      "name": "Оповещения о сигналах",
+      "description": "Уведомления при сильных сигналах покупки/продажи"
     },
     "alert_threshold_buy": {
-      "name": "Порог сигнала покупки",
-      "description": "Порог скора для сильных сигналов покупки (50-100)"
+      "name": "Порог покупки",
+      "description": "Порог скора для сигналов покупки (50-100)"
     },
     "alert_threshold_sell": {
-      "name": "Порог сигнала продажи",
-      "description": "Порог скора для сильных сигналов продажи (0-50)"
+      "name": "Порог продажи",
+      "description": "Порог скора для сигналов продажи (0-50)"
+    },
+    "bybit_api_key": {
+      "name": "API ключ Bybit",
+      "description": "Ключ API биржи Bybit для торгового портфеля"
+    },
+    "bybit_api_secret": {
+      "name": "API секрет Bybit",
+      "description": "Секретный ключ API биржи Bybit"
+    },
+    "bybit_testnet": {
+      "name": "Тестовая сеть Bybit",
+      "description": "Использовать тестовую сеть Bybit вместо основной"
+    },
+    "mcp_enabled": {
+      "name": "Включить MCP",
+      "description": "Включить MCP сервер для AI-агентов (Claude, GPT)"
+    },
+    "mcp_port": {
+      "name": "Порт MCP",
+      "description": "Порт для MCP сервера"
+    },
+    "backfill_enabled": {
+      "name": "Загрузка истории",
+      "description": "Загружать исторические данные при запуске"
+    },
+    "backfill_crypto_years": {
+      "name": "Глубина истории крипты",
+      "description": "Сколько лет исторических данных загружать (1-15)"
+    },
+    "backfill_traditional_years": {
+      "name": "Глубина истории активов",
+      "description": "Глубина истории традиционных активов (1-5 лет)"
+    },
+    "ai_enabled": {
+      "name": "Включить AI анализ",
+      "description": "AI-анализ рынка через Ollama или OpenAI"
+    },
+    "ai_provider": {
+      "name": "AI провайдер",
+      "description": "Выберите провайдера: Ollama (локально) или OpenAI"
+    },
+    "openai_api_key": {
+      "name": "API ключ OpenAI",
+      "description": "Ключ API для OpenAI (ChatGPT)"
+    },
+    "ollama_host": {
+      "name": "Адрес Ollama",
+      "description": "URL сервера Ollama (например: http://localhost:11434)"
+    },
+    "ollama_model": {
+      "name": "Модель Ollama",
+      "description": "Название модели Ollama (например: llama3.2, mistral)"
+    },
+    "ai_analysis_interval_hours": {
+      "name": "Интервал AI анализа",
+      "description": "Как часто запускать AI анализ (1-168 часов)"
+    },
+    "ai_language": {
+      "name": "Язык AI",
+      "description": "Язык ответов AI-ассистента"
+    },
+    "goal_enabled": {
+      "name": "Включить цель",
+      "description": "Отслеживание прогресса к финансовой цели"
+    },
+    "goal_target_value": {
+      "name": "Целевая сумма",
+      "description": "Целевая стоимость портфеля в USD"
+    },
+    "goal_name": {
+      "name": "Название цели",
+      "description": "Название вашей финансовой цели"
+    },
+    "briefing_morning_enabled": {
+      "name": "Утренний брифинг",
+      "description": "Отправлять утренний обзор рынка"
+    },
+    "briefing_evening_enabled": {
+      "name": "Вечерний брифинг",
+      "description": "Отправлять вечерний итог дня"
+    },
+    "notification_mode": {
+      "name": "Режим уведомлений",
+      "description": "all - все, smart - умные, digest_only - только дайджест, critical_only - только критические, silent - тихий"
     }
   }
 }
