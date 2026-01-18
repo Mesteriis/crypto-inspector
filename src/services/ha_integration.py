@@ -53,6 +53,11 @@ class SupervisorAPIClient:
             "Content-Type": "application/json",
         }
 
+    @property
+    def is_available(self) -> bool:
+        """Check if Supervisor API is available."""
+        return bool(self.token)
+
     async def _get_client(self) -> httpx.AsyncClient:
         if self._client is None or self._client.is_closed:
             self._client = httpx.AsyncClient(
@@ -65,6 +70,98 @@ class SupervisorAPIClient:
     async def close(self):
         if self._client and not self._client.is_closed:
             await self._client.aclose()
+
+    async def set_state(
+        self,
+        entity_id: str,
+        state: str,
+        attributes: dict | None = None,
+    ) -> bool:
+        """
+        Set state for an entity (creates if not exists).
+
+        Args:
+            entity_id: Full entity ID (e.g., 'sensor.crypto_inspect_status')
+            state: Entity state value
+            attributes: Optional attributes dict
+
+        Returns:
+            True if successful
+        """
+        if not self.is_available:
+            logger.debug("Supervisor API not available")
+            return False
+
+        client = await self._get_client()
+        url = f"/core/api/states/{entity_id}"
+
+        data = {"state": state}
+        if attributes:
+            data["attributes"] = attributes
+
+        try:
+            response = await client.post(url, json=data)
+            response.raise_for_status()
+            logger.debug(f"Set state for {entity_id}: {state}")
+            return True
+        except httpx.HTTPError as e:
+            logger.error(f"Failed to set state for {entity_id}: {e}")
+            return False
+
+    async def create_sensor(
+        self,
+        sensor_id: str,
+        state: str,
+        friendly_name: str,
+        icon: str = "mdi:chart-line",
+        unit: str | None = None,
+        device_class: str | None = None,
+        attributes: dict | None = None,
+    ) -> bool:
+        """
+        Create or update a sensor entity.
+
+        Args:
+            sensor_id: Sensor ID without 'sensor.' prefix
+            state: Initial state value
+            friendly_name: Display name
+            icon: MDI icon
+            unit: Unit of measurement
+            device_class: HA device class
+            attributes: Additional attributes
+
+        Returns:
+            True if successful
+        """
+        entity_id = f"sensor.crypto_inspect_{sensor_id}"
+
+        attrs = {
+            "friendly_name": friendly_name,
+            "icon": icon,
+        }
+        if unit:
+            attrs["unit_of_measurement"] = unit
+        if device_class:
+            attrs["device_class"] = device_class
+        if attributes:
+            attrs.update(attributes)
+
+        return await self.set_state(entity_id, state, attrs)
+
+    async def update_sensor(self, sensor_id: str, state: str, attributes: dict | None = None) -> bool:
+        """
+        Update sensor state (preserves existing attributes).
+
+        Args:
+            sensor_id: Sensor ID without 'sensor.' prefix
+            state: New state value
+            attributes: Attributes to update/add
+
+        Returns:
+            True if successful
+        """
+        entity_id = f"sensor.crypto_inspect_{sensor_id}"
+        return await self.set_state(entity_id, state, attributes)
 
     async def call_service(
         self,
@@ -404,3 +501,90 @@ async def notify_error(error_message: str, context: str = "") -> bool:
         title="Crypto Inspect - Error",
         notification_id="crypto_inspect_error",
     )
+
+
+async def register_sensors() -> int:
+    """
+    Register all Crypto Inspect sensors in Home Assistant.
+
+    Creates sensors via Supervisor REST API (auto-discovery).
+
+    Returns:
+        Number of sensors registered.
+    """
+    client = get_supervisor_client()
+
+    if not client.is_available:
+        logger.warning("Supervisor API not available, skipping sensor registration")
+        return 0
+
+    logger.info("Registering Crypto Inspect sensors...")
+    count = 0
+
+    # Основные датчики
+    sensors = [
+        # Статус
+        ("status", "online", "Crypto Inspect Status", "mdi:check-network", None, None),
+        # Цены
+        ("btc_price", "0", "BTC Price", "mdi:bitcoin", "USDT", None),
+        ("eth_price", "0", "ETH Price", "mdi:ethereum", "USDT", None),
+        # Рынок
+        ("fear_greed", "50", "Fear & Greed Index", "mdi:emoticon-neutral", None, None),
+        ("market_pulse", "Нейтрально", "Market Pulse", "mdi:pulse", None, None),
+        ("btc_dominance", "0", "BTC Dominance", "mdi:crown", "%", None),
+        # Инвестор
+        ("do_nothing_ok", "Да", "Do Nothing OK", "mdi:meditation", None, None),
+        ("investor_phase", "Накопление", "Investor Phase", "mdi:chart-timeline-variant-shimmer", None, None),
+        # Буфер
+        ("buffer_size", "0", "Buffer Size", "mdi:database", "candles", None),
+        ("candles_total", "0", "Total Candles", "mdi:database-check", "candles", None),
+    ]
+
+    for sensor_id, state, name, icon, unit, device_class in sensors:
+        success = await client.create_sensor(
+            sensor_id=sensor_id,
+            state=state,
+            friendly_name=name,
+            icon=icon,
+            unit=unit,
+            device_class=device_class,
+        )
+        if success:
+            count += 1
+
+    logger.info(f"Registered {count} sensors")
+    return count
+
+
+async def update_price_sensors(prices: dict[str, float]) -> None:
+    """
+    Update price sensors.
+
+    Args:
+        prices: Dict of {symbol: price}
+    """
+    client = get_supervisor_client()
+    if not client.is_available:
+        return
+
+    symbol_map = {
+        "BTC/USDT": "btc_price",
+        "BTCUSDT": "btc_price",
+        "ETH/USDT": "eth_price",
+        "ETHUSDT": "eth_price",
+    }
+
+    for symbol, price in prices.items():
+        sensor_id = symbol_map.get(symbol)
+        if sensor_id:
+            await client.update_sensor(sensor_id, f"{price:.2f}")
+
+
+async def update_buffer_stats(buffered: int, flushed: int, current_size: int) -> None:
+    """Update buffer statistics sensors."""
+    client = get_supervisor_client()
+    if not client.is_available:
+        return
+
+    await client.update_sensor("buffer_size", str(current_size))
+    await client.update_sensor("candles_total", str(flushed))

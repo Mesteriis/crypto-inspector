@@ -139,6 +139,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """Application lifespan manager."""
     logger.info(f"Starting {settings.APP_NAME}...")
 
+    # Register HA sensors
+    from services.ha_integration import register_sensors
+
+    await register_sensors()
+
     # Start WebSocket streaming
     await start_websocket_streaming()
 
