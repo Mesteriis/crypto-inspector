@@ -9,6 +9,7 @@ This script:
 4. Outputs to docs/ folder for GitHub Pages
 """
 
+import html
 import re
 import shutil
 from datetime import datetime
@@ -371,8 +372,10 @@ footer a { color: var(--accent); }
 # JavaScript
 JS_SCRIPT = """
 function copyToClipboard(btn, cardId) {
-    const code = document.getElementById(cardId).textContent;
-    navigator.clipboard.writeText(code).then(() => {
+    const codeEl = document.getElementById(cardId);
+    // Get raw text from data attribute if available, otherwise use textContent
+    const rawYaml = codeEl.getAttribute('data-raw') || codeEl.textContent;
+    navigator.clipboard.writeText(rawYaml).then(() => {
         btn.textContent = '✓ Copied!';
         setTimeout(() => btn.textContent = '📋 Copy', 2000);
     });
@@ -382,19 +385,23 @@ function copyToClipboard(btn, cardId) {
 
 def highlight_yaml(text: str) -> str:
     """Simple YAML syntax highlighting."""
+    # First escape HTML entities
+    text = html.escape(text)
+
     lines = []
     for line in text.split("\n"):
         # Comments
         if line.strip().startswith("#"):
             line = f'<span class="yaml-comment">{line}</span>'
         else:
-            # Keys
-            line = re.sub(r"^(\s*)([a-zA-Z_][a-zA-Z0-9_]*):", r'\1<span class="yaml-key">\2</span>:', line)
-            # Strings in quotes
-            line = re.sub(r'"([^"]*)"', r'<span class="yaml-string">"\1"</span>', line)
-            line = re.sub(r"'([^']*)'", r"<span class=\"yaml-string\">'\1'</span>", line)
-            # Numbers
+            # Keys (word followed by colon)
+            line = re.sub(r"^(\s*)([a-zA-Z_][a-zA-Z0-9_-]*):", r'\1<span class="yaml-key">\2</span>:', line)
+            # Strings in quotes (already escaped by html.escape)
+            line = re.sub(r"&quot;([^&]*)&quot;", r'<span class="yaml-string">&quot;\1&quot;</span>', line)
+            line = re.sub(r"&#x27;([^&]*)&#x27;", r'<span class="yaml-string">&#x27;\1&#x27;</span>', line)
+            # Numbers at end of line
             line = re.sub(r": (\d+)$", r': <span class="yaml-number">\1</span>', line)
+            line = re.sub(r": (\d+\.\d+)$", r': <span class="yaml-number">\1</span>', line)
             # Booleans
             line = re.sub(r": (true|false)$", r': <span class="yaml-bool">\1</span>', line)
         lines.append(line)
@@ -505,7 +512,10 @@ def generate_card_html(card: dict, index: int) -> str:
     name = card["name"].replace("_", " ").title()
 
     preview = get_card_preview(card_type, card["data"])
-    highlighted_yaml = highlight_yaml(card["yaml"])
+    raw_yaml = card["yaml"]
+    highlighted_yaml = highlight_yaml(raw_yaml)
+    # Escape raw YAML for data attribute
+    raw_yaml_escaped = html.escape(raw_yaml)
 
     return f"""
     <div class="card">
@@ -520,7 +530,7 @@ def generate_card_html(card: dict, index: int) -> str:
         <div class="card-code">
             <div class="code-container">
                 <button class="copy-btn" onclick="copyToClipboard(this, '{card_id}')">📋 Copy</button>
-                <pre><code id="{card_id}">{highlighted_yaml}</code></pre>
+                <pre><code id="{card_id}" data-raw="{raw_yaml_escaped}">{highlighted_yaml}</code></pre>
             </div>
         </div>
     </div>
@@ -530,7 +540,9 @@ def generate_card_html(card: dict, index: int) -> str:
 def generate_view_section(view: dict, index: int) -> str:
     """Generate HTML section for a dashboard view."""
     view_id = f"view-{index}"
-    highlighted_yaml = highlight_yaml(view["yaml"])
+    raw_yaml = view["yaml"]
+    highlighted_yaml = highlight_yaml(raw_yaml)
+    raw_yaml_escaped = html.escape(raw_yaml)
 
     return f"""
     <div class="card" style="grid-column: 1 / -1;">
@@ -545,7 +557,7 @@ def generate_view_section(view: dict, index: int) -> str:
         <div class="card-code">
             <div class="code-container">
                 <button class="copy-btn" onclick="copyToClipboard(this, '{view_id}')">📋 Copy</button>
-                <pre><code id="{view_id}">{highlighted_yaml}</code></pre>
+                <pre><code id="{view_id}" data-raw="{raw_yaml_escaped}">{highlighted_yaml}</code></pre>
             </div>
         </div>
     </div>
