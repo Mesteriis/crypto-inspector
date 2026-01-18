@@ -10,6 +10,7 @@ import logging
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -147,6 +148,14 @@ class CandleBuffer:
         # Import here to avoid circular imports
         from db.session import async_session_maker
 
+        def to_float(val) -> float | None:
+            """Convert Decimal to float for SQLite compatibility."""
+            if val is None:
+                return None
+            if isinstance(val, Decimal):
+                return float(val)
+            return val
+
         # Group by symbol/interval/exchange for efficient upsert
         grouped: dict[tuple, list] = defaultdict(list)
         for bc in candles:
@@ -166,12 +175,12 @@ class CandleBuffer:
                             "symbol": symbol,
                             "interval": interval,
                             "timestamp": c.timestamp,
-                            "open_price": c.open_price,
-                            "high_price": c.high_price,
-                            "low_price": c.low_price,
-                            "close_price": c.close_price,
-                            "volume": c.volume,
-                            "quote_volume": c.quote_volume,
+                            "open_price": to_float(c.open_price),
+                            "high_price": to_float(c.high_price),
+                            "low_price": to_float(c.low_price),
+                            "close_price": to_float(c.close_price),
+                            "volume": to_float(c.volume),
+                            "quote_volume": to_float(c.quote_volume),
                             "trades_count": c.trades_count,
                             "fetch_time_ms": 0,
                             "is_complete": True,
