@@ -11,8 +11,8 @@ from typing import Any
 from fastapi import APIRouter, Query
 from pydantic import BaseModel
 
-from ...core.config import settings
-from ...services.portfolio.goals import GoalTracker
+from core.config import settings
+from services.portfolio.goals import GoalTracker
 
 router = APIRouter(prefix="/goals", tags=["goals"])
 

@@ -11,7 +11,7 @@ from typing import Any
 from fastapi import APIRouter, Query
 from pydantic import BaseModel
 
-from ...services.analysis.smart_summary import SmartSummaryService
+from services.analysis.smart_summary import SmartSummaryService
 
 router = APIRouter(prefix="/summary", tags=["summary"])
 
@@ -102,7 +102,7 @@ async def get_market_pulse(
         Market sentiment with confidence level and contributing factors.
     """
     pulse = await _summary_service.get_market_pulse()
-    return pulse.to_dict(lang)
+    return pulse.to_dict()
 
 
 @router.get("/portfolio-health", response_model=PortfolioHealthResponse)
@@ -121,7 +121,7 @@ async def get_portfolio_health(
         portfolio_value=Decimal(str(portfolio_value)) if portfolio_value else None,
         portfolio_pnl=portfolio_change,
     )
-    return health.to_dict(lang)
+    return health.to_dict()
 
 
 @router.get("/today-action", response_model=TodayActionResponse)
@@ -135,7 +135,7 @@ async def get_today_action(
         Action recommendation with priority level and details.
     """
     action = await _summary_service.get_today_action()
-    return action.to_dict(lang)
+    return action.to_dict()
 
 
 @router.get("/weekly-outlook", response_model=WeeklyOutlookResponse)
@@ -149,7 +149,7 @@ async def get_weekly_outlook(
         Weekly outlook with key events, risk factors, and opportunities.
     """
     outlook = await _summary_service.get_weekly_outlook()
-    return outlook.to_dict(lang)
+    return outlook.to_dict()
 
 
 @router.get("/full", response_model=FullSummaryResponse)
@@ -174,10 +174,10 @@ async def get_full_summary(
     outlook = await _summary_service.get_weekly_outlook()
 
     return {
-        "market_pulse": pulse.to_dict(lang),
-        "portfolio_health": health.to_dict(lang),
-        "today_action": action.to_dict(lang),
-        "weekly_outlook": outlook.to_dict(lang),
+        "market_pulse": pulse.to_dict(),
+        "portfolio_health": health.to_dict(),
+        "today_action": action.to_dict(),
+        "weekly_outlook": outlook.to_dict(),
     }
 
 

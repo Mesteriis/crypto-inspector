@@ -18,8 +18,6 @@ logger = logging.getLogger(__name__)
 # Create MCP server instance
 mcp = FastMCP(
     name="crypto-inspect",
-    version="1.0.0",
-    description="Cryptocurrency and traditional finance data server for AI agents",
 )
 
 

@@ -10,11 +10,11 @@ from typing import Any
 from fastapi import APIRouter, Query
 from pydantic import BaseModel
 
-from ...services.alerts.notification_manager import (
+from services.alerts.notification_manager import (
     NotificationManager,
     NotificationMode,
 )
-from ...services.analysis.briefing import BriefingService
+from services.analysis.briefing import BriefingService
 
 router = APIRouter(prefix="/briefing", tags=["briefing"])
 
