@@ -103,7 +103,7 @@ jobs:
 
       # Build amd64
       - name: Build and push (amd64)
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64
@@ -124,7 +124,7 @@ jobs:
 
       # Build aarch64
       - name: Build and push (aarch64)
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/arm64
