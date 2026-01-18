@@ -1,0 +1,15 @@
+# Code Owners
+# These owners will be requested for review on PRs
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything
+* @Mesteriis
+
+# Workflows
+.github/ @Mesteriis
+
+# Core application
+src/ @Mesteriis
+
+# Tests
+tests/ @Mesteriis

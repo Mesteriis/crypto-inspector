@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2d7a6a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1a5a4a;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="grad2" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#4ade9a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8fdfcf;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- Background circle -->
+  <circle cx="32" cy="32" r="30" fill="url(#grad1)" stroke="#8fdfcf" stroke-width="1"/>
+
+  <!-- Database with arrow -->
+  <ellipse cx="32" cy="22" rx="14" ry="6" fill="#4ade9a" stroke="#8fdfcf" stroke-width="1"/>
+  <path d="M18 22 L18 38 Q18 44 32 44 Q46 44 46 38 L46 22" fill="none" stroke="#8fdfcf" stroke-width="2"/>
+  <path d="M32 28 L32 40 M26 34 L32 40 L38 34" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+
+</svg>

@@ -1,0 +1,83 @@
+name: Lint Auto-fix
+
+on:
+  schedule:
+    - cron: "0 3 * * 0"  # Every Sunday at 3 AM
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-fix:
+    name: Auto-fix Linting Issues
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff isort
+
+      - name: Run Ruff fix
+        run: |
+          ruff check src/ tests/ --fix --unsafe-fixes || true
+          ruff format src/ tests/
+
+      - name: Sort imports
+        run: |
+          isort src/ tests/ --profile black || true
+
+      - name: Fix line endings (CRLF -> LF)
+        run: |
+          find . -type f -name "*.py" -exec sed -i 's/\r$//' {} \;
+          find . -type f -name "*.yml" -exec sed -i 's/\r$//' {} \;
+          find . -type f -name "*.yaml" -exec sed -i 's/\r$//' {} \;
+
+      - name: Fix trailing whitespace
+        run: |
+          find . -type f \( -name "*.py" -o -name "*.yml" -o -name "*.yaml" -o -name "*.json" \) \
+            -exec sed -i 's/[[:space:]]*$//' {} \;
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if ! git diff --quiet; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create Pull Request
+        if: steps.changes.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "style: auto-fix linting issues"
+          title: "Auto-fix: Linting Issues"
+          body: |
+            ## Automated Linting Fixes
+
+            This PR contains automatic fixes for:
+            - Ruff linting issues
+            - Import sorting
+            - Line ending normalization
+            - Trailing whitespace removal
+
+            Please review before merging.
+          branch: auto-fix/lint
+          delete-branch: true
+          labels: |
+            automated
+            style

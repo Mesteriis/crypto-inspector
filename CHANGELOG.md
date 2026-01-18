@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.1 - Bugfixes & Improvements
+
+### Fixed
+- Fixed `TestPeriod` → `BacktestPeriod` naming in e2e test framework
+- Updated sw_version references in HA integration
+
+### Changed
+- Minor code cleanup and refactoring
+
 ## 0.2.0 - UX Enhancement Suite & Sensor Refactoring
 
 ### New Features

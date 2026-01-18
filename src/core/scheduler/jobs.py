@@ -1011,14 +1011,35 @@ async def bybit_sync_job() -> None:
             __import__("services.exchange.bybit_portfolio", fromlist=["PnlPeriod"]).PnlPeriod.WEEK
         )
 
-        # Update MQTT sensors
+        # Update MQTT sensors - Wallet
         await sensors.publish_sensor("bybit_balance", round(account.total_equity, 2))
         await sensors.publish_sensor("bybit_pnl_24h", round(pnl_24h.total_pnl, 2))
         await sensors.publish_sensor("bybit_pnl_7d", round(pnl_7d.total_pnl, 2))
         await sensors.publish_sensor("bybit_positions", len(account.positions))
         await sensors.publish_sensor("bybit_unrealized_pnl", round(account.total_unrealized_pnl, 2))
 
-        logger.info(f"Bybit sync: balance=${account.total_equity:.2f}, positions={len(account.positions)}")
+        # Update MQTT sensors - Earn (Flexible Savings + OnChain)
+        earn_balance = sum(p.usd_value for p in account.earn_positions)
+        earn_count = len(account.earn_positions)
+        avg_apy = sum(p.estimated_apy for p in account.earn_positions) / earn_count if earn_count > 0 else 0
+        total_portfolio = account.total_equity + earn_balance
+
+        await sensors.publish_sensor("bybit_earn_balance", round(earn_balance, 2))
+        await sensors.publish_sensor(
+            "bybit_earn_positions",
+            earn_count,
+            attributes={
+                "positions": [p.to_dict() for p in account.earn_positions],
+                "coins": [p.coin for p in account.earn_positions],
+            },
+        )
+        await sensors.publish_sensor("bybit_earn_apy", round(avg_apy, 2))
+        await sensors.publish_sensor("bybit_total_portfolio", round(total_portfolio, 2))
+
+        logger.info(
+            f"Bybit sync: wallet=${account.total_equity:.2f}, earn=${earn_balance:.2f}, "
+            f"total=${total_portfolio:.2f}, positions={len(account.positions)}, earn_positions={earn_count}"
+        )
 
     except Exception as e:
         logger.error(f"Bybit sync job failed: {e}")

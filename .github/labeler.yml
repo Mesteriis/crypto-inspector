@@ -1,0 +1,71 @@
+# PR Labeler Configuration
+# https://github.com/actions/labeler
+
+# Source code
+src:
+  - changed-files:
+    - any-glob-to-any-file: 'src/**/*'
+
+# Tests
+tests:
+  - changed-files:
+    - any-glob-to-any-file: 'tests/**/*'
+
+# API changes
+api:
+  - changed-files:
+    - any-glob-to-any-file: 'src/api/**/*'
+
+# Core/Services
+core:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/core/**/*'
+      - 'src/services/**/*'
+
+# Docker/Infrastructure
+docker:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'Dockerfile'
+      - 'docker-compose*.yml'
+      - 'rootfs/**/*'
+
+# Dependencies
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'requirements*.txt'
+      - 'pyproject.toml'
+
+# CI/CD
+ci:
+  - changed-files:
+    - any-glob-to-any-file: '.github/**/*'
+
+# Documentation
+documentation:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '*.md'
+      - 'docs/**/*'
+
+# Database/Migrations
+database:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'alembic/**/*'
+      - 'src/db/**/*'
+
+# Home Assistant
+home-assistant:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/services/ha_sensors/**/*'
+      - 'rootfs/**/*'
+      - 'config.yaml'
+
+# Bybit integration
+bybit:
+  - changed-files:
+    - any-glob-to-any-file: 'src/services/bybit/**/*'

@@ -74,6 +74,35 @@ class Balance:
 
 
 @dataclass
+class EarnPosition:
+    """Bybit Earn position (Flexible Savings / OnChain)."""
+
+    coin: str
+    product_id: str
+    amount: float
+    total_pnl: float
+    claimable_yield: float
+    category: str  # FlexibleSaving or OnChain
+    status: str = "Active"
+    estimated_apy: float = 0
+    usd_value: float = 0
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "coin": self.coin,
+            "product_id": self.product_id,
+            "amount": round(self.amount, 8),
+            "total_pnl": round(self.total_pnl, 8),
+            "claimable_yield": round(self.claimable_yield, 8),
+            "category": self.category,
+            "category_ru": "Гибкий депозит" if self.category == "FlexibleSaving" else "On-Chain",
+            "status": self.status,
+            "estimated_apy": round(self.estimated_apy, 2),
+            "usd_value": round(self.usd_value, 2),
+        }
+
+
+@dataclass
 class Position:
     """Open position."""
 
@@ -162,6 +191,17 @@ class AccountSummary:
     account_type: str
     balances: list[Balance] = field(default_factory=list)
     positions: list[Position] = field(default_factory=list)
+    earn_positions: list[EarnPosition] = field(default_factory=list)
+
+    @property
+    def total_earn_value(self) -> float:
+        """Total value in Earn products."""
+        return sum(p.usd_value for p in self.earn_positions)
+
+    @property
+    def total_portfolio_value(self) -> float:
+        """Total portfolio value including wallet + earn."""
+        return self.total_equity + self.total_earn_value
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -176,6 +216,12 @@ class AccountSummary:
             "balances_count": len(self.balances),
             "positions": [p.to_dict() for p in self.positions],
             "positions_count": len(self.positions),
+            # Earn data
+            "earn_positions": [e.to_dict() for e in self.earn_positions],
+            "earn_positions_count": len(self.earn_positions),
+            "total_earn_value": round(self.total_earn_value, 2),
+            "total_portfolio_value": round(self.total_portfolio_value, 2),
+            "total_portfolio_formatted": self._format_currency(self.total_portfolio_value),
         }
 
     def _format_currency(self, value: float) -> str:
@@ -577,6 +623,139 @@ class BybitClient:
             }
 
         return result
+
+    # === Earn Endpoints ===
+
+    async def get_earn_products(
+        self,
+        category: str = "FlexibleSaving",
+        coin: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Get Earn product info.
+
+        Args:
+            category: FlexibleSaving or OnChain
+            coin: Optional coin filter
+
+        Returns:
+            List of earn products with APY info
+        """
+        params: dict[str, Any] = {"category": category}
+        if coin:
+            params["coin"] = coin.upper()
+
+        try:
+            data = await self._request(
+                "GET",
+                "/v5/earn/product",
+                params=params,
+                authenticated=False,  # Public endpoint
+            )
+
+            products = []
+            for product in data.get("list", []):
+                products.append(
+                    {
+                        "product_id": product.get("productId", ""),
+                        "coin": product.get("coin", ""),
+                        "category": product.get("category", ""),
+                        "estimated_apy": float(product.get("estimateApr", 0)) * 100,
+                        "min_stake": float(product.get("minStakeAmount", 0)),
+                        "max_stake": float(product.get("maxStakeAmount", 0)),
+                        "status": product.get("status", ""),
+                    }
+                )
+            return products
+
+        except Exception as e:
+            logger.error(f"Failed to get earn products: {e}")
+            return []
+
+    async def get_earn_positions(
+        self,
+        category: str = "FlexibleSaving",
+        coin: str | None = None,
+    ) -> list[EarnPosition]:
+        """
+        Get Earn staked positions.
+
+        Args:
+            category: FlexibleSaving or OnChain
+            coin: Optional coin filter
+
+        Returns:
+            List of EarnPosition
+        """
+        if not self.is_configured:
+            return []
+
+        params: dict[str, Any] = {"category": category}
+        if coin:
+            params["coin"] = coin.upper()
+
+        try:
+            data = await self._request(
+                "GET",
+                "/v5/earn/position",
+                params=params,
+            )
+
+            # Get products for APY info
+            products = await self.get_earn_products(category)
+            product_apys = {p["product_id"]: p["estimated_apy"] for p in products}
+
+            # Get current prices for USD value
+            tickers = await self.get_tickers(category="spot")
+
+            positions = []
+            for pos in data.get("list", []):
+                amount = float(pos.get("amount", 0))
+                if amount <= 0:
+                    continue
+
+                coin_name = pos.get("coin", "")
+                product_id = pos.get("productId", "")
+
+                # Calculate USD value
+                usd_value = 0.0
+                if coin_name == "USDT" or coin_name == "USDC":
+                    usd_value = amount
+                else:
+                    ticker_symbol = f"{coin_name}USDT"
+                    if ticker_symbol in tickers:
+                        usd_value = amount * tickers[ticker_symbol]["last_price"]
+
+                positions.append(
+                    EarnPosition(
+                        coin=coin_name,
+                        product_id=product_id,
+                        amount=amount,
+                        total_pnl=float(pos.get("totalPnl", 0)),
+                        claimable_yield=float(pos.get("claimableYield", 0)),
+                        category=category,
+                        status=pos.get("status", "Active"),
+                        estimated_apy=product_apys.get(product_id, 0),
+                        usd_value=usd_value,
+                    )
+                )
+
+            return positions
+
+        except Exception as e:
+            logger.error(f"Failed to get earn positions: {e}")
+            return []
+
+    async def get_all_earn_positions(self) -> list[EarnPosition]:
+        """
+        Get all Earn positions (both FlexibleSaving and OnChain).
+
+        Returns:
+            Combined list of all earn positions
+        """
+        flexible = await self.get_earn_positions(category="FlexibleSaving")
+        onchain = await self.get_earn_positions(category="OnChain")
+        return flexible + onchain
 
 
 # Global instance

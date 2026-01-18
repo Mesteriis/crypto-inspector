@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2d7a6a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1a5a4a;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="grad2" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#4ade9a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8fdfcf;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- Background circle -->
+  <circle cx="32" cy="32" r="30" fill="url(#grad1)" stroke="#8fdfcf" stroke-width="1"/>
+
+  <!-- Brain/AI icon -->
+  <circle cx="32" cy="28" r="12" fill="none" stroke="#4ade9a" stroke-width="2"/>
+  <path d="M26 28 Q32 20 38 28 Q32 36 26 28" fill="#8fdfcf" opacity="0.8"/>
+  <circle cx="28" cy="26" r="2" fill="#4ade9a"/>
+  <circle cx="36" cy="26" r="2" fill="#4ade9a"/>
+  <path d="M24 42 L32 36 L40 42" stroke="#8fdfcf" stroke-width="2" fill="none" stroke-linecap="round"/>
+
+</svg>

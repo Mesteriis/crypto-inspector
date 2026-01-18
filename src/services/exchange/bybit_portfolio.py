@@ -125,23 +125,47 @@ class BybitPortfolioStatus:
             "pnl_7d": self.pnl_7d.to_dict() if self.pnl_7d else None,
             "summary": self._get_summary(),
             "summary_ru": self._get_summary_ru(),
+            "earn_summary": self._get_earn_summary(),
+            "earn_summary_ru": self._get_earn_summary_ru(),
         }
 
     def _get_summary(self) -> str:
         if not self.is_configured:
             return "Bybit not configured"
-        equity = self.account.total_equity if self.account else 0
+        total = self.account.total_portfolio_value if self.account else 0
+        wallet = self.account.total_equity if self.account else 0
+        earn = self.account.total_earn_value if self.account else 0
         pnl = self.pnl_24h.total_pnl if self.pnl_24h else 0
         sign = "+" if pnl >= 0 else ""
-        return f"Bybit: ${equity:,.2f} ({sign}${pnl:.2f} 24h)"
+        return f"Bybit: ${total:,.2f} (Wallet: ${wallet:,.0f} + Earn: ${earn:,.0f}) {sign}${pnl:.2f} 24h"
 
     def _get_summary_ru(self) -> str:
         if not self.is_configured:
             return "Bybit не настроен"
-        equity = self.account.total_equity if self.account else 0
+        total = self.account.total_portfolio_value if self.account else 0
+        wallet = self.account.total_equity if self.account else 0
+        earn = self.account.total_earn_value if self.account else 0
         pnl = self.pnl_24h.total_pnl if self.pnl_24h else 0
         sign = "+" if pnl >= 0 else ""
-        return f"Bybit: ${equity:,.2f} ({sign}${pnl:.2f} за 24ч)"
+        return f"Bybit: ${total:,.2f} (Кошелек: ${wallet:,.0f} + Earn: ${earn:,.0f}) {sign}${pnl:.2f} за 24ч"
+
+    def _get_earn_summary(self) -> str:
+        if not self.is_configured or not self.account:
+            return "No earn positions"
+        earn_count = len(self.account.earn_positions)
+        earn_value = self.account.total_earn_value
+        if earn_count == 0:
+            return "No earn positions"
+        return f"{earn_count} positions, ${earn_value:,.2f} total"
+
+    def _get_earn_summary_ru(self) -> str:
+        if not self.is_configured or not self.account:
+            return "Нет позиций Earn"
+        earn_count = len(self.account.earn_positions)
+        earn_value = self.account.total_earn_value
+        if earn_count == 0:
+            return "Нет позиций Earn"
+        return f"{earn_count} позиций, ${earn_value:,.2f} всего"
 
 
 class BybitPortfolio:
@@ -168,13 +192,13 @@ class BybitPortfolio:
 
     async def get_account(self, force_refresh: bool = False) -> AccountSummary:
         """
-        Get account summary with balances.
+        Get account summary with balances and earn positions.
 
         Args:
             force_refresh: Force refresh from API
 
         Returns:
-            AccountSummary with balances
+            AccountSummary with balances and earn positions
         """
         if not self.is_configured:
             return AccountSummary(
@@ -193,8 +217,10 @@ class BybitPortfolio:
         try:
             account = await self._client.get_wallet_balance()
             positions = await self._client.get_positions()
+            earn_positions = await self._client.get_all_earn_positions()
 
             account.positions = positions
+            account.earn_positions = earn_positions
             self._cached_account = account
             self._cached_positions = positions
             self._cache_time = datetime.now()

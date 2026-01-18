@@ -186,7 +186,7 @@ class MQTTDiscoveryClient:
             "name": self.DEVICE_NAME,
             "model": "Crypto Data Collector",
             "manufacturer": "Crypto Inspect Add-on",
-            "sw_version": "0.1.0",
+            "sw_version": "0.2.1",
         }
 
     def _get_discovery_topic(self, component: str, object_id: str) -> str:

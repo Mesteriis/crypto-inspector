@@ -268,6 +268,26 @@ class CryptoSensorsManager:
             "icon": "mdi:cash-clock",
             "unit": "USDT",
         },
+        # === Bybit Earn ===
+        "bybit_earn_balance": {
+            "name": "Bybit Earn Balance",
+            "icon": "mdi:piggy-bank",
+            "unit": "USDT",
+        },
+        "bybit_earn_positions": {
+            "name": "Bybit Earn Positions",
+            "icon": "mdi:format-list-bulleted",
+        },
+        "bybit_earn_apy": {
+            "name": "Bybit Earn APY",
+            "icon": "mdi:percent",
+            "unit": "%",
+        },
+        "bybit_total_portfolio": {
+            "name": "Bybit Total Portfolio",
+            "icon": "mdi:bank",
+            "unit": "USDT",
+        },
         # === DCA Calculator ===
         "dca_next_level": {
             "name": "DCA Next Level",
@@ -655,7 +675,7 @@ class CryptoSensorsManager:
             "name": self.DEVICE_NAME,
             "model": "Crypto Data Collector",
             "manufacturer": "Crypto Inspect Add-on",
-            "sw_version": "0.1.0",
+            "sw_version": "0.2.1",
         }
 
     def _get_discovery_topic(self, sensor_id: str) -> str:
