@@ -11,7 +11,7 @@ Sensors use dictionary format to support multiple trading pairs:
 import json
 import logging
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 
 logger = logging.getLogger(__name__)
@@ -645,6 +645,7 @@ class CryptoSensorsManager:
         self._volumes: dict[str, str] = {}
         self._highs: dict[str, str] = {}
         self._lows: dict[str, str] = {}
+        self._cache: dict[str, any] = {}  # General cache for sensor values
 
     @property
     def device_info(self) -> dict:
@@ -744,6 +745,33 @@ class CryptoSensorsManager:
             logger.error(f"Failed to publish attributes for {sensor_id}: {e}")
             return False
 
+    async def publish_sensor(self, sensor_id: str, value: any, attributes: dict | None = None) -> bool:
+        """
+        Publish a sensor value with optional attributes.
+
+        This is the main public API for updating sensor values.
+        Values are cached for later retrieval.
+
+        Args:
+            sensor_id: Sensor identifier
+            value: Value to publish (will be converted to string/JSON)
+            attributes: Optional attributes dict
+
+        Returns:
+            True if published successfully
+        """
+        # Cache the value
+        self._cache[sensor_id] = value
+
+        # Publish state
+        result = await self._publish_state(sensor_id, value)
+
+        # Publish attributes if provided
+        if attributes and result:
+            await self._publish_attributes(sensor_id, attributes)
+
+        return result
+
     async def update_price(
         self,
         symbol: str,
@@ -783,7 +811,7 @@ class CryptoSensorsManager:
             {
                 "symbols": list(self._prices.keys()),
                 "count": len(self._prices),
-                "last_updated": datetime.utcnow().isoformat(),
+                "last_updated": datetime.now(UTC).isoformat(),
             },
         )
 
@@ -827,7 +855,7 @@ class CryptoSensorsManager:
             {
                 "symbols": list(self._prices.keys()),
                 "count": len(self._prices),
-                "last_updated": datetime.utcnow().isoformat(),
+                "last_updated": datetime.now(UTC).isoformat(),
             },
         )
 
@@ -864,7 +892,7 @@ class CryptoSensorsManager:
         )
 
         # Last sync timestamp
-        await self._publish_state("last_sync", datetime.utcnow().isoformat())
+        await self._publish_state("last_sync", datetime.now(UTC).isoformat())
 
         # Total candles
         if total_candles is not None:

@@ -55,8 +55,7 @@ async def get_investor_status() -> dict[str, Any]:
             onchain_data = await onchain.analyze()
             if onchain_data.fear_greed:
                 fear_greed = onchain_data.fear_greed.value
-            if onchain_data.dominance:
-                btc_dominance = onchain_data.dominance.btc_dominance
+            # Note: dominance not available in OnChainMetrics
         except Exception as e:
             logger.warning(f"On-chain fetch failed: {e}")
         finally:
@@ -243,8 +242,7 @@ async def get_market_phase() -> dict[str, Any]:
             onchain_data = await onchain.analyze()
             if onchain_data.fear_greed:
                 fear_greed = onchain_data.fear_greed.value
-            if onchain_data.dominance:
-                btc_dominance = onchain_data.dominance.btc_dominance
+            # Note: dominance not available in OnChainMetrics
         except Exception:
             pass
         finally:

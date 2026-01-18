@@ -329,9 +329,11 @@ async def start_mcp_server() -> bool:
 
         # Run MCP server in background task
         _mcp_task = asyncio.create_task(
-            mcp.run_sse_async(
+            mcp.run_http_async(
                 host=settings.MCP_HOST,
                 port=settings.MCP_PORT,
+                transport="sse",
+                show_banner=False,
             )
         )
 

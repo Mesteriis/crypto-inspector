@@ -8,7 +8,7 @@ All output is bilingual (English/Russian).
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -226,7 +226,7 @@ class GoalTracker:
         self.goal_name_ru = goal_name_ru
         self.target_value = target_value
         self.start_value = start_value
-        self.start_date = start_date or datetime.utcnow()
+        self.start_date = start_date or datetime.now(UTC)
         self.target_date = target_date
 
         self.history: list[GoalHistory] = []
@@ -250,7 +250,7 @@ class GoalTracker:
     def record_value(self, value: Decimal, note: str | None = None) -> None:
         """Record current portfolio value."""
         entry = GoalHistory(
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             value=value,
             note=note,
         )
@@ -304,7 +304,7 @@ class GoalTracker:
             emoji=self._get_progress_emoji(progress_percent),
         )
 
-        self._last_check = datetime.utcnow()
+        self._last_check = datetime.now(UTC)
         return goal
 
     async def estimate_time_to_goal(self, current_value: Decimal) -> int | None:
@@ -315,7 +315,7 @@ class GoalTracker:
         if len(self.history) < 7:
             # Not enough history, use simple estimate if we have target date
             if self.target_date:
-                days_remaining = (self.target_date - datetime.utcnow()).days
+                days_remaining = (self.target_date - datetime.now(UTC)).days
                 return max(0, days_remaining)
             return None
 
@@ -366,7 +366,7 @@ class GoalTracker:
         # If we have a target date, compare expected vs actual progress
         if self.target_date:
             days_total = (self.target_date - self.start_date).days
-            days_elapsed = (datetime.utcnow() - self.start_date).days
+            days_elapsed = (datetime.now(UTC) - self.start_date).days
 
             if days_total > 0 and days_elapsed > 0:
                 expected_progress = (days_elapsed / days_total) * 100

@@ -1,9 +1,11 @@
 from fastapi import APIRouter
 
 from api.routes import (
+    ai,
     alerts,
     analysis,
     backfill,
+    backtest,
     briefing,
     bybit,
     candles,
@@ -30,3 +32,5 @@ api_router.include_router(backfill.router)
 api_router.include_router(summary.router)
 api_router.include_router(briefing.router)
 api_router.include_router(goals.router)
+api_router.include_router(ai.router)
+api_router.include_router(backtest.router)

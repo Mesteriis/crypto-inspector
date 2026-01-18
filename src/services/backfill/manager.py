@@ -12,7 +12,7 @@ import asyncio
 import logging
 import os
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
 
@@ -112,7 +112,7 @@ class BackfillManager:
         try:
             marker = Path(BACKFILL_MARKER_FILE)
             marker.parent.mkdir(parents=True, exist_ok=True)
-            marker.write_text(datetime.utcnow().isoformat())
+            marker.write_text(datetime.now(UTC).isoformat())
         except Exception as e:
             logger.warning(f"Could not write backfill marker: {e}")
 
@@ -138,7 +138,7 @@ class BackfillManager:
         logger.info("Starting initial data backfill...")
         self._is_running = True
         self._progress.status = BackfillStatus.RUNNING
-        self._progress.started_at = datetime.utcnow()
+        self._progress.started_at = datetime.now(UTC)
 
         try:
             # Backfill crypto
@@ -151,7 +151,7 @@ class BackfillManager:
             self._mark_completed()
 
             self._progress.status = BackfillStatus.COMPLETED
-            self._progress.completed_at = datetime.utcnow()
+            self._progress.completed_at = datetime.now(UTC)
 
             logger.info(
                 f"Backfill completed: "

@@ -9,7 +9,7 @@ Provides easy-to-understand summary cards:
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -74,7 +74,7 @@ class MarketPulse:
     reason_ru: str
     factors: list[str] = field(default_factory=list)
     factors_ru: list[str] = field(default_factory=list)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def to_dict(self) -> dict:
         return {
@@ -102,7 +102,7 @@ class PortfolioHealth:
     main_issue_ru: str
     issues: list[str] = field(default_factory=list)
     issues_ru: list[str] = field(default_factory=list)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def to_dict(self) -> dict:
         return {
@@ -132,7 +132,7 @@ class TodayAction:
     details_ru: str
     reasoning: list[str] = field(default_factory=list)
     reasoning_ru: list[str] = field(default_factory=list)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def to_dict(self) -> dict:
         return {
@@ -157,22 +157,32 @@ class WeeklyOutlook:
     outlook: str  # positive / neutral / negative / uncertain
     outlook_en: str
     outlook_ru: str
+    confidence: int = 50
     key_events: list[str] = field(default_factory=list)
     key_events_ru: list[str] = field(default_factory=list)
+    risk_factors: list[str] = field(default_factory=list)
+    risk_factors_ru: list[str] = field(default_factory=list)
+    opportunities: list[str] = field(default_factory=list)
+    opportunities_ru: list[str] = field(default_factory=list)
     risk_level: str = "medium"
     risk_level_en: str = "Medium"
     risk_level_ru: str = "Средний"
     summary: str = ""
     summary_ru: str = ""
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def to_dict(self) -> dict:
         return {
             "outlook": self.outlook,
             "outlook_en": self.outlook_en,
             "outlook_ru": self.outlook_ru,
+            "confidence": self.confidence,
             "key_events": self.key_events,
             "key_events_ru": self.key_events_ru,
+            "risk_factors": self.risk_factors,
+            "risk_factors_ru": self.risk_factors_ru,
+            "opportunities": self.opportunities,
+            "opportunities_ru": self.opportunities_ru,
             "risk_level": self.risk_level,
             "risk_level_en": self.risk_level_en,
             "risk_level_ru": self.risk_level_ru,
@@ -492,6 +502,10 @@ class SmartSummaryService:
         """
         events_en = []
         events_ru = []
+        risk_factors_en = []
+        risk_factors_ru = []
+        opportunities_en = []
+        opportunities_ru = []
 
         # Get upcoming events (mock data)
         macro_events = await self._get_upcoming_macro_events()
@@ -510,34 +524,60 @@ class SmartSummaryService:
         # Determine outlook
         market_pulse = await self.get_market_pulse()
         macro_risk = await self._get_macro_risk()
+        confidence = 50
 
         if macro_risk == "high":
             outlook = "uncertain"
             risk_level = "high"
+            confidence = 40
             summary_en = "High-risk week ahead. Multiple macro events may cause volatility."
             summary_ru = "Впереди неделя высокого риска. Макро-события могут вызвать волатильность."
+            risk_factors_en = ["Macro event volatility", "Market uncertainty"]
+            risk_factors_ru = ["Волатильность макро-событий", "Рыночная неопределённость"]
+            opportunities_en = ["Potential dip buying"]
+            opportunities_ru = ["Потенциальная покупка на просадке"]
         elif market_pulse.sentiment == "bullish" and market_pulse.confidence > 60:
             outlook = "positive"
             risk_level = "low"
+            confidence = 70
             summary_en = "Positive outlook. Bullish momentum likely to continue."
             summary_ru = "Позитивный прогноз. Бычий импульс вероятно продолжится."
+            risk_factors_en = ["Overbought conditions possible"]
+            risk_factors_ru = ["Возможна перекупленность"]
+            opportunities_en = ["Trend continuation", "Alt rotation"]
+            opportunities_ru = ["Продолжение тренда", "Ротация альтов"]
         elif market_pulse.sentiment == "bearish" and market_pulse.confidence > 60:
             outlook = "negative"
             risk_level = "medium"
+            confidence = 60
             summary_en = "Cautious outlook. Bearish pressure may persist."
             summary_ru = "Осторожный прогноз. Медвежье давление может сохраниться."
+            risk_factors_en = ["Continued selling pressure", "Support breakdown"]
+            risk_factors_ru = ["Продолжение давления продаж", "Пробой поддержки"]
+            opportunities_en = ["Accumulation zone entry"]
+            opportunities_ru = ["Вход в зону накопления"]
         else:
             outlook = "neutral"
             risk_level = "medium"
+            confidence = 50
             summary_en = "Mixed outlook. Watch key levels and events."
             summary_ru = "Смешанный прогноз. Следите за ключевыми уровнями и событиями."
+            risk_factors_en = ["Low conviction environment"]
+            risk_factors_ru = ["Среда с низкой уверенностью"]
+            opportunities_en = ["Range trading", "Wait for breakout"]
+            opportunities_ru = ["Торговля в диапазоне", "Ожидание пробоя"]
 
         return WeeklyOutlook(
             outlook=outlook,
             outlook_en=OUTLOOK[outlook]["en"],
             outlook_ru=OUTLOOK[outlook]["ru"],
+            confidence=confidence,
             key_events=events_en,
             key_events_ru=events_ru,
+            risk_factors=risk_factors_en,
+            risk_factors_ru=risk_factors_ru,
+            opportunities=opportunities_en,
+            opportunities_ru=opportunities_ru,
             risk_level=risk_level,
             risk_level_en=PRIORITIES[risk_level]["en"],
             risk_level_ru=PRIORITIES[risk_level]["ru"],
@@ -611,3 +651,39 @@ class SmartSummaryService:
         """Get number of token unlocks this week."""
         # TODO: Integrate with unlocks service
         return 2
+
+    def format_sensor_attributes(self) -> dict:
+        """
+        Format summary data for Home Assistant sensors.
+
+        Returns:
+            Dict ready for MQTT sensor updates.
+        """
+        # Since we have async methods, we need to provide sync defaults
+        # or cache the last computed values
+        return {
+            "market_pulse": {
+                "sentiment": "neutral",
+                "sentiment_en": "Neutral",
+                "sentiment_ru": "Нейтральный",
+                "confidence": 50,
+            },
+            "portfolio_health": {
+                "status": "healthy",
+                "status_en": "Healthy",
+                "status_ru": "Здоровый",
+                "score": 85,
+            },
+            "today_action": {
+                "action": "nothing",
+                "action_en": "No Action Needed",
+                "action_ru": "Действий не требуется",
+                "priority": "low",
+            },
+            "weekly_outlook": {
+                "outlook": "neutral",
+                "outlook_en": "Neutral",
+                "outlook_ru": "Нейтральный",
+                "risk_level": "medium",
+            },
+        }

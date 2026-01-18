@@ -8,7 +8,7 @@ import asyncio
 import logging
 import os
 import time
-from datetime import datetime
+from datetime import UTC, datetime
 
 logger = logging.getLogger(__name__)
 
@@ -182,7 +182,7 @@ async def fetch_and_save_candlesticks(
                         "trades_count": candle.trades_count,
                         "fetch_time_ms": result.fetch_time_ms,
                         "is_complete": True,
-                        "loaded_at": datetime.utcnow(),
+                        "loaded_at": datetime.now(UTC),
                     },
                 )
             await session.commit()
@@ -453,9 +453,8 @@ async def investor_analysis_job() -> None:
             onchain_data = await onchain.analyze()
             if onchain_data.fear_greed:
                 fear_greed = onchain_data.fear_greed.value
-            if onchain_data.dominance:
-                btc_dominance = onchain_data.dominance.btc_dominance
-            logger.info(f"On-chain: F&G={fear_greed}, DOM={btc_dominance}")
+            # Note: dominance is not available in OnChainMetrics, would need separate API
+            logger.info(f"On-chain: F&G={fear_greed}")
         except Exception as e:
             logger.warning(f"On-chain fetch failed: {e}")
 
@@ -684,18 +683,21 @@ async def whale_monitor_job() -> None:
     sensors = get_sensors_manager()
 
     try:
-        data = await tracker.get_whale_activity()
-        logger.info(f"Whales: alerts_24h={data.alerts_24h}, net_flow={data.net_flow}")
+        data = await tracker.analyze()
+        logger.info(f"Whales: transactions_24h={data.transactions_24h}, net_flow=${data.net_flow_usd:,.0f}")
 
         # Update MQTT sensors
-        await sensors.publish_sensor("whale_alerts_24h", data.alerts_24h)
-        await sensors.publish_sensor("whale_net_flow", data.net_flow)
-        await sensors.publish_sensor("whale_last_alert", data.last_alert or "Нет данных")
+        await sensors.publish_sensor("whale_alerts_24h", data.transactions_24h)
+        await sensors.publish_sensor("whale_net_flow", data._format_usd(data.net_flow_usd))
+        await sensors.publish_sensor("whale_signal", data.signal.value)
 
         # Alert on significant whale activity
-        if data.alerts_24h > 50:
+        if data.transactions_24h > 50:
             await notify(
-                message=f"Активность китов: {data.alerts_24h} транзакций за 24ч\n{data.net_flow}",
+                message=(
+                    f"Активность китов: {data.transactions_24h} транзакций за 24ч\n"
+                    f"{data._format_usd(data.net_flow_usd)}"
+                ),
                 title="🐋 Высокая активность китов",
                 notification_id="whale_high_activity",
             )
@@ -816,15 +818,22 @@ async def portfolio_job() -> None:
     sensors = get_sensors_manager()
 
     try:
-        status = await portfolio.get_portfolio_status()
-        logger.info(f"Portfolio: value={status['total_value']:.2f}, " f"pnl={status['total_pnl_percent']:.2f}%")
+        # Check if portfolio has any holdings
+        if not portfolio.get_holdings():
+            logger.debug("No portfolio holdings configured, skipping")
+            return
+
+        status = await portfolio.calculate()
+        logger.info(f"Portfolio: value={status.total_value:.2f}, pnl={status.total_pnl_percent:.2f}%")
 
         # Update MQTT sensors
-        await sensors.publish_sensor("portfolio_value", round(status["total_value"], 2))
-        await sensors.publish_sensor("portfolio_pnl", round(status["total_pnl_percent"], 2))
-        await sensors.publish_sensor("portfolio_pnl_24h", round(status.get("pnl_24h_percent", 0), 2))
-        await sensors.publish_sensor("portfolio_best", status.get("best_performer", "N/A"))
-        await sensors.publish_sensor("portfolio_worst", status.get("worst_performer", "N/A"))
+        await sensors.publish_sensor("portfolio_value", round(status.total_value, 2))
+        await sensors.publish_sensor("portfolio_pnl", round(status.total_pnl_percent, 2))
+        await sensors.publish_sensor("portfolio_pnl_24h", round(status.change_24h_pct or 0, 2))
+        await sensors.publish_sensor("portfolio_best", status.best_performer.symbol if status.best_performer else "N/A")
+        await sensors.publish_sensor(
+            "portfolio_worst", status.worst_performer.symbol if status.worst_performer else "N/A"
+        )
 
     except Exception as e:
         logger.error(f"Portfolio job failed: {e}")
@@ -941,28 +950,34 @@ async def price_alerts_job() -> None:
     sensors = get_sensors_manager()
 
     try:
-        # Check all alerts
-        triggered = await alerts_manager.check_alerts()
+        # Get current prices from cache
+        prices = {}
+        for symbol in ["BTC", "ETH", "SOL", "TON", "AR"]:
+            cached = sensors._cache.get(f"price_{symbol.lower()}")
+            if cached:
+                prices[symbol] = cached
 
-        # Update sensors
-        active_count = await alerts_manager.get_active_count()
-        triggered_24h = await alerts_manager.get_triggered_count_24h()
+        if not prices:
+            logger.debug("No cached prices available for alerts")
+            return
 
-        await sensors.publish_sensor("active_alerts_count", active_count)
-        await sensors.publish_sensor("triggered_alerts_24h", triggered_24h)
+        # Check all alerts against prices
+        triggered = await alerts_manager.check_prices(prices)
+
+        # Update sensors with summary
+        summary = alerts_manager.get_summary()
+        await sensors.publish_sensor("active_alerts_count", summary.active_alerts)
+        await sensors.publish_sensor("triggered_alerts_24h", summary.triggered_24h)
 
         # Send notifications for triggered alerts
-        for alert in triggered:
+        for alert, price in triggered:
+            notification = alerts_manager.generate_notification(alert, price)
             await notify(
-                message=(
-                    f"{alert['symbol']}: цена {'выше' if alert['direction'] == 'above' else 'ниже'} "
-                    f"${alert['price']:,.2f}\n"
-                    f"Текущая цена: ${alert['current_price']:,.2f}"
-                ),
-                title=f"🔔 Ценовой алерт {alert['symbol']}",
-                notification_id=f"price_alert_{alert['id']}",
+                message=notification["message"],
+                title=notification["title"],
+                notification_id=notification["notification_id"],
             )
-            logger.info(f"Price alert triggered: {alert['symbol']} at {alert['current_price']}")
+            logger.info(f"Price alert triggered: {alert.symbol} at {price}")
 
     except Exception as e:
         logger.error(f"Price alerts job failed: {e}")

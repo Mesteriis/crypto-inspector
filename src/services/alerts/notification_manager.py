@@ -7,7 +7,7 @@ All output is bilingual (English/Russian).
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from enum import Enum
 from typing import Any
@@ -116,7 +116,7 @@ class SmartAlert:
     message_ru: str
     priority: AlertPriority
     category: AlertCategory
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
     value: Decimal | None = None
     symbol: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -310,7 +310,7 @@ class NotificationManager:
     def _generate_alert_id(self) -> str:
         """Generate unique alert ID."""
         self._alert_counter += 1
-        return f"alert_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{self._alert_counter}"
+        return f"alert_{datetime.now(UTC).strftime('%Y%m%d%H%M%S')}_{self._alert_counter}"
 
     def set_mode(self, mode: NotificationMode) -> None:
         """Set notification mode."""
@@ -441,7 +441,7 @@ class NotificationManager:
             summary=summary_en,
             summary_ru=summary_ru,
             sections=sections,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             total_alerts=len(unsent_alerts),
             critical_count=critical_count,
             important_count=important_count,
@@ -453,7 +453,7 @@ class NotificationManager:
     async def get_weekly_summary(self) -> Digest:
         """Generate weekly summary from all alerts (sent and pending)."""
         # Get alerts from last 7 days
-        week_ago = datetime.utcnow() - timedelta(days=7)
+        week_ago = datetime.now(UTC) - timedelta(days=7)
         weekly_alerts = [a for a in (self.sent_alerts + self.pending_alerts) if a.timestamp >= week_ago]
 
         # Count by priority
@@ -489,7 +489,7 @@ class NotificationManager:
             summary=summary_en,
             summary_ru=summary_ru,
             sections=sections,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             total_alerts=len(weekly_alerts),
             critical_count=critical_count,
             important_count=important_count,
@@ -557,7 +557,7 @@ class NotificationManager:
 
     async def mark_digest_sent(self) -> None:
         """Mark daily digest as sent and clear pending alerts."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
 
         for alert in self.pending_alerts:
             alert.sent = True
@@ -568,16 +568,16 @@ class NotificationManager:
 
     async def mark_weekly_sent(self) -> None:
         """Mark weekly summary as sent."""
-        self.last_weekly_time = datetime.utcnow()
+        self.last_weekly_time = datetime.now(UTC)
 
         # Clean up old sent alerts (keep 14 days)
-        cutoff = datetime.utcnow() - timedelta(days=14)
+        cutoff = datetime.now(UTC) - timedelta(days=14)
         self.sent_alerts = [a for a in self.sent_alerts if a.timestamp >= cutoff]
 
     def get_stats(self) -> NotificationStats:
         """Get notification statistics."""
         unsent = [a for a in self.pending_alerts if not a.sent]
-        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_start = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
         sent_today = len([a for a in self.sent_alerts if a.timestamp >= today_start])
 
         return NotificationStats(

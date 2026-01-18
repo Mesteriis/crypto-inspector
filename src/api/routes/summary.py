@@ -5,7 +5,6 @@ Provides endpoints for market pulse, portfolio health, today's action,
 and weekly outlook data.
 """
 
-from decimal import Decimal
 from typing import Any
 
 from fastapi import APIRouter, Query
@@ -107,8 +106,6 @@ async def get_market_pulse(
 
 @router.get("/portfolio-health", response_model=PortfolioHealthResponse)
 async def get_portfolio_health(
-    portfolio_value: float | None = Query(None, description="Current portfolio value"),
-    portfolio_change: float | None = Query(None, description="24h change %"),
     lang: str = Query("en", description="Language: 'en' or 'ru'"),
 ) -> dict[str, Any]:
     """
@@ -117,10 +114,7 @@ async def get_portfolio_health(
     Returns:
         Portfolio health score and status with main issues if any.
     """
-    health = await _summary_service.get_portfolio_health(
-        portfolio_value=Decimal(str(portfolio_value)) if portfolio_value else None,
-        portfolio_pnl=portfolio_change,
-    )
+    health = await _summary_service.get_portfolio_health()
     return health.to_dict()
 
 
@@ -154,8 +148,6 @@ async def get_weekly_outlook(
 
 @router.get("/full", response_model=FullSummaryResponse)
 async def get_full_summary(
-    portfolio_value: float | None = Query(None, description="Current portfolio value"),
-    portfolio_change: float | None = Query(None, description="24h change %"),
     lang: str = Query("en", description="Language: 'en' or 'ru'"),
 ) -> dict[str, Any]:
     """
@@ -166,10 +158,7 @@ async def get_full_summary(
         today's action, and weekly outlook.
     """
     pulse = await _summary_service.get_market_pulse()
-    health = await _summary_service.get_portfolio_health(
-        portfolio_value=Decimal(str(portfolio_value)) if portfolio_value else None,
-        portfolio_pnl=portfolio_change,
-    )
+    health = await _summary_service.get_portfolio_health()
     action = await _summary_service.get_today_action()
     outlook = await _summary_service.get_weekly_outlook()
 

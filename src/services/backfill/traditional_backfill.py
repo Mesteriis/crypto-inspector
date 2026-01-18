@@ -12,7 +12,7 @@ Uses Yahoo Finance API via yfinance library.
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import text
 
@@ -177,7 +177,7 @@ class TraditionalBackfill:
             yf = self._get_yfinance()
 
             # Calculate date range
-            end_date = datetime.utcnow()
+            end_date = datetime.now(UTC)
             start_date = end_date - timedelta(days=years * 365)
 
             # Fetch data from Yahoo Finance (sync call, run in executor)
@@ -231,7 +231,7 @@ class TraditionalBackfill:
                             "low_price": float(row["Low"]) if row["Low"] else None,
                             "close_price": float(row["Close"]) if row["Close"] else None,
                             "volume": float(row["Volume"]) if row.get("Volume") else None,
-                            "loaded_at": datetime.utcnow(),
+                            "loaded_at": datetime.now(UTC),
                         },
                     )
                     total_records += 1

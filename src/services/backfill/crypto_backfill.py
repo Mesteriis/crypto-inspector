@@ -9,7 +9,7 @@ Backfills historical candlestick data for cryptocurrencies.
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import text
 
@@ -159,9 +159,9 @@ class CryptoBackfill:
         interval_ms = INTERVAL_MS.get(interval, 86400000)
 
         # Calculate start time (years ago)
-        start_date = datetime.utcnow() - timedelta(days=years * 365)
+        start_date = datetime.now(UTC) - timedelta(days=years * 365)
         start_time = int(start_date.timestamp() * 1000)
-        end_time = int(datetime.utcnow().timestamp() * 1000)
+        end_time = int(datetime.now(UTC).timestamp() * 1000)
 
         # Check if we already have data
         earliest = await self.get_earliest_timestamp(symbol, interval)
@@ -290,7 +290,7 @@ class CryptoBackfill:
                         "trades_count": candle.trades_count,
                         "fetch_time_ms": result.fetch_time_ms,
                         "is_complete": True,
-                        "loaded_at": datetime.utcnow(),
+                        "loaded_at": datetime.now(UTC),
                     },
                 )
             await session.commit()

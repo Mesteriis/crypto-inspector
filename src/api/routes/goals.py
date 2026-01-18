@@ -113,7 +113,7 @@ async def get_goal_config() -> dict[str, Any]:
     }
 
 
-@router.get("/progress", response_model=GoalProgressResponse)
+@router.get("/progress")
 async def get_goal_progress(
     current_value: float = Query(..., description="Current portfolio value"),
     lang: str = Query("en", description="Language: 'en' or 'ru'"),
@@ -129,14 +129,16 @@ async def get_goal_progress(
     """
     if not settings.GOAL_ENABLED:
         return {
+            "enabled": False,
             "error": "Goal tracking is not enabled",
             "error_ru": "Отслеживание целей не включено",
-            "enabled": False,
         }
 
     tracker = get_goal_tracker()
     goal = await tracker.calculate_progress(Decimal(str(current_value)))
-    return goal.to_dict(lang)
+    result = goal.to_dict(lang)
+    result["enabled"] = True
+    return result
 
 
 @router.get("/estimate")

@@ -1,7 +1,7 @@
 """Repository for candlestick database operations."""
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -57,7 +57,7 @@ class CandlestickRepository:
                     "trades_count": candle.trades_count,
                     "fetch_time_ms": result.fetch_time_ms,
                     "is_complete": is_complete,
-                    "loaded_at": datetime.utcnow(),
+                    "loaded_at": datetime.now(UTC),
                 }
             )
 

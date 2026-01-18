@@ -14,7 +14,7 @@ Traditional Finance Tracker.
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 
 import httpx
@@ -45,7 +45,7 @@ class TraditionalAsset:
     high_24h: float = 0.0
     low_24h: float = 0.0
     volume: float = 0.0
-    last_updated: datetime = field(default_factory=datetime.utcnow)
+    last_updated: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     # Yahoo Finance ticker
     yahoo_ticker: str = ""
@@ -93,7 +93,7 @@ class TraditionalFinanceStatus:
     natural_gas: TraditionalAsset | None = None
 
     # Метаданные
-    last_updated: datetime = field(default_factory=datetime.utcnow)
+    last_updated: datetime = field(default_factory=lambda: datetime.now(UTC))
     status: str = "ok"
     error: str | None = None
 
@@ -318,7 +318,7 @@ class TraditionalFinanceTracker:
                 low_24h=low_24h,
                 volume=volume or 0,
                 yahoo_ticker=yahoo_ticker,
-                last_updated=datetime.utcnow(),
+                last_updated=datetime.now(UTC),
             )
 
             self._cache[asset_id] = asset
@@ -360,9 +360,9 @@ class TraditionalFinanceTracker:
             status.oil_wti = await self.fetch_asset("oil_wti")
             status.natural_gas = await self.fetch_asset("natural_gas")
 
-            status.last_updated = datetime.utcnow()
+            status.last_updated = datetime.now(UTC)
             status.status = "ok"
-            self._last_update = datetime.utcnow()
+            self._last_update = datetime.now(UTC)
 
             logger.info("Traditional finance data updated")
 

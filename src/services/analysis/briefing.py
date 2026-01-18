@@ -8,7 +8,7 @@ All output is bilingual (English/Russian).
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -232,7 +232,7 @@ class BriefingService:
     def update_cache(self, data: dict[str, Any]) -> None:
         """Update cached market data for briefing generation."""
         self._cached_data.update(data)
-        self._cached_data["_updated"] = datetime.utcnow()
+        self._cached_data["_updated"] = datetime.now(UTC)
 
     async def generate_morning_briefing(
         self,
@@ -349,11 +349,11 @@ class BriefingService:
             greeting=GREETINGS["morning"]["en"],
             greeting_ru=GREETINGS["morning"]["ru"],
             sections=sections,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             summary_emoji="☀️",
         )
 
-        self.last_morning_briefing = datetime.utcnow()
+        self.last_morning_briefing = datetime.now(UTC)
         return briefing
 
     async def generate_evening_briefing(
@@ -487,11 +487,11 @@ class BriefingService:
             greeting=GREETINGS["evening"]["en"],
             greeting_ru=GREETINGS["evening"]["ru"],
             sections=sections,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             summary_emoji="🌙",
         )
 
-        self.last_evening_briefing = datetime.utcnow()
+        self.last_evening_briefing = datetime.now(UTC)
         return briefing
 
     def _format_overnight_changes(

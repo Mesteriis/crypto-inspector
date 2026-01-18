@@ -210,14 +210,24 @@ class OnChainAnalyzer:
             if hash_data and "hashrates" in hash_data and hash_data["hashrates"]:
                 # Hash rate in H/s, convert to EH/s
                 hash_rate = hash_data["hashrates"][-1].get("avgHashrate", 0) / 1e18
-            elif diff_data:
-                # Estimate from difficulty (rough approximation)
-                difficulty = diff_data[0].get("difficultyChange", 0) + diff_data[0].get(
-                    "previousDifficulty", 0
-                )
-                hash_rate = difficulty * 2**32 / 600 / 1e18  # EH/s
+            elif diff_data and isinstance(diff_data, list) and len(diff_data) > 0:
+                first_item = diff_data[0]
+                # Handle case where first item might be a nested list
+                if isinstance(first_item, list) and len(first_item) > 0:
+                    first_item = first_item[0] if isinstance(first_item[0], dict) else {}
+                if isinstance(first_item, dict):
+                    # Estimate from difficulty (rough approximation)
+                    difficulty = first_item.get("difficultyChange", 0) + first_item.get("previousDifficulty", 0)
+                    hash_rate = difficulty * 2**32 / 600 / 1e18  # EH/s
 
-            difficulty = diff_data[0].get("difficulty", 0) if diff_data else 0
+            # Get difficulty from first item
+            difficulty = 0
+            if diff_data and isinstance(diff_data, list) and len(diff_data) > 0:
+                first_item = diff_data[0]
+                if isinstance(first_item, list) and len(first_item) > 0:
+                    first_item = first_item[0] if isinstance(first_item[0], dict) else {}
+                if isinstance(first_item, dict):
+                    difficulty = first_item.get("difficulty", 0)
 
             return NetworkData(
                 hash_rate=round(hash_rate, 2),

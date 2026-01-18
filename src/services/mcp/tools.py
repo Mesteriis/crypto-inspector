@@ -6,7 +6,7 @@ Exposes all data endpoints as MCP tools for AI agents.
 
 import logging
 import os
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import text
@@ -57,7 +57,7 @@ async def get_crypto_prices() -> dict[str, Any]:
                     result[symbol] = {
                         "price": float(row[0]),
                         "timestamp": row[1],
-                        "updated_at": datetime.utcnow().isoformat(),
+                        "updated_at": datetime.now(UTC).isoformat(),
                     }
     except Exception as e:
         logger.error(f"Error getting crypto prices: {e}")
@@ -187,7 +187,7 @@ async def get_market_summary() -> dict[str, Any]:
             "fear_greed": fear_greed,
             "btc_dominance": btc_dom,
             "altseason": alt_status.to_dict() if alt_status else None,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
     except Exception as e:
         logger.error(f"Error getting market summary: {e}")
@@ -562,7 +562,7 @@ async def get_signals(hours: int = 24) -> dict[str, Any]:
 
     try:
         manager = get_signal_manager()
-        since = datetime.utcnow() - timedelta(hours=hours)
+        since = datetime.now(UTC) - timedelta(hours=hours)
         signals = manager.get_signals(since=since, limit=100)
 
         return {

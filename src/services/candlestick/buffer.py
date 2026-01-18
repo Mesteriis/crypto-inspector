@@ -9,7 +9,7 @@ import asyncio
 import logging
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -36,7 +36,7 @@ class BufferedCandle:
     interval: str
     exchange: str
     candle: "Candlestick"
-    received_at: datetime = field(default_factory=datetime.utcnow)
+    received_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 class CandleBuffer:
@@ -175,7 +175,7 @@ class CandleBuffer:
                             "trades_count": c.trades_count,
                             "fetch_time_ms": 0,
                             "is_complete": True,
-                            "loaded_at": datetime.utcnow(),
+                            "loaded_at": datetime.now(UTC),
                         }
                     )
 
