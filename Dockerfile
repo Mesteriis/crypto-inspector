@@ -1,7 +1,7 @@
 # Home Assistant Add-on: Crypto Inspect
 # https://developers.home-assistant.io/docs/add-ons
 
-ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base-python:3.13-alpine3.21
+ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base-python:3.12-alpine3.20
 FROM ${BUILD_FROM}
 
 # Set shell
@@ -34,12 +34,12 @@ COPY src ./src
 COPY alembic ./alembic
 COPY alembic.ini ./
 
-# Copy rootfs (s6-overlay service scripts)
+# Copy rootfs (s6-overlay v3 service scripts)
 COPY rootfs /
 
 # Make scripts executable
-RUN chmod a+x /etc/services.d/crypto-inspect/run \
-    && chmod a+x /etc/services.d/crypto-inspect/finish
+RUN chmod a+x /etc/s6-overlay/s6-rc.d/crypto-inspect/run \
+    && chmod a+x /etc/s6-overlay/s6-rc.d/crypto-inspect/finish
 
 # Build arguments
 ARG BUILD_ARCH
