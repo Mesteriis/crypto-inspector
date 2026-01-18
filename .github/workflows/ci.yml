@@ -295,7 +295,7 @@ jobs:
           echo "📦 Base image: $FROM"
 
       - name: Test build with HA Builder
-        uses: home-assistant/builder@2025.01.0
+        uses: home-assistant/builder@2025.11.0
         continue-on-error: true
         with:
           args: |
@@ -440,7 +440,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and publish with HA Builder
-        uses: home-assistant/builder@2025.01.0
+        uses: home-assistant/builder@2025.11.0
         with:
           args: |
             --${{ matrix.arch }} \
