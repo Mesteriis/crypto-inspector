@@ -49,7 +49,13 @@ if bashio::config.has_value 'redis_url'; then
 fi
 
 # === Торговые пары ===
-export HA_SYMBOLS=$(bashio::config 'symbols' | jq -r '. | join(",")')
+if bashio::config.has_value 'symbols'; then
+    # Get symbols as JSON array and convert to comma-separated string
+    SYMBOLS_JSON=$(bashio::config 'symbols')
+    export HA_SYMBOLS=$(echo "${SYMBOLS_JSON}" | jq -r 'if type == "array" then join(",") else . end' 2>/dev/null || echo "${SYMBOLS_JSON}")
+else
+    export HA_SYMBOLS="BTCUSDT,ETHUSDT"
+fi
 bashio::log.info "Symbols: ${HA_SYMBOLS}"
 
 # === Анализ рынка ===
