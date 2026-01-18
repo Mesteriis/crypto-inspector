@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -39,8 +40,11 @@ class Settings(BaseSettings):
 
     # WebSocket Streaming
     STREAMING_ENABLED: bool = True
-    STREAMING_SYMBOLS: str = "BTC/USDT,ETH/USDT,SOL/USDT,TON/USDT,AR/USDT"
+    STREAMING_SYMBOLS: str = ""  # Will be set from HA_SYMBOLS env
     STREAMING_INTERVAL: str = "1m"  # 1m, 5m, 15m, 1h, etc.
+
+    # Default symbols if not configured
+    DEFAULT_SYMBOLS: str = "BTC/USDT,ETH/USDT,SOL/USDT,TON/USDT,AR/USDT"
 
     # Bybit Exchange API (read from HA options or env)
     BYBIT_API_KEY: str = ""
@@ -130,8 +134,27 @@ class Settings(BaseSettings):
                 self.NOTIFICATION_MODE = _ha_options["notification_mode"]
 
     def get_streaming_symbols(self) -> list[str]:
-        """Parse streaming symbols from config."""
-        return [s.strip() for s in self.STREAMING_SYMBOLS.split(",") if s.strip()]
+        """Parse streaming symbols from HA_SYMBOLS env or config."""
+        # Priority: HA_SYMBOLS env > STREAMING_SYMBOLS > default
+        symbols_str = os.environ.get("HA_SYMBOLS", "").strip()
+        if not symbols_str:
+            symbols_str = self.STREAMING_SYMBOLS or self.DEFAULT_SYMBOLS
+
+        # Parse and normalize format (BTCUSDT -> BTC/USDT)
+        symbols = []
+        for s in symbols_str.split(","):
+            s = s.strip()
+            if not s:
+                continue
+            # Convert BTCUSDT to BTC/USDT if no slash
+            if "/" not in s and "USDT" in s:
+                s = s.replace("USDT", "/USDT")
+            elif "/" not in s and "USDC" in s:
+                s = s.replace("USDC", "/USDC")
+            elif "/" not in s and "BUSD" in s:
+                s = s.replace("BUSD", "/BUSD")
+            symbols.append(s)
+        return symbols
 
     def has_bybit_credentials(self) -> bool:
         """Check if Bybit API credentials are configured."""
