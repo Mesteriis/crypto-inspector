@@ -30,21 +30,20 @@ ports_description:
 # Минимальные настройки - всё работает из коробки
 options:
   symbols:
-    # Основные
-    - "BTCUSDT"
-    - "ETHUSDT"
-    # Layer 1
-    - "SOLUSDT"
-    - "TONUSDT"
-    - "ARUSDT"
-    - "AVAXUSDT"
-    # AI проекты
-    - "RENDERUSDT"
-    - "FETUSDT"
-    - "AGIXUSDT"
-    - "OCEANUSDT"
-    - "TABORUSDT"
-    - "WLDUSDT"
+    # === Основные ===
+    - "BTCUSDT"    # Bitcoin - цифровое золото
+    - "ETHUSDT"    # Ethereum - смарт-контракты #1
+    # === Перспективные L1 ===
+    - "SOLUSDT"    # Solana - скорость + DeFi + NFT
+    - "TONUSDT"    # TON - Telegram экосистема, 900м пользователей
+    # === AI инфраструктура ===
+    - "RENDERUSDT" # Render - GPU вычисления для AI
+    - "TAOUSDT"    # Bittensor - децентрализованный AI
+    - "ARUSDT"     # Arweave - вечное хранилище данных
+    # === AI агенты ===
+    - "FETUSDT"    # Fetch.ai - автономные AI агенты
+    - "NEARUSDT"   # NEAR - L1 с AI фокусом (NEAR AI)
+    - "INJUSDT"    # Injective - DeFi + AI трейдинг
 
 # Схема с дефолтами - все поля опциональны
 schema:
