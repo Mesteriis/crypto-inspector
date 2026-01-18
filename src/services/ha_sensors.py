@@ -14,6 +14,8 @@ import os
 from datetime import UTC, datetime
 from decimal import Decimal
 
+from core.constants import APP_VERSION
+
 logger = logging.getLogger(__name__)
 
 
@@ -34,627 +36,761 @@ class CryptoSensorsManager:
     DEVICE_ID = "crypto_inspect"
     DEVICE_NAME = "Crypto Inspect"
 
-    # Sensor definitions
+    # Sensor definitions (Russian names)
     SENSORS = {
-        # === Price Sensors ===
+        # === Цены (dict формат: ключ=монета, значение=цена) ===
         "prices": {
-            "name": "Crypto Prices",
+            "name": "Крипто цены",
             "icon": "mdi:currency-usd",
             "unit": "USDT",
+            "description": 'Текущие цены всех монет. Формат: {"BTC": 95000, "ETH": 3200}',
         },
         "changes_24h": {
-            "name": "Crypto 24h Changes",
+            "name": "Изменение 24ч",
             "icon": "mdi:percent",
             "unit": "%",
+            "description": 'Изменение цены за 24 часа (%). Формат: {"BTC": 2.5}',
         },
         "volumes_24h": {
-            "name": "Crypto 24h Volumes",
+            "name": "Объёмы 24ч",
             "icon": "mdi:chart-bar",
             "unit": "USDT",
+            "description": 'Объём торгов за 24 часа. Формат: {"BTC": 50000000000}',
         },
         "highs_24h": {
-            "name": "Crypto 24h Highs",
+            "name": "Максимумы 24ч",
             "icon": "mdi:arrow-up-bold",
             "unit": "USDT",
+            "description": 'Максимальная цена за 24 часа. Формат: {"BTC": 96000}',
         },
         "lows_24h": {
-            "name": "Crypto 24h Lows",
+            "name": "Минимумы 24ч",
             "icon": "mdi:arrow-down-bold",
             "unit": "USDT",
+            "description": 'Минимальная цена за 24 часа. Формат: {"BTC": 94000}',
         },
-        # === Investor Sensors (Lazy Investor) ===
+        # === Ленивый инвестор ===
         "do_nothing_ok": {
-            "name": "Do Nothing OK",
+            "name": "Можно ничего не делать",
             "icon": "mdi:meditation",
+            "description": "Да/Нет - можно ли сейчас просто держать",
         },
         "investor_phase": {
-            "name": "Investor Phase",
+            "name": "Фаза рынка",
             "icon": "mdi:chart-timeline-variant-shimmer",
+            "description": "Фаза: Накопление/Рост/Эйфория/Коррекция/Капитуляция",
         },
         "calm_indicator": {
-            "name": "Calm Indicator",
+            "name": "Индикатор спокойствия",
             "icon": "mdi:emoticon-cool",
+            "description": "Насколько спокоен рынок (0-100)",
         },
         "red_flags": {
-            "name": "Red Flags",
+            "name": "Красные флаги",
             "icon": "mdi:flag-variant",
+            "description": "Количество предупреждающих сигналов",
         },
         "market_tension": {
-            "name": "Market Tension",
+            "name": "Напряжённость рынка",
             "icon": "mdi:gauge",
+            "description": "Уровень напряжённости рынка",
         },
         "price_context": {
-            "name": "Price Context",
+            "name": "Контекст цены",
             "icon": "mdi:chart-box",
+            "description": "Позиция текущей цены относительно ATH/ATL",
         },
         "dca_result": {
-            "name": "DCA Result",
+            "name": "Результат DCA",
             "icon": "mdi:cash-check",
             "unit": "€",
+            "description": "Рекомендуемая сумма для DCA",
         },
         "dca_signal": {
-            "name": "DCA Signal",
+            "name": "Сигнал DCA",
             "icon": "mdi:cash-plus",
+            "description": "Сигнал для покупки: Покупать/Ждать/Не покупать",
         },
         "weekly_insight": {
-            "name": "Weekly Insight",
+            "name": "Недельный обзор",
             "icon": "mdi:newspaper-variant",
+            "description": "Краткий обзор рынка за неделю",
         },
         "next_action_timer": {
-            "name": "Next Action Timer",
+            "name": "Таймер действия",
             "icon": "mdi:timer-outline",
+            "description": "Время до следующей проверки",
         },
-        # === Market Sensors ===
+        # === Рыночные индикаторы ===
         "fear_greed": {
-            "name": "Fear & Greed Index",
+            "name": "Индекс страха и жадности",
             "icon": "mdi:emoticon-neutral",
+            "description": "Fear & Greed Index (0-100). 0=страх, 100=жадность",
         },
         "btc_dominance": {
-            "name": "BTC Dominance",
+            "name": "Доминация BTC",
             "icon": "mdi:crown",
             "unit": "%",
+            "description": "Доля Bitcoin на рынке (%)",
         },
         "derivatives": {
-            "name": "Derivatives",
+            "name": "Деривативы",
             "icon": "mdi:chart-timeline-variant",
+            "description": "Данные по фьючерсам и опционам",
         },
-        # === Altseason & Stablecoins ===
+        # === Альтсезон и стейблкоины ===
         "altseason_index": {
-            "name": "Altseason Index",
+            "name": "Индекс альтсезона",
             "icon": "mdi:rocket-launch",
+            "description": "Индекс альткоин сезона (0-100)",
         },
         "altseason_status": {
-            "name": "Altseason Status",
+            "name": "Статус альтсезона",
             "icon": "mdi:weather-sunny",
+            "description": "Биткоин сезон / Альтсезон / Нейтрально",
         },
         "stablecoin_total": {
-            "name": "Stablecoin Total",
+            "name": "Объём стейблкоинов",
             "icon": "mdi:currency-usd-circle",
+            "description": "Общий объём стейблкоинов на рынке",
         },
         "stablecoin_flow": {
-            "name": "Stablecoin Flow",
+            "name": "Поток стейблкоинов",
             "icon": "mdi:swap-horizontal",
+            "description": "Приток/отток стейблкоинов на биржи",
         },
         "stablecoin_dominance": {
-            "name": "Stablecoin Dominance",
+            "name": "Доминация стейблкоинов",
             "icon": "mdi:chart-pie",
             "unit": "%",
+            "description": "Доля стейблкоинов на рынке (%)",
         },
         # === Gas Tracker ===
         "eth_gas_slow": {
-            "name": "ETH Gas Slow",
+            "name": "ETH Gas медленный",
             "icon": "mdi:speedometer-slow",
             "unit": "Gwei",
+            "description": "Цена газа для медленных транзакций",
         },
         "eth_gas_standard": {
-            "name": "ETH Gas Standard",
+            "name": "ETH Gas стандартный",
             "icon": "mdi:speedometer-medium",
             "unit": "Gwei",
+            "description": "Цена газа для стандартных транзакций",
         },
         "eth_gas_fast": {
-            "name": "ETH Gas Fast",
+            "name": "ETH Gas быстрый",
             "icon": "mdi:speedometer",
             "unit": "Gwei",
+            "description": "Цена газа для быстрых транзакций",
         },
         "eth_gas_status": {
-            "name": "ETH Gas Status",
+            "name": "Статус ETH Gas",
             "icon": "mdi:gas-station",
+            "description": "Текущий статус сети: низкий/средний/высокий",
         },
-        # === Whale Activity ===
+        # === Активность китов ===
         "whale_alerts_24h": {
-            "name": "Whale Alerts 24h",
+            "name": "Алерты китов 24ч",
             "icon": "mdi:fish",
+            "description": "Количество крупных транзакций за 24ч",
         },
         "whale_net_flow": {
-            "name": "Whale Net Flow",
+            "name": "Нетто-поток китов",
             "icon": "mdi:arrow-decision",
+            "description": "Чистый приток/отток от крупных кошельков",
         },
         "whale_last_alert": {
-            "name": "Whale Last Alert",
+            "name": "Последний алерт кита",
             "icon": "mdi:bell-ring",
+            "description": "Последняя крупная транзакция",
         },
-        # === Exchange Flow (Generic - Dictionary Format) ===
+        # === Потоки на биржи (dict формат) ===
         "exchange_netflows": {
-            "name": "Exchange Netflows",
+            "name": "Потоки на биржи",
             "icon": "mdi:bank-transfer",
+            "description": 'Нетто-потоки на биржи. Формат: {"BTC": -500, "ETH": 200}',
         },
         "exchange_flow_signal": {
-            "name": "Exchange Flow Signal",
+            "name": "Сигнал потоков",
             "icon": "mdi:trending-up",
+            "description": "Сигнал: накопление/распределение/нейтрально",
         },
-        # === Liquidations (Generic - Dictionary Format) ===
+        # === Ликвидации (dict формат) ===
         "liq_levels": {
-            "name": "Liquidation Levels",
+            "name": "Уровни ликвидаций",
             "icon": "mdi:arrow-expand-vertical",
+            "description": "Ценовые уровни массовых ликвидаций",
         },
         "liq_risk_level": {
-            "name": "Liquidation Risk",
+            "name": "Риск ликвидаций",
             "icon": "mdi:alert-decagram",
+            "description": "Уровень риска: низкий/средний/высокий",
         },
-        # === Portfolio ===
+        # === Портфель ===
         "portfolio_value": {
-            "name": "Portfolio Value",
+            "name": "Стоимость портфеля",
             "icon": "mdi:wallet",
             "unit": "USDT",
+            "description": "Общая стоимость портфеля",
         },
         "portfolio_pnl": {
-            "name": "Portfolio P&L",
+            "name": "Прибыль/Убыток",
             "icon": "mdi:chart-line",
             "unit": "%",
+            "description": "Общий P&L портфеля (%)",
         },
         "portfolio_pnl_24h": {
-            "name": "Portfolio 24h Change",
+            "name": "Портфель изм. 24ч",
             "icon": "mdi:chart-areaspline",
             "unit": "%",
+            "description": "Изменение портфеля за 24 часа (%)",
         },
         "portfolio_allocation": {
-            "name": "Portfolio Allocation",
+            "name": "Распределение",
             "icon": "mdi:chart-donut",
+            "description": "Распределение активов в портфеле",
         },
-        # === Alerts ===
+        # === Алерты ===
         "active_alerts_count": {
-            "name": "Active Alerts",
+            "name": "Активные алерты",
             "icon": "mdi:bell-badge",
+            "description": "Количество активных оповещений",
         },
         "triggered_alerts_24h": {
-            "name": "Triggered Alerts 24h",
+            "name": "Сработавшие алерты 24ч",
             "icon": "mdi:bell-check",
+            "description": "Алерты за последние 24 часа",
         },
-        # === Divergences (Generic - Dictionary Format) ===
+        # === Дивергенции (dict формат) ===
         "divergences": {
-            "name": "Divergences",
+            "name": "Дивергенции",
             "icon": "mdi:call-split",
+            "description": "Расхождения цены и индикаторов",
         },
         "divergences_active": {
-            "name": "Active Divergences",
+            "name": "Активные дивергенции",
             "icon": "mdi:call-merge",
+            "description": "Количество активных дивергенций",
         },
-        # === Signals ===
+        # === Сигналы ===
         "signals_win_rate": {
-            "name": "Signals Win Rate",
+            "name": "Винрейт сигналов",
             "icon": "mdi:trophy",
             "unit": "%",
+            "description": "Процент успешных сигналов",
         },
         "signals_today": {
-            "name": "Signals Today",
+            "name": "Сигналы сегодня",
             "icon": "mdi:signal",
+            "description": "Количество сигналов за сегодня",
         },
         "signals_last": {
-            "name": "Last Signal",
+            "name": "Последний сигнал",
             "icon": "mdi:traffic-light",
+            "description": "Последний торговый сигнал",
         },
-        # === Bybit Exchange ===
+        # === Bybit биржа ===
         "bybit_balance": {
-            "name": "Bybit Balance",
+            "name": "Баланс Bybit",
             "icon": "mdi:wallet",
             "unit": "USDT",
+            "description": "Баланс торгового счёта Bybit",
         },
         "bybit_pnl_24h": {
-            "name": "Bybit P&L 24h",
+            "name": "Bybit P&L 24ч",
             "icon": "mdi:chart-line",
             "unit": "%",
+            "description": "Прибыль/убыток за 24 часа",
         },
         "bybit_pnl_7d": {
-            "name": "Bybit P&L 7d",
+            "name": "Bybit P&L 7д",
             "icon": "mdi:chart-areaspline",
             "unit": "%",
+            "description": "Прибыль/убыток за 7 дней",
         },
         "bybit_positions": {
-            "name": "Bybit Positions",
+            "name": "Позиции Bybit",
             "icon": "mdi:format-list-bulleted",
+            "description": "Открытые позиции на Bybit",
         },
         "bybit_unrealized_pnl": {
-            "name": "Bybit Unrealized P&L",
+            "name": "Нереализованный P&L",
             "icon": "mdi:cash-clock",
             "unit": "USDT",
+            "description": "Нереализованная прибыль/убыток",
         },
         # === Bybit Earn ===
         "bybit_earn_balance": {
-            "name": "Bybit Earn Balance",
+            "name": "Баланс Bybit Earn",
             "icon": "mdi:piggy-bank",
             "unit": "USDT",
+            "description": "Баланс в Bybit Earn",
         },
         "bybit_earn_positions": {
-            "name": "Bybit Earn Positions",
+            "name": "Позиции Earn",
             "icon": "mdi:format-list-bulleted",
+            "description": "Активные Earn позиции",
         },
         "bybit_earn_apy": {
-            "name": "Bybit Earn APY",
+            "name": "APY Earn",
             "icon": "mdi:percent",
             "unit": "%",
+            "description": "Средняя доходность Earn",
         },
         "bybit_total_portfolio": {
-            "name": "Bybit Total Portfolio",
+            "name": "Портфель Bybit",
             "icon": "mdi:bank",
             "unit": "USDT",
+            "description": "Общая стоимость на Bybit",
         },
-        # === DCA Calculator ===
+        # === DCA калькулятор ===
         "dca_next_level": {
-            "name": "DCA Next Level",
+            "name": "Следующий уровень DCA",
             "icon": "mdi:target",
             "unit": "USDT",
+            "description": "Цена для следующей покупки DCA",
         },
         "dca_zone": {
-            "name": "DCA Zone",
+            "name": "Зона DCA",
             "icon": "mdi:map-marker-radius",
+            "description": "Текущая зона: покупка/накопление/ожидание",
         },
         "dca_risk_score": {
-            "name": "DCA Risk Score",
+            "name": "Риск-скор DCA",
             "icon": "mdi:gauge",
+            "description": "Оценка риска для DCA (0-100)",
         },
-        # === Correlation ===
+        # === Корреляция ===
         "btc_eth_correlation": {
-            "name": "BTC/ETH Correlation",
+            "name": "Корреляция BTC/ETH",
             "icon": "mdi:link-variant",
+            "description": "Коэффициент корреляции BTC и ETH",
         },
         "btc_sp500_correlation": {
-            "name": "BTC/S&P500 Correlation",
+            "name": "Корреляция BTC/S&P500",
             "icon": "mdi:chart-line-variant",
+            "description": "Корреляция крипты с фондовым рынком",
         },
         "correlation_status": {
-            "name": "Correlation Status",
+            "name": "Статус корреляции",
             "icon": "mdi:connection",
+            "description": "Общий статус корреляций",
         },
-        # === Volatility (Generic - Dictionary Format) ===
+        # === Волатильность (dict формат) ===
         "volatility_30d": {
-            "name": "Volatility 30d",
+            "name": "Волатильность 30д",
             "icon": "mdi:chart-bell-curve",
+            "description": '30-дневная волатильность. Формат: {"BTC": 45}',
         },
         "volatility_percentile": {
-            "name": "Volatility Percentile",
+            "name": "Перцентиль волатильности",
             "icon": "mdi:percent-box",
+            "description": "Позиция в историческом распределении",
         },
         "volatility_status": {
-            "name": "Volatility Status",
+            "name": "Статус волатильности",
             "icon": "mdi:pulse",
+            "description": "Низкая/средняя/высокая волатильность",
         },
-        # === Token Unlocks ===
+        # === Разблокировка токенов ===
         "unlocks_next_7d": {
-            "name": "Token Unlocks 7d",
+            "name": "Разблокировки 7д",
             "icon": "mdi:lock-open-variant",
+            "description": "Разблокировки токенов за 7 дней",
         },
         "unlock_next_event": {
-            "name": "Next Unlock",
+            "name": "Следующий анлок",
             "icon": "mdi:calendar-lock",
+            "description": "Ближайшая разблокировка",
         },
         "unlock_risk_level": {
-            "name": "Unlock Risk",
+            "name": "Риск анлоков",
             "icon": "mdi:alert-circle",
+            "description": "Уровень риска от разблокировок",
         },
-        # === Macro Calendar ===
+        # === Макрокалендарь ===
         "next_macro_event": {
-            "name": "Next Macro Event",
+            "name": "Следующее макрособытие",
             "icon": "mdi:calendar-star",
+            "description": "Ближайшее важное макрособытие",
         },
         "days_to_fomc": {
-            "name": "Days to FOMC",
+            "name": "Дней до FOMC",
             "icon": "mdi:calendar-clock",
+            "description": "Дней до заседания ФРС",
         },
         "macro_risk_week": {
-            "name": "Macro Risk Week",
+            "name": "Макрориск недели",
             "icon": "mdi:calendar-alert",
+            "description": "Риск на неделе: низкий/средний/высокий",
         },
-        # === Arbitrage (Generic - Dictionary Format) ===
+        # === Арбитраж (dict формат) ===
         "arb_spreads": {
-            "name": "Arb Spreads",
+            "name": "Спреды арбитража",
             "icon": "mdi:swap-horizontal-bold",
+            "description": "Разница цен между биржами",
         },
         "funding_arb_best": {
-            "name": "Best Funding Arb",
+            "name": "Лучший фандинг-арб",
             "icon": "mdi:cash-multiple",
+            "description": "Лучшая возможность для фандинг-арбитража",
         },
         "arb_opportunity": {
-            "name": "Arb Opportunity",
+            "name": "Возможность арбитража",
             "icon": "mdi:lightning-bolt",
+            "description": "Есть ли арбитражная возможность",
         },
-        # === Profit Taking (Generic - Dictionary Format) ===
+        # === Фиксация прибыли (dict формат) ===
         "tp_levels": {
-            "name": "Take Profit Levels",
+            "name": "Уровни фиксации",
             "icon": "mdi:target-variant",
+            "description": "Рекомендуемые уровни Take Profit",
         },
         "profit_action": {
-            "name": "Profit Action",
+            "name": "Действие по прибыли",
             "icon": "mdi:cash-check",
+            "description": "Рекомендация: держать/фиксировать",
         },
         "greed_level": {
-            "name": "Greed Level",
+            "name": "Уровень жадности",
             "icon": "mdi:emoticon-devil",
+            "description": "Насколько перекуплен рынок (0-100)",
         },
-        # === Traditional Finance ===
+        # === Традиционные финансы ===
         "gold_price": {
-            "name": "Gold Price",
+            "name": "Золото",
             "icon": "mdi:gold",
             "unit": "USD",
+            "description": "Цена золота XAU/USD",
         },
         "silver_price": {
-            "name": "Silver Price",
+            "name": "Серебро",
             "icon": "mdi:circle-outline",
             "unit": "USD",
+            "description": "Цена серебра XAG/USD",
         },
         "platinum_price": {
-            "name": "Platinum Price",
+            "name": "Платина",
             "icon": "mdi:diamond-stone",
             "unit": "USD",
+            "description": "Цена платины",
         },
         "sp500_price": {
-            "name": "S&P 500",
+            "name": "Индекс S&P 500",
             "icon": "mdi:chart-line",
             "unit": "USD",
+            "description": "Американский фондовый индекс S&P 500",
         },
         "nasdaq_price": {
-            "name": "NASDAQ",
+            "name": "Индекс NASDAQ",
             "icon": "mdi:chart-areaspline",
             "unit": "USD",
+            "description": "Индекс технологических компаний NASDAQ",
         },
         "dji_price": {
-            "name": "Dow Jones",
+            "name": "Индекс Dow Jones",
             "icon": "mdi:chart-bar",
             "unit": "USD",
+            "description": "Промышленный индекс Dow Jones",
         },
         "dax_price": {
-            "name": "DAX",
+            "name": "Индекс DAX",
             "icon": "mdi:chart-timeline-variant",
             "unit": "EUR",
+            "description": "Немецкий фондовый индекс DAX",
         },
         "eur_usd": {
-            "name": "EUR/USD",
+            "name": "Курс EUR/USD",
             "icon": "mdi:currency-eur",
+            "description": "Курс евро к доллару",
         },
         "gbp_usd": {
-            "name": "GBP/USD",
+            "name": "Курс GBP/USD",
             "icon": "mdi:currency-gbp",
+            "description": "Курс фунта к доллару",
         },
         "dxy_index": {
-            "name": "Dollar Index",
+            "name": "Индекс доллара",
             "icon": "mdi:currency-usd",
+            "description": "Индекс DXY - сила доллара",
         },
         "oil_brent": {
-            "name": "Brent Oil",
+            "name": "Нефть Brent",
             "icon": "mdi:barrel",
             "unit": "USD",
+            "description": "Цена нефти Brent",
         },
         "oil_wti": {
-            "name": "WTI Oil",
+            "name": "Нефть WTI",
             "icon": "mdi:barrel",
             "unit": "USD",
+            "description": "Цена нефти WTI",
         },
         "natural_gas": {
-            "name": "Natural Gas",
+            "name": "Природный газ",
             "icon": "mdi:fire",
             "unit": "USD",
+            "description": "Цена природного газа",
         },
-        # === AI Analysis ===
+        # === AI анализ ===
         "ai_daily_summary": {
-            "name": "AI Daily Summary",
+            "name": "AI дневная сводка",
             "icon": "mdi:robot",
+            "description": "Ежедневная AI-сводка по рынку",
         },
         "ai_market_sentiment": {
-            "name": "AI Market Sentiment",
+            "name": "AI настроение",
             "icon": "mdi:brain",
+            "description": "Оценка настроения рынка от AI",
         },
         "ai_recommendation": {
-            "name": "AI Recommendation",
+            "name": "AI рекомендация",
             "icon": "mdi:lightbulb",
+            "description": "Рекомендация AI по действиям",
         },
         "ai_last_analysis": {
-            "name": "AI Last Analysis",
+            "name": "AI последний анализ",
             "icon": "mdi:clock-outline",
+            "description": "Время последнего AI-анализа",
         },
         "ai_provider": {
-            "name": "AI Provider",
+            "name": "AI провайдер",
             "icon": "mdi:cog",
             "entity_category": "diagnostic",
+            "description": "Используемый AI-провайдер",
         },
-        # === Technical Indicators (Generic - Dictionary Format) ===
+        # === Технические индикаторы (dict формат) ===
         "ta_rsi": {
-            "name": "RSI Values",
+            "name": "RSI индикатор",
             "icon": "mdi:chart-line",
+            "description": 'RSI(14) для всех монет. Формат: {"BTC": 65}',
         },
         "ta_macd_signal": {
-            "name": "MACD Signals",
+            "name": "MACD сигналы",
             "icon": "mdi:signal",
+            "description": 'MACD сигналы. Формат: {"BTC": "bullish"}',
         },
         "ta_bb_position": {
-            "name": "BB Positions",
+            "name": "Позиция BB",
             "icon": "mdi:chart-bell-curve",
+            "description": 'Позиция в Bollinger Bands. Формат: {"BTC": 0.7}',
         },
         "ta_trend": {
-            "name": "Trends",
+            "name": "Тренды",
             "icon": "mdi:trending-up",
+            "description": 'Направление тренда. Формат: {"BTC": "uptrend"}',
         },
         "ta_support": {
-            "name": "Support Levels",
+            "name": "Уровни поддержки",
             "icon": "mdi:arrow-down-bold",
+            "description": 'Ближайшие уровни поддержки. Формат: {"BTC": 90000}',
         },
         "ta_resistance": {
-            "name": "Resistance Levels",
+            "name": "Уровни сопротивления",
             "icon": "mdi:arrow-up-bold",
+            "description": 'Ближайшие уровни сопротивления. Формат: {"BTC": 100000}',
         },
-        # === Multi-Timeframe Trends (Generic) ===
+        # === MTF тренды ===
         "ta_trend_mtf": {
-            "name": "MTF Trends",
+            "name": "MTF тренды",
             "icon": "mdi:clock-outline",
+            "description": "Тренды на разных таймфреймах",
         },
         # === TA Confluence ===
         "ta_confluence": {
-            "name": "TA Confluence Score",
+            "name": "Конфлюенс TA",
             "icon": "mdi:check-all",
+            "description": "Скор схождения индикаторов (0-100)",
         },
         "ta_signal": {
-            "name": "TA Signal",
+            "name": "TA сигнал",
             "icon": "mdi:traffic-light",
+            "description": "Общий сигнал TA: buy/sell/hold",
         },
-        # === Risk Management ===
+        # === Управление рисками ===
         "portfolio_sharpe": {
-            "name": "Sharpe Ratio",
+            "name": "Коэффициент Шарпа",
             "icon": "mdi:chart-areaspline",
+            "description": "Соотношение доходности к риску",
         },
         "portfolio_sortino": {
-            "name": "Sortino Ratio",
+            "name": "Коэффициент Сортино",
             "icon": "mdi:chart-line-variant",
+            "description": "Оценка риска с учётом падений",
         },
         "portfolio_max_drawdown": {
-            "name": "Max Drawdown",
+            "name": "Макс. просадка",
             "icon": "mdi:trending-down",
             "unit": "%",
+            "description": "Максимальная историческая просадка",
         },
         "portfolio_current_drawdown": {
-            "name": "Current Drawdown",
+            "name": "Текущая просадка",
             "icon": "mdi:arrow-down",
             "unit": "%",
+            "description": "Текущая просадка от максимума",
         },
         "portfolio_var_95": {
             "name": "VaR 95%",
             "icon": "mdi:alert",
             "unit": "%",
+            "description": "Стоимость под риском (95% доверия)",
         },
         "risk_status": {
-            "name": "Risk Status",
+            "name": "Статус риска",
             "icon": "mdi:shield-alert",
+            "description": "Общий статус: низкий/средний/высокий",
         },
-        # === Backtesting ===
+        # === Бэктест ===
         "backtest_dca_roi": {
-            "name": "DCA Backtest ROI",
+            "name": "DCA бэктест ROI",
             "icon": "mdi:percent",
             "unit": "%",
+            "description": "Доходность DCA стратегии в бэктесте",
         },
         "backtest_smart_dca_roi": {
             "name": "Smart DCA ROI",
             "icon": "mdi:brain",
             "unit": "%",
+            "description": "Доходность умного DCA",
         },
         "backtest_lump_sum_roi": {
             "name": "Lump Sum ROI",
             "icon": "mdi:cash",
             "unit": "%",
+            "description": "Доходность единоразовой покупки",
         },
         "backtest_best_strategy": {
-            "name": "Best Strategy",
+            "name": "Лучшая стратегия",
             "icon": "mdi:trophy",
+            "description": "Лучшая стратегия по бэктесту",
         },
-        # === Smart Summary (UX) ===
+        # === Умная сводка (UX) ===
         "market_pulse": {
-            "name": "Market Pulse",
+            "name": "Пульс рынка",
             "icon": "mdi:pulse",
+            "description": "Общее настроение рынка",
         },
         "market_pulse_confidence": {
-            "name": "Market Confidence",
+            "name": "Уверенность пульса",
             "icon": "mdi:percent",
             "unit": "%",
+            "description": "Уверенность в оценке рынка (%)",
         },
         "portfolio_health": {
-            "name": "Portfolio Health",
+            "name": "Здоровье портфеля",
             "icon": "mdi:shield-check",
+            "description": "Общая оценка здоровья портфеля",
         },
         "portfolio_health_score": {
-            "name": "Health Score",
+            "name": "Скор здоровья",
             "icon": "mdi:counter",
             "unit": "%",
+            "description": "Оценка здоровья портфеля (0-100%)",
         },
         "today_action": {
-            "name": "Today's Action",
+            "name": "Действие сегодня",
             "icon": "mdi:clipboard-check",
+            "description": "Рекомендуемое действие на сегодня",
         },
         "today_action_priority": {
-            "name": "Action Priority",
+            "name": "Приоритет действия",
             "icon": "mdi:alert-circle",
+            "description": "Срочность: низкая/средняя/высокая",
         },
         "weekly_outlook": {
-            "name": "Weekly Outlook",
+            "name": "Прогноз на неделю",
             "icon": "mdi:calendar-week",
+            "description": "Краткий прогноз на неделю",
         },
-        # === Alerts & Notifications (UX) ===
+        # === Алерты и уведомления (UX) ===
         "pending_alerts_count": {
-            "name": "Pending Alerts",
+            "name": "Ожидающие алерты",
             "icon": "mdi:bell-badge",
+            "description": "Количество необработанных алертов",
         },
         "pending_alerts_critical": {
-            "name": "Critical Alerts",
+            "name": "Критические алерты",
             "icon": "mdi:bell-alert",
+            "description": "Количество критических алертов",
         },
         "daily_digest_ready": {
-            "name": "Daily Digest Ready",
+            "name": "Дневной дайджест",
             "icon": "mdi:newspaper",
+            "description": "Готов ли дневной дайджест",
         },
         "notification_mode": {
-            "name": "Notification Mode",
+            "name": "Режим уведомлений",
             "icon": "mdi:bell-cog",
+            "description": "Текущий режим: все/важные/тихий",
         },
-        # === Briefings (UX) ===
+        # === Брифинги (UX) ===
         "morning_briefing": {
-            "name": "Morning Briefing",
+            "name": "Утренний брифинг",
             "icon": "mdi:weather-sunny",
+            "description": "Утренняя сводка по рынку",
         },
         "evening_briefing": {
-            "name": "Evening Briefing",
+            "name": "Вечерний брифинг",
             "icon": "mdi:weather-night",
+            "description": "Вечерняя сводка по рынку",
         },
         "briefing_last_sent": {
-            "name": "Briefing Last Sent",
+            "name": "Последний брифинг",
             "icon": "mdi:clock-check",
             "device_class": "timestamp",
+            "description": "Время последнего брифинга",
         },
-        # === Goal Tracking (UX) ===
+        # === Отслеживание целей (UX) ===
         "goal_target": {
-            "name": "Goal Target",
+            "name": "Цель",
             "icon": "mdi:flag-checkered",
             "unit": "USDT",
+            "description": "Целевая сумма портфеля",
         },
         "goal_progress": {
-            "name": "Goal Progress",
+            "name": "Прогресс цели",
             "icon": "mdi:progress-check",
             "unit": "%",
+            "description": "Процент достижения цели",
         },
         "goal_remaining": {
-            "name": "Goal Remaining",
+            "name": "Осталось до цели",
             "icon": "mdi:cash-minus",
             "unit": "USDT",
+            "description": "Сколько осталось до цели",
         },
         "goal_days_estimate": {
-            "name": "Days to Goal",
+            "name": "Дней до цели",
             "icon": "mdi:calendar-clock",
+            "description": "Оценка дней до достижения",
         },
         "goal_status": {
-            "name": "Goal Status",
+            "name": "Статус цели",
             "icon": "mdi:trophy",
+            "description": "Статус: в процессе/достигнута/отложена",
         },
-        # === Diagnostic Sensors ===
+        # === Диагностические сенсоры ===
         "sync_status": {
-            "name": "Sync Status",
+            "name": "Статус синхронизации",
             "icon": "mdi:sync",
             "entity_category": "diagnostic",
+            "description": "Статус: idle/running/completed/error",
         },
         "last_sync": {
-            "name": "Last Sync",
+            "name": "Последняя синхронизация",
             "icon": "mdi:clock-outline",
             "device_class": "timestamp",
             "entity_category": "diagnostic",
+            "description": "Время последней синхронизации",
         },
         "candles_count": {
-            "name": "Total Candles",
+            "name": "Всего свечей",
             "icon": "mdi:database",
-            "unit": "candles",
+            "unit": "свечей",
             "entity_category": "diagnostic",
+            "description": "Общее количество свечей в БД",
         },
     }
 
@@ -675,7 +811,7 @@ class CryptoSensorsManager:
             "name": self.DEVICE_NAME,
             "model": "Crypto Data Collector",
             "manufacturer": "Crypto Inspect Add-on",
-            "sw_version": "0.2.1",
+            "sw_version": APP_VERSION,
         }
 
     def _get_discovery_topic(self, sensor_id: str) -> str:
@@ -1278,6 +1414,193 @@ class CryptoSensorsManager:
             await self._publish_state("briefing_last_sent", last_sent)
 
         logger.info("Updated briefing sensors via MQTT")
+
+    async def update_ml_investor_sensors(self, ml_data: dict) -> None:
+        """
+        Обновление ML-сенсоров для ленивого инвестора через Supervisor API.
+
+        Args:
+            ml_data: Словарь с результатами ML-анализа для пассивных инвесторов
+        """
+        from services.ha_integration import get_supervisor_client
+
+        client = get_supervisor_client()
+        if not client.is_available:
+            logger.warning("Supervisor API недоступен, пропускаем обновление ML-сенсоров")
+            return
+
+        # Сенсор здоровья портфеля ML
+        portfolio_sentiment = ml_data.get("portfolio_sentiment", "нейтральный")
+        await client.create_sensor(
+            sensor_id="ml_portfolio_health",
+            state=portfolio_sentiment,
+            friendly_name="ML Portfolio Health",
+            icon="mdi:heart-pulse",
+            attributes={
+                "sentiment": portfolio_sentiment,
+                "opportunity_signals": ml_data.get("opportunity_signals", 0),
+                "risk_signals": ml_data.get("risk_signals", 0),
+                "hold_signals": ml_data.get("hold_signals", 0),
+                "total_analyzed": ml_data.get("total_analyzed", 0),
+                "recommendation": ml_data.get("recommendation", "Maintain current positions"),
+                "last_analysis": ml_data.get("last_analysis", "N/A"),
+                "confidence_threshold": ml_data.get("confidence_threshold", 70),
+            },
+        )
+
+        # Сенсор уверенности рынка ML
+        confidence_level = ml_data.get("confidence_level", "средний")
+        await client.create_sensor(
+            sensor_id="ml_market_confidence",
+            state=confidence_level,
+            friendly_name="ML Market Confidence",
+            icon="mdi:chart-bell-curve-cumulative",
+            attributes={
+                "level": confidence_level,
+                "high_confidence_count": ml_data.get("high_confidence_count", 0),
+                "medium_confidence_count": ml_data.get("medium_confidence_count", 0),
+                "low_confidence_count": ml_data.get("low_confidence_count", 0),
+                "confidence_threshold": ml_data.get("confidence_threshold", 70),
+                "high_confidence_symbols": ml_data.get("high_confidence_symbols", []),
+                "action_required": ml_data.get("action_required", False),
+            },
+        )
+
+        # Сенсор инвестиционных возможностей ML
+        opportunity_status = ml_data.get("opportunity_status", "нет")
+        await client.create_sensor(
+            sensor_id="ml_investment_opportunity",
+            state=opportunity_status,
+            friendly_name="ML Investment Opportunity",
+            icon="mdi:trending-up",
+            attributes={
+                "status": opportunity_status,
+                "opportunity_symbols": ml_data.get("opportunity_symbols", []),
+                "best_opportunity": ml_data.get("best_opportunity", "N/A"),
+                "recommended_allocation": ml_data.get("recommended_allocation", 0),
+                "timeframe": ml_data.get("opportunity_timeframe", "short_term"),
+                "risk_level": ml_data.get("opportunity_risk", "low"),
+            },
+        )
+
+        # Сенсор предупреждений о рисках ML
+        risk_level = ml_data.get("risk_level", "чисто")
+        await client.create_sensor(
+            sensor_id="ml_risk_warning",
+            state=risk_level,
+            friendly_name="ML Risk Warning",
+            icon="mdi:alert-circle",
+            attributes={
+                "level": risk_level,
+                "risk_symbols": ml_data.get("risk_symbols", []),
+                "risk_factors": ml_data.get("risk_factors", []),
+                "action_required": ml_data.get("risk_action_required", False),
+                "protective_measures": ml_data.get("protective_measures", []),
+                "stop_loss_recommendation": ml_data.get("stop_loss_recommendation", "N/A"),
+            },
+        )
+
+        # Сенсор статуса ML-системы
+        system_status = ml_data.get("system_status", "операционный")
+        await client.create_sensor(
+            sensor_id="ml_system_status",
+            state=system_status,
+            friendly_name="ML System Status",
+            icon="mdi:server-network",
+            attributes={
+                "status": system_status,
+                "models_analyzed": ml_data.get("models_analyzed", 12),
+                "average_accuracy": ml_data.get("average_accuracy", "50%"),
+                "last_analysis": ml_data.get("last_analysis", "N/A"),
+                "next_analysis": ml_data.get("next_analysis", "N/A"),
+                "processing_time": ml_data.get("processing_time", "<5s"),
+                "data_quality": ml_data.get("data_quality", "good"),
+            },
+        )
+
+        logger.info("Обновлены ML-сенсоры ленивого инвестора через Supervisor API")
+
+    async def update_ml_prediction_sensors(self, prediction_data: dict) -> None:
+        """
+        Обновление сенсоров ML-предсказаний и точности через Supervisor API.
+
+        Args:
+            prediction_data: Данные о последних предсказаниях и точности
+        """
+        from services.ha_integration import get_supervisor_client
+
+        client = get_supervisor_client()
+        if not client.is_available:
+            logger.warning("Supervisor API недоступен, пропускаем обновление сенсоров предсказаний")
+            return
+
+        # Сенсор последних ML-предсказаний
+        latest_predictions = prediction_data.get("latest_predictions", {})
+        await client.create_sensor(
+            sensor_id="ml_latest_predictions",
+            state=str(len(latest_predictions)),
+            friendly_name="ML Latest Predictions",
+            icon="mdi:history",
+            unit="predictions",
+            attributes={
+                "latest_predictions": latest_predictions,
+                "last_update": prediction_data.get("last_update", "N/A"),
+                "total_count": len(latest_predictions),
+                "correct_predictions": prediction_data.get("correct_predictions", 0),
+                "incorrect_predictions": prediction_data.get("incorrect_predictions", 0),
+                "accuracy_percentage": prediction_data.get("accuracy_percentage", 0),
+            },
+        )
+
+        # Сенсор счетчика верных предсказаний
+        correct_count = prediction_data.get("correct_predictions", 0)
+        await client.create_sensor(
+            sensor_id="ml_correct_predictions",
+            state=str(correct_count),
+            friendly_name="ML Correct Predictions",
+            icon="mdi:check-circle",
+            unit="count",
+            attributes={
+                "correct_count": correct_count,
+                "total_predictions": prediction_data.get("total_predictions", 0),
+                "accuracy_percentage": prediction_data.get("accuracy_percentage", 0),
+                "last_update": prediction_data.get("last_update", "N/A"),
+            },
+        )
+
+        # Сенсор точности ML-моделей
+        accuracy_rate = prediction_data.get("accuracy_percentage", 0)
+        accuracy_text = f"{accuracy_rate}%"
+        await client.create_sensor(
+            sensor_id="ml_accuracy_rate",
+            state=accuracy_text,
+            friendly_name="ML Accuracy Rate",
+            icon="mdi:target",
+            unit="%",
+            attributes={
+                "accuracy_percentage": accuracy_rate,
+                "rating": self._get_accuracy_rating(accuracy_rate),
+                "total_predictions": prediction_data.get("total_predictions", 0),
+                "correct": prediction_data.get("correct_predictions", 0),
+                "incorrect": prediction_data.get("incorrect_predictions", 0),
+                "last_update": prediction_data.get("last_update", "N/A"),
+            },
+        )
+
+        logger.info("Обновлены сенсоры ML-предсказаний и точности")
+
+    def _get_accuracy_rating(self, accuracy: float) -> str:
+        """Получение текстовой оценки точности."""
+        if accuracy >= 80:
+            return "отличная"
+        elif accuracy >= 70:
+            return "хорошая"
+        elif accuracy >= 60:
+            return "удовлетворительная"
+        elif accuracy >= 50:
+            return "средняя"
+        else:
+            return "низкая"
 
     async def update_goal_status(self, goal_data: dict) -> None:
         """

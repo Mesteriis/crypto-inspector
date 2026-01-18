@@ -142,6 +142,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """Application lifespan manager."""
     logger.info(f"Starting {settings.APP_NAME}...")
 
+    # Initialize HA entities (cleanup old sensors, create input helpers)
+    try:
+        from services.ha_init import initialize_ha_entities
+
+        await initialize_ha_entities()
+    except ImportError:
+        logger.warning("ha_init module not available, skipping entity initialization")
+    except Exception as e:
+        logger.error(f"Error initializing HA entities: {e}")
+
     # Register HA sensors
     from services.ha_integration import register_sensors
 

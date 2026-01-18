@@ -30,9 +30,16 @@ fastmcp>=2.0.0
 
 # Crypto & Finance
 yfinance>=0.2.0
+statsforecast>=1.7.0
+numpy>=1.26.0
+pandas>=2.0.0
 
 # HTTP & Network
 websockets>=12.0
 
 # Other dependencies
 greenlet>=3.3.0
+chronos-forecasting>=1.4.0
+torch>=2.0.0
+neuralprophet>=0.8.0
+optuna>=3.5.0

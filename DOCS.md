@@ -87,23 +87,27 @@ ai_language: "ru"               # Язык отчётов (ru | en)
 
 ### Цены и объемы
 
+Все ценовые сенсоры используют **словарный формат**: ключ = код монеты, значение = данные.
+
 | Сенсор | Описание | Пример значения |
 |--------|----------|-----------------|
-| `prices` | Текущие цены всех пар | `{"BTC/USDT": "100000"}` |
-| `changes_24h` | Изменение за 24ч (%) | `{"BTC/USDT": "2.50"}` |
-| `volumes_24h` | Объемы торгов | `{"BTC/USDT": "1500000000"}` |
-| `highs_24h` | Максимумы 24ч | `{"BTC/USDT": "102000"}` |
-| `lows_24h` | Минимумы 24ч | `{"BTC/USDT": "98000"}` |
+| `prices` | Текущие цены всех монет | `{"BTC": 95000, "ETH": 3200}` |
+| `changes_24h` | Изменение за 24ч (%) | `{"BTC": 2.5, "ETH": -1.2}` |
+| `volumes_24h` | Объемы торгов | `{"BTC": 50000000000}` |
+| `highs_24h` | Максимумы 24ч | `{"BTC": 96000}` |
+| `lows_24h` | Минимумы 24ч | `{"BTC": 94000}` |
 
 ### Bybit Account
 
 | Сенсор | Описание |
 |--------|----------|
-| `bybit_balance` | Общий баланс (USDT) |
+| `bybit_balance` | Баланс торгового счёта (USDT) |
 | `bybit_pnl_24h` | P&L за 24 часа (%) |
 | `bybit_pnl_7d` | P&L за 7 дней (%) |
-| `bybit_positions` | Количество открытых позиций |
-| `bybit_unrealized_pnl` | Нереализованная прибыль (USDT) |
+| `bybit_positions` | Открытые позиции |
+| `bybit_unrealized_pnl` | Нереализованный P&L (USDT) |
+| `bybit_earn_balance` | Баланс Bybit Earn |
+| `bybit_total_portfolio` | Общий портфель Bybit |
 
 ### Ленивый Инвестор
 
@@ -111,22 +115,26 @@ ai_language: "ru"               # Язык отчётов (ru | en)
 
 | Сенсор | Описание |
 |--------|----------|
-| `do_nothing_ok` | Можно ли ничего не делать? |
-| `investor_phase` | Текущая фаза рынка |
+| `do_nothing_ok` | Можно ли ничего не делать? (Да/Нет) |
+| `investor_phase` | Фаза рынка (Накопление/Рост/Эйфория/Коррекция/Капитуляция) |
 | `calm_indicator` | Индикатор спокойствия (0-100) |
 | `red_flags` | Количество красных флагов |
-| `dca_signal` | Сигнал для DCA |
-| `dca_result` | Рекомендуемая сумма DCA |
+| `market_tension` | Напряжённость рынка |
+| `price_context` | Контекст цены (относительно ATH/ATL) |
+| `dca_signal` | Сигнал DCA (Покупать/Ждать/Не покупать) |
+| `dca_result` | Рекомендуемая сумма DCA (€) |
 | `weekly_insight` | Недельный обзор |
 
 ### Рыночные индикаторы
 
 | Сенсор | Описание |
 |--------|----------|
-| `fear_greed` | Fear & Greed Index (0-100) |
+| `fear_greed` | Индекс страха и жадности (0-100) |
 | `btc_dominance` | Доминация Bitcoin (%) |
-| `altseason_index` | Индекс сезона альткоинов |
-| `altseason_status` | Статус альтсезона |
+| `market_pulse` | Пульс рынка (Бычий/Медвежий/Нейтрально) |
+| `altseason_index` | Индекс альтсезона (0-100) |
+| `altseason_status` | Статус (Биткоин сезон/Альтсезон/Нейтрально) |
+| `derivatives` | Данные по деривативам |
 
 ### DCA Calculator
 
@@ -134,179 +142,143 @@ ai_language: "ru"               # Язык отчётов (ru | en)
 
 | Сенсор | Описание |
 |--------|----------|
-| `dca_next_level` | Следующий уровень для покупки |
-| `dca_zone` | Текущая зона (Buy/Wait/Overbought) |
-| `dca_risk_score` | Оценка риска |
+| `dca_next_level` | Следующий уровень для покупки (USDT) |
+| `dca_zone` | Зона (покупка/накопление/ожидание) |
+| `dca_risk_score` | Оценка риска (0-100) |
 
-### Take Profit Advisor
+### Фиксация прибыли (Take Profit)
 
 Рекомендации по фиксации прибыли.
 
 | Сенсор | Описание |
 |--------|----------|
-| `btc_tp_level_1` | Take Profit уровень 1 |
-| `btc_tp_level_2` | Take Profit уровень 2 |
-| `profit_action` | Рекомендуемое действие |
-| `greed_level` | Уровень жадности рынка |
+| `tp_levels` | Уровни фиксации (dict: `{"BTC": [95000, 100000]}`) |
+| `profit_action` | Рекомендация (держать/фиксировать) |
+| `greed_level` | Уровень жадности рынка (0-100) |
 
 ### Волатильность и корреляции
 
 | Сенсор | Описание |
 |--------|----------|
-| `btc_volatility_30d` | 30-дневная волатильность BTC (%) |
+| `volatility_30d` | 30-дневная волатильность (dict: `{"BTC": 45}`) |
 | `volatility_percentile` | Перцентиль волатильности |
-| `volatility_status` | Статус (Low/Normal/High/Extreme) |
+| `volatility_status` | Статус (низкая/средняя/высокая) |
 | `btc_eth_correlation` | Корреляция BTC/ETH |
 | `btc_sp500_correlation` | Корреляция BTC/S&P500 |
-| `correlation_status` | Статус корреляции |
+| `correlation_status` | Статус корреляций |
 
 ### Макро-события
 
 | Сенсор | Описание |
 |--------|----------|
-| `next_macro_event` | Следующее макро-событие |
+| `next_macro_event` | Следующее макрособытие |
 | `days_to_fomc` | Дней до заседания FOMC |
-| `macro_risk_week` | Риск текущей недели |
+| `macro_risk_week` | Макрориск недели (низкий/средний/высокий) |
 
-### Token Unlocks
-
-| Сенсор | Описание |
-|--------|----------|
-| `unlocks_next_7d` | Анлоков в ближайшие 7 дней |
-| `unlock_next_event` | Следующий анлок |
-| `unlock_risk_level` | Уровень риска анлоков |
-
-### On-Chain данные
+### Разблокировка токенов
 
 | Сенсор | Описание |
 |--------|----------|
-| `whale_alerts_24h` | Whale-алертов за 24ч |
+| `unlocks_next_7d` | Разблокировки за 7 дней |
+| `unlock_next_event` | Ближайшая разблокировка |
+| `unlock_risk_level` | Риск анлоков |
+
+### On-Chain данные и киты
+
+| Сенсор | Описание |
+|--------|----------|
+| `whale_alerts_24h` | Алерты китов за 24ч |
 | `whale_net_flow` | Нетто-поток китов |
-| `whale_last_alert` | Последний whale-алерт |
-| `btc_exchange_netflow` | Поток BTC на биржи |
-| `exchange_flow_signal` | Сигнал потока |
+| `whale_last_alert` | Последний алерт |
+| `exchange_netflows` | Потоки на биржи (dict: `{"BTC": -500}`) |
+| `exchange_flow_signal` | Сигнал потоков |
 
 ### ETH Gas
 
 | Сенсор | Описание |
 |--------|----------|
 | `eth_gas_slow` | Медленная скорость (Gwei) |
-| `eth_gas_standard` | Стандартная скорость |
-| `eth_gas_fast` | Быстрая скорость |
-| `eth_gas_status` | Статус газа |
+| `eth_gas_standard` | Стандартная скорость (Gwei) |
+| `eth_gas_fast` | Быстрая скорость (Gwei) |
+| `eth_gas_status` | Статус газа (низкий/средний/высокий) |
 
 ### Арбитраж
 
 | Сенсор | Описание |
 |--------|----------|
-| `btc_arb_spread` | Спред арбитража BTC (%) |
-| `funding_arb_best` | Лучшая возможность фандинга |
-| `arb_opportunity` | Уровень возможности |
+| `arb_spreads` | Спреды арбитража |
+| `funding_arb_best` | Лучший фандинг-арбитраж |
+| `arb_opportunity` | Возможность арбитража |
 
 ### AI Анализ
 
 | Сенсор | Описание |
 |--------|----------|
 | `ai_daily_summary` | Ежедневная AI-сводка рынка |
-| `ai_market_sentiment` | AI оценка настроения рынка |
+| `ai_market_sentiment` | AI оценка настроения |
 | `ai_recommendation` | AI рекомендация (Buy/Hold/Sell) |
-| `ai_last_analysis` | Время последнего анализа |
+| `ai_last_analysis` | Время последнего AI-анализа |
 | `ai_provider` | Используемый AI провайдер |
 
 ### Технический анализ (TA)
 
-**BTC индикаторы:**
+Все индикаторы используют **словарный формат**: ключ = монета, значение = данные.
 
-| Сенсор | Описание |
-|--------|----------|
-| `btc_rsi` | RSI (14) для BTC |
-| `btc_macd_signal` | MACD сигнал (Buy/Sell/Hold) |
-| `btc_bb_position` | Позиция в Bollinger Bands (%) |
-| `btc_trend` | Текущий тренд (Uptrend/Downtrend/Sideways) |
-| `btc_trend_strength` | Сила тренда (0-100) |
-| `btc_support` | Ближайший уровень поддержки |
-| `btc_resistance` | Ближайший уровень сопротивления |
-
-**ETH индикаторы:**
-
-| Сенсор | Описание |
-|--------|----------|
-| `eth_rsi` | RSI (14) для ETH |
-| `eth_macd_signal` | MACD сигнал |
-| `eth_bb_position` | Позиция в Bollinger Bands |
-| `eth_trend` | Текущий тренд |
-
-**Агрегированные:**
-
-| Сенсор | Описание |
-|--------|----------|
-| `ta_confluence` | Confluence Score (0-100) |
-| `ta_signal_count` | Количество активных сигналов |
-| `ta_last_update` | Время последнего обновления |
+| Сенсор | Описание | Пример |
+|--------|----------|--------|
+| `ta_rsi` | RSI(14) | `{"BTC": 65, "ETH": 45}` |
+| `ta_macd_signal` | MACD сигналы | `{"BTC": "bullish"}` |
+| `ta_bb_position` | Позиция Bollinger Bands | `{"BTC": 0.7}` |
+| `ta_trend` | Направление тренда | `{"BTC": "uptrend"}` |
+| `ta_support` | Уровни поддержки | `{"BTC": 90000}` |
+| `ta_resistance` | Уровни сопротивления | `{"BTC": 100000}` |
+| `ta_trend_mtf` | MTF тренды | - |
+| `ta_confluence` | Конфлюенс скор (0-100) | - |
+| `ta_signal` | TA сигнал (buy/sell/hold) | - |
 
 ### Риск-менеджмент
 
 | Сенсор | Описание |
 |--------|----------|
-| `portfolio_sharpe` | Sharpe Ratio портфеля |
-| `portfolio_sortino` | Sortino Ratio портфеля |
+| `portfolio_sharpe` | Коэффициент Шарпа |
+| `portfolio_sortino` | Коэффициент Сортино |
 | `portfolio_max_drawdown` | Максимальная просадка (%) |
 | `portfolio_current_drawdown` | Текущая просадка (%) |
-| `portfolio_var_95` | Value at Risk 95% |
-| `portfolio_volatility` | 30-дневная волатильность (%) |
-| `risk_status` | Статус риска (Low/Medium/High/Critical) |
+| `portfolio_var_95` | VaR 95% |
+| `risk_status` | Статус риска (низкий/средний/высокий/критический) |
 
-### DCA Backtesting
+### DCA Бэктест
 
 | Сенсор | Описание |
 |--------|----------|
-| `backtest_dca_roi` | ROI фиксированного DCA (%) |
+| `backtest_dca_roi` | ROI DCA стратегии (%) |
 | `backtest_smart_dca_roi` | ROI умного DCA (%) |
 | `backtest_lump_sum_roi` | ROI единовременной покупки (%) |
 | `backtest_best_strategy` | Лучшая стратегия |
-| `backtest_period` | Период бэктеста |
 
 ### Ликвидации
 
 | Сенсор | Описание |
 |--------|----------|
-| `btc_liq_long_nearest` | Ближайшая ликвидация лонгов |
-| `btc_liq_short_nearest` | Ближайшая ликвидация шортов |
-| `liq_risk_level` | Уровень риска |
+| `liq_levels` | Уровни ликвидаций |
+| `liq_risk_level` | Риск ликвидаций |
 
 ### Традиционные финансы
 
-Данные по классическим активам (металлы, индексы, форекс, сырьё) через Yahoo Finance API.
-
-**Металлы:**
+Данные по классическим активам (металлы, индексы, форекс, сырьё).
 
 | Сенсор | Описание |
 |--------|----------|
 | `gold_price` | Золото (USD) |
 | `silver_price` | Серебро (USD) |
 | `platinum_price` | Платина (USD) |
-
-**Индексы:**
-
-| Сенсор | Описание |
-|--------|----------|
-| `sp500_price` | S&P 500 |
-| `nasdaq_price` | NASDAQ |
-| `dji_price` | Dow Jones |
-| `dax_price` | DAX (EUR) |
-
-**Форекс:**
-
-| Сенсор | Описание |
-|--------|----------|
-| `eur_usd` | EUR/USD |
-| `gbp_usd` | GBP/USD |
+| `sp500_price` | Индекс S&P 500 |
+| `nasdaq_price` | Индекс NASDAQ |
+| `dji_price` | Индекс Dow Jones |
+| `dax_price` | Индекс DAX (EUR) |
+| `eur_usd` | Курс EUR/USD |
+| `gbp_usd` | Курс GBP/USD |
 | `dxy_index` | Индекс доллара (DXY) |
-
-**Сырьё:**
-
-| Сенсор | Описание |
-|--------|----------|
 | `oil_brent` | Нефть Brent (USD) |
 | `oil_wti` | Нефть WTI (USD) |
 | `natural_gas` | Природный газ (USD) |

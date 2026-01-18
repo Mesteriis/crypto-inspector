@@ -167,6 +167,7 @@ class ScoringEngine:
                 name_ru="Technical Analysis",
                 score=50,
                 weight=self.WEIGHTS["technical"],
+                weighted_score=50 * self.WEIGHTS["technical"],
                 signal="neutral",
             )
 

@@ -9,6 +9,7 @@ Provides REST endpoints for lazy investor signals:
 """
 
 import logging
+from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
@@ -300,3 +301,163 @@ async def configure_investor(
             "alts_weight": alts_weight,
         },
     }
+
+
+@router.get("/ml-insights")
+async def get_ml_investment_insights(
+    symbols: list[str] = Query(default=["BTC/USDT", "ETH/USDT"], description="Symbols to analyze"),
+    risk_tolerance: str = Query(default="moderate", enum=["conservative", "moderate", "aggressive"]),
+    timeframe: str = Query(default="medium_term", enum=["short_term", "medium_term", "long_term"]),
+) -> dict[str, Any]:
+    """
+    Get ML-powered investment insights for lazy investors.
+
+    Transforms raw ML predictions into market awareness signals:
+    - Market condition assessment
+    - Risk level evaluation
+    - Portfolio positioning advice
+    - Opportunity identification
+
+    This endpoint focuses on informed decision-making rather than active trading.
+    """
+    try:
+        # Import here to avoid circular imports
+        from services.investor.lazy_investor_ml import LazyInvestorMLAdvisor
+
+        advisor = LazyInvestorMLAdvisor()
+
+        # Get investment signals
+        signals = await advisor.generate_investment_signals(symbols)
+        portfolio_health = await advisor.get_portfolio_health_score(symbols)
+        daily_briefing = await advisor.generate_daily_briefing(symbols)
+
+        # Filter signals by confidence level based on risk tolerance
+        confidence_thresholds = {
+            "conservative": 0.8,  # Only high-confidence signals
+            "moderate": 0.7,  # Medium+ confidence
+            "aggressive": 0.6,  # All signals above noise floor
+        }
+
+        threshold = confidence_thresholds[risk_tolerance]
+        filtered_signals = [
+            s
+            for s in signals
+            if (
+                (s.confidence_level == "high" and threshold <= 0.8)
+                or (s.confidence_level == "medium" and threshold <= 0.7)
+                or (s.confidence_level == "low" and threshold <= 0.6)
+            )
+        ]
+
+        # Generate personalized strategy recommendation
+        strategy_mapping = {
+            "conservative": {
+                "focus": "Capital preservation",
+                "action_bias": "Minimal intervention - only act on strong risk signals",
+                "review_frequency": "Monthly portfolio review",
+                "volatility_response": "Increase DCA frequency during high volatility",
+            },
+            "moderate": {
+                "focus": "Balanced growth with risk awareness",
+                "action_bias": "Monitor medium+ confidence signals, act on strong consensus",
+                "review_frequency": "Quarterly portfolio review",
+                "volatility_response": "Adjust DCA amounts based on market conditions",
+            },
+            "aggressive": {
+                "focus": "Opportunistic growth with risk management",
+                "action_bias": "Act on medium+ confidence opportunities, hedge against risks",
+                "review_frequency": "Monthly tactical review",
+                "volatility_response": "Use volatility for strategic positioning",
+            },
+        }
+
+        strategy = strategy_mapping[risk_tolerance]
+
+        return {
+            "timestamp": datetime.now().isoformat(),
+            "request_params": {"symbols": symbols, "risk_tolerance": risk_tolerance, "timeframe": timeframe},
+            "portfolio_health": portfolio_health,
+            "strategy_recommendation": strategy,
+            "market_insights": {
+                "active_signals": len(filtered_signals),
+                "total_signals": len(signals),
+                "signal_types": {
+                    "opportunities": len([s for s in filtered_signals if s.signal_type == "opportunity"]),
+                    "risk_warnings": len([s for s in filtered_signals if s.signal_type == "risk_warning"]),
+                    "market_shifts": len([s for s in filtered_signals if s.signal_type == "market_shift"]),
+                    "hold_indicators": len([s for s in filtered_signals if s.signal_type == "hold"]),
+                },
+                "confidence_distribution": {
+                    "high": len([s for s in signals if s.confidence_level == "high"]),
+                    "medium": len([s for s in signals if s.confidence_level == "medium"]),
+                    "low": len([s for s in signals if s.confidence_level == "low"]),
+                },
+            },
+            "filtered_signals": [
+                {
+                    "symbol": s.symbol,
+                    "signal_type": s.signal_type,
+                    "confidence_level": s.confidence_level,
+                    "rationale": s.rationale,
+                    "suggested_action": s.suggested_action,
+                    "timeframe": s.timeframe,
+                    "timestamp": s.timestamp.isoformat(),
+                }
+                for s in filtered_signals
+            ],
+            "daily_briefing": daily_briefing,
+            "ml_context": {
+                "model_performance_note": "ML models show ~50% accuracy typical for crypto markets",
+                "approach": "Using ML for market awareness, not timing",
+                "philosophy": "Informed holding rather than active trading",
+                "confidence_interpretation": "High confidence (>70%) signals worth reviewing, lower confidence = maintain course",
+            },
+        }
+
+    except Exception as e:
+        logger.error(f"ML investment insights error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/lazy-daily-briefing")
+async def get_lazy_daily_briefing(
+    symbols: list[str] = Query(default=["BTC/USDT", "ETH/USDT", "SOL/USDT"], description="Portfolio symbols"),
+) -> dict[str, Any]:
+    """
+    Get daily investment briefing tailored for passive investors.
+
+    Provides human-readable market insights without requiring active trading decisions.
+    Focuses on market context, risk awareness, and informed positioning.
+    """
+    try:
+        from services.investor.lazy_investor_ml import LazyInvestorMLAdvisor
+
+        advisor = LazyInvestorMLAdvisor()
+        briefing = await advisor.generate_daily_briefing(symbols)
+        health = await advisor.get_portfolio_health_score(symbols)
+        signals = await advisor.generate_investment_signals(symbols)
+
+        return {
+            "timestamp": datetime.now().isoformat(),
+            "briefing": briefing,
+            "portfolio_health": health,
+            "key_signals": [
+                {
+                    "symbol": s.symbol,
+                    "type": s.signal_type,
+                    "confidence": s.confidence_level,
+                    "action": s.suggested_action,
+                }
+                for s in signals[:5]  # Top 5 most relevant signals
+            ],
+            "interpretation_guide": {
+                "opportunity_signals": "Market conditions favorable for gradual accumulation",
+                "risk_warning_signals": "Consider reviewing portfolio positioning",
+                "market_shift_signals": "Normal volatility - maintain disciplined approach",
+                "hold_signals": "No significant changes needed - continue current strategy",
+            },
+        }
+
+    except Exception as e:
+        logger.error(f"Lazy daily briefing error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

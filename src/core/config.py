@@ -4,6 +4,13 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from core.constants import (
+    DEFAULT_SYMBOLS_STR,
+    MAX_RETRIES,
+    RETRY_DELAY_SECONDS,
+    Timeouts,
+)
+
 
 def load_ha_options() -> dict:
     """Load options from Home Assistant add-on config."""
@@ -44,7 +51,17 @@ class Settings(BaseSettings):
     STREAMING_INTERVAL: str = "1m"  # 1m, 5m, 15m, 1h, etc.
 
     # Default symbols if not configured
-    DEFAULT_SYMBOLS: str = "BTC/USDT,ETH/USDT,SOL/USDT,TON/USDT,AR/USDT"
+    DEFAULT_SYMBOLS: str = DEFAULT_SYMBOLS_STR
+
+    # Retry configuration
+    MAX_RETRIES: int = MAX_RETRIES
+    RETRY_DELAY_SECONDS: int = RETRY_DELAY_SECONDS
+
+    # Timeout defaults
+    DEFAULT_TIMEOUT: float = Timeouts.DEFAULT
+    CANDLESTICK_FETCH_TIMEOUT: float = Timeouts.CANDLESTICK_FETCH
+    AI_TIMEOUT: float = Timeouts.OPENAI
+    OLLAMA_TIMEOUT: float = Timeouts.OLLAMA
 
     # Bybit Exchange API (read from HA options or env)
     BYBIT_API_KEY: str = ""

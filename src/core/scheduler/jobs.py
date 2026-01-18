@@ -10,14 +10,15 @@ import os
 import time
 from datetime import UTC, datetime
 
+from core.config import settings
+from core.constants import (
+    DEFAULT_SYMBOLS,
+    AlertThresholds,
+    PriceDefaults,
+    SyncDefaults,
+)
+
 logger = logging.getLogger(__name__)
-
-# Retry configuration
-MAX_RETRIES = 3
-RETRY_DELAY_SECONDS = 10
-
-# Get symbols from environment (set by HA add-on)
-DEFAULT_SYMBOLS = ["BTC/USDT", "ETH/USDT"]
 
 
 def get_symbols() -> list[str]:
@@ -129,11 +130,11 @@ async def fetch_and_save_candlesticks(
         interval = CandleInterval(interval_str)
 
         # Fetch candlesticks
-        fetcher = CandlestickFetcher(timeout=15.0)
+        fetcher = CandlestickFetcher(timeout=settings.CANDLESTICK_FETCH_TIMEOUT)
         result = await fetcher.fetch(
             symbol=symbol,
             interval=interval,
-            limit=10,  # Just get recent candles
+            limit=SyncDefaults.CANDLES_LIMIT,  # Just get recent candles
         )
 
         if result.is_empty:
@@ -194,14 +195,15 @@ async def fetch_and_save_candlesticks(
         logger.error(f"Error fetching {symbol} {interval_str}: {e}")
 
         # Retry logic
-        if retry_count < MAX_RETRIES:
+        if retry_count < settings.MAX_RETRIES:
             logger.info(
-                f"Retrying {symbol} {interval_str} in {RETRY_DELAY_SECONDS}s (attempt {retry_count + 1}/{MAX_RETRIES})"
+                f"Retrying {symbol} {interval_str} in {settings.RETRY_DELAY_SECONDS}s "
+                f"(attempt {retry_count + 1}/{settings.MAX_RETRIES})"
             )
-            await asyncio.sleep(RETRY_DELAY_SECONDS)
+            await asyncio.sleep(settings.RETRY_DELAY_SECONDS)
             return await fetch_and_save_candlesticks(symbol, interval_str, retry_count + 1)
 
-        logger.error(f"Failed to fetch {symbol} {interval_str} after {MAX_RETRIES} retries")
+        logger.error(f"Failed to fetch {symbol} {interval_str} after {settings.MAX_RETRIES} retries")
         return False
 
 
@@ -351,7 +353,7 @@ async def market_analysis_job() -> None:
                 # Cycle data for BTC
                 cycle_data = None
                 if symbol == "BTC":
-                    current_price = 100000  # Placeholder
+                    current_price = PriceDefaults.PLACEHOLDER_BTC
                     if deriv_result and deriv_result.funding:
                         current_price = deriv_result.funding.mark_price
                     cycle_info = cycles.detect_cycle(current_price)
@@ -534,7 +536,7 @@ async def investor_analysis_job() -> None:
                 logger.error(f"Failed to send alert notification: {e}")
 
         # Send critical alerts for dangerous conditions
-        if len(status.red_flags) >= 3:
+        if len(status.red_flags) >= AlertThresholds.RED_FLAGS_CRITICAL:
             try:
                 flags_text = "\n".join([f"⚠️ {f.name_ru}" for f in status.red_flags])
                 await notify(

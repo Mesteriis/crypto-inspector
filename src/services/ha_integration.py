@@ -13,6 +13,8 @@ from enum import Enum
 
 import httpx
 
+from core.constants import APP_VERSION
+
 logger = logging.getLogger(__name__)
 
 # Supervisor API token is automatically available in add-ons
@@ -283,7 +285,7 @@ class MQTTDiscoveryClient:
             "name": self.DEVICE_NAME,
             "model": "Crypto Data Collector",
             "manufacturer": "Crypto Inspect Add-on",
-            "sw_version": "0.2.1",
+            "sw_version": APP_VERSION,
         }
 
     def _get_discovery_topic(self, component: str, object_id: str) -> str:

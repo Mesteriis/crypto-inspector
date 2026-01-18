@@ -1,0 +1,454 @@
+{
+  "BTC/USDT": {
+    "symbol": "BTC/USDT",
+    "interval": "1d",
+    "total_data_points": 350,
+    "period_start": 101350.46,
+    "period_end": 95358.94,
+    "model_statistics": {
+      "statsforecast": [
+        {
+          "error": 4675.358000000007,
+          "direction_correct": false,
+          "actual_price": 115087.24,
+          "predicted_price": 110411.882,
+          "confidence": 25.0,
+          "window_start": 0,
+          "window_end": 180
+        },
+        {
+          "error": 5337.5320000000065,
+          "direction_correct": false,
+          "actual_price": 111742.52,
+          "predicted_price": 106404.988,
+          "confidence": 25.0,
+          "window_start": 30,
+          "window_end": 210
+        },
+        {
+          "error": 5515.392000000007,
+          "direction_correct": true,
+          "actual_price": 122255.82,
+          "predicted_price": 116740.428,
+          "confidence": 25.0,
+          "window_start": 60,
+          "window_end": 240
+        },
+        {
+          "error": 5935.088000000003,
+          "direction_correct": false,
+          "actual_price": 110512.1,
+          "predicted_price": 104577.012,
+          "confidence": 25.0,
+          "window_start": 90,
+          "window_end": 270
+        },
+        {
+          "error": 1698.5260000000126,
+          "direction_correct": true,
+          "actual_price": 91281.43,
+          "predicted_price": 92979.956,
+          "confidence": 25.0,
+          "window_start": 120,
+          "window_end": 300
+        },
+        {
+          "error": 1638.570000000007,
+          "direction_correct": false,
+          "actual_price": 88875.07,
+          "predicted_price": 87236.5,
+          "confidence": 25.0,
+          "window_start": 150,
+          "window_end": 330
+        }
+      ],
+      "neuralprophet": [
+        {
+          "error": 16911.474375000005,
+          "direction_correct": false,
+          "actual_price": 115087.24,
+          "predicted_price": 98175.765625,
+          "confidence": 64.7,
+          "window_start": 0,
+          "window_end": 180
+        },
+        {
+          "error": 4050.2440000000206,
+          "direction_correct": false,
+          "actual_price": 111742.52,
+          "predicted_price": 107692.27599999998,
+          "confidence": 20.0,
+          "window_start": 30,
+          "window_end": 210
+        },
+        {
+          "error": 8384.50500000002,
+          "direction_correct": false,
+          "actual_price": 122255.82,
+          "predicted_price": 113871.31499999999,
+          "confidence": 20.0,
+          "window_start": 60,
+          "window_end": 240
+        },
+        {
+          "error": 3721.292000000016,
+          "direction_correct": false,
+          "actual_price": 110512.1,
+          "predicted_price": 106790.80799999999,
+          "confidence": 20.0,
+          "window_start": 90,
+          "window_end": 270
+        },
+        {
+          "error": 414.502999999997,
+          "direction_correct": false,
+          "actual_price": 91281.43,
+          "predicted_price": 90866.927,
+          "confidence": 20.0,
+          "window_start": 120,
+          "window_end": 300
+        },
+        {
+          "error": 2271.8490000000165,
+          "direction_correct": false,
+          "actual_price": 88875.07,
+          "predicted_price": 86603.22099999999,
+          "confidence": 20.0,
+          "window_start": 150,
+          "window_end": 330
+        }
+      ],
+      "chronos-bolt": [
+        {
+          "error": 962.4196875000052,
+          "direction_correct": true,
+          "actual_price": 115087.24,
+          "predicted_price": 114124.8203125,
+          "confidence": 53.3,
+          "window_start": 0,
+          "window_end": 180
+        },
+        {
+          "error": 2459.066875000004,
+          "direction_correct": true,
+          "actual_price": 111742.52,
+          "predicted_price": 109283.453125,
+          "confidence": 42.4,
+          "window_start": 30,
+          "window_end": 210
+        },
+        {
+          "error": 8321.882500000007,
+          "direction_correct": false,
+          "actual_price": 122255.82,
+          "predicted_price": 113933.9375,
+          "confidence": 55.1,
+          "window_start": 60,
+          "window_end": 240
+        },
+        {
+          "error": 1055.1468750000058,
+          "direction_correct": true,
+          "actual_price": 110512.1,
+          "predicted_price": 109456.953125,
+          "confidence": 63.2,
+          "window_start": 90,
+          "window_end": 270
+        },
+        {
+          "error": 1441.929999999993,
+          "direction_correct": false,
+          "actual_price": 91281.43,
+          "predicted_price": 89839.5,
+          "confidence": 59.8,
+          "window_start": 120,
+          "window_end": 300
+        },
+        {
+          "error": 529.570000000007,
+          "direction_correct": true,
+          "actual_price": 88875.07,
+          "predicted_price": 88345.5,
+          "confidence": 71.1,
+          "window_start": 150,
+          "window_end": 330
+        }
+      ]
+    },
+    "confidence_coefficients": {
+      "statsforecast": {
+        "confidence_coefficient": 0.46389463965073807,
+        "accuracy": 0.9626243291410823,
+        "mean_error": 4133.411000000007,
+        "direction_accuracy": 0.3333333333333333,
+        "mean_confidence": 25.0,
+        "sample_size": 6
+      },
+      "neuralprophet": {
+        "confidence_coefficient": 0.38223232603247387,
+        "accuracy": 0.9474084897036182,
+        "mean_error": 5958.977895833345,
+        "direction_accuracy": 0.0,
+        "mean_confidence": 27.45,
+        "sample_size": 6
+      },
+      "chronos-bolt": {
+        "confidence_coefficient": 0.6284763203060857,
+        "accuracy": 0.9783764329891168,
+        "mean_error": 2461.6693229166704,
+        "direction_accuracy": 0.6666666666666666,
+        "mean_confidence": 57.48333333333333,
+        "sample_size": 6
+      }
+    },
+    "weighted_confidence": {
+      "statsforecast": {
+        "weighted_mean_error": 1917.4672063734004,
+        "weighted_accuracy": 0.9826616266351977,
+        "weighted_direction_accuracy": 0.15463154655024602,
+        "weighted_mean_confidence": 11.597365991268452,
+        "effective_sample_size": 2.7833678379044287
+      },
+      "neuralprophet": {
+        "weighted_mean_error": 2277.7139819004765,
+        "weighted_accuracy": 0.9798978246898531,
+        "weighted_direction_accuracy": 0.0,
+        "weighted_mean_confidence": 10.492277349591406,
+        "effective_sample_size": 2.2933939561948433
+      },
+      "chronos-bolt": {
+        "weighted_mean_error": 1547.1008778770422,
+        "weighted_accuracy": 0.9864101001731079,
+        "weighted_direction_accuracy": 0.41898421353739046,
+        "weighted_mean_confidence": 36.1269138122615,
+        "effective_sample_size": 3.770857921836514
+      }
+    }
+  },
+  "ETH/USDT": {
+    "symbol": "ETH/USDT",
+    "interval": "1d",
+    "total_data_points": 350,
+    "period_start": 2880.1,
+    "period_end": 3341.85,
+    "model_statistics": {
+      "statsforecast": [
+        {
+          "error": 419.27199999999993,
+          "direction_correct": false,
+          "actual_price": 3720.21,
+          "predicted_price": 3300.938,
+          "confidence": 25.0,
+          "window_start": 0,
+          "window_end": 180
+        },
+        {
+          "error": 127.57200000000012,
+          "direction_correct": false,
+          "actual_price": 4451.24,
+          "predicted_price": 4323.668,
+          "confidence": 25.0,
+          "window_start": 30,
+          "window_end": 210
+        },
+        {
+          "error": 295.9439999999995,
+          "direction_correct": true,
+          "actual_price": 4512.32,
+          "predicted_price": 4216.376,
+          "confidence": 25.0,
+          "window_start": 60,
+          "window_end": 240
+        },
+        {
+          "error": 314.7959999999998,
+          "direction_correct": false,
+          "actual_price": 3905.83,
+          "predicted_price": 3591.034,
+          "confidence": 25.0,
+          "window_start": 90,
+          "window_end": 270
+        },
+        {
+          "error": 13.293999999999869,
+          "direction_correct": true,
+          "actual_price": 2994.26,
+          "predicted_price": 3007.554,
+          "confidence": 25.0,
+          "window_start": 120,
+          "window_end": 300
+        },
+        {
+          "error": 45.59400000000005,
+          "direction_correct": true,
+          "actual_price": 3004.25,
+          "predicted_price": 2958.656,
+          "confidence": 25.0,
+          "window_start": 150,
+          "window_end": 330
+        }
+      ],
+      "neuralprophet": [
+        {
+          "error": 422.9110000000005,
+          "direction_correct": false,
+          "actual_price": 3720.21,
+          "predicted_price": 3297.2989999999995,
+          "confidence": 20.0,
+          "window_start": 0,
+          "window_end": 180
+        },
+        {
+          "error": 42.69600000000082,
+          "direction_correct": true,
+          "actual_price": 4451.24,
+          "predicted_price": 4408.543999999999,
+          "confidence": 20.0,
+          "window_start": 30,
+          "window_end": 210
+        },
+        {
+          "error": 425.35199999999986,
+          "direction_correct": false,
+          "actual_price": 4512.32,
+          "predicted_price": 4086.968,
+          "confidence": 20.0,
+          "window_start": 60,
+          "window_end": 240
+        },
+        {
+          "error": 191.1930000000002,
+          "direction_correct": false,
+          "actual_price": 3905.83,
+          "predicted_price": 3714.6369999999997,
+          "confidence": 20.0,
+          "window_start": 90,
+          "window_end": 270
+        },
+        {
+          "error": 41.78600000000051,
+          "direction_correct": false,
+          "actual_price": 2994.26,
+          "predicted_price": 2952.4739999999997,
+          "confidence": 20.0,
+          "window_start": 120,
+          "window_end": 300
+        },
+        {
+          "error": 77.79000000000042,
+          "direction_correct": false,
+          "actual_price": 3004.25,
+          "predicted_price": 2926.4599999999996,
+          "confidence": 20.0,
+          "window_start": 150,
+          "window_end": 330
+        }
+      ],
+      "chronos-bolt": [
+        {
+          "error": 297.15189453125004,
+          "direction_correct": false,
+          "actual_price": 3720.21,
+          "predicted_price": 3423.05810546875,
+          "confidence": 0,
+          "window_start": 0,
+          "window_end": 180
+        },
+        {
+          "error": 3.8820898437497817,
+          "direction_correct": true,
+          "actual_price": 4451.24,
+          "predicted_price": 4447.35791015625,
+          "confidence": 12.1,
+          "window_start": 30,
+          "window_end": 210
+        },
+        {
+          "error": 330.0973437499997,
+          "direction_correct": true,
+          "actual_price": 4512.32,
+          "predicted_price": 4182.22265625,
+          "confidence": 13.1,
+          "window_start": 60,
+          "window_end": 240
+        },
+        {
+          "error": 218.45280273437493,
+          "direction_correct": false,
+          "actual_price": 3905.83,
+          "predicted_price": 3687.377197265625,
+          "confidence": 20.6,
+          "window_start": 90,
+          "window_end": 270
+        },
+        {
+          "error": 17.28539062500022,
+          "direction_correct": false,
+          "actual_price": 2994.26,
+          "predicted_price": 2976.974609375,
+          "confidence": 20.1,
+          "window_start": 120,
+          "window_end": 300
+        },
+        {
+          "error": 19.91650390625,
+          "direction_correct": true,
+          "actual_price": 3004.25,
+          "predicted_price": 2984.33349609375,
+          "confidence": 6.1,
+          "window_start": 150,
+          "window_end": 330
+        }
+      ]
+    },
+    "confidence_coefficients": {
+      "statsforecast": {
+        "confidence_coefficient": 0.6840713816649054,
+        "accuracy": 0.9488067353808081,
+        "mean_error": 202.7453333333332,
+        "direction_accuracy": 0.5,
+        "mean_confidence": 25.0,
+        "sample_size": 6
+      },
+      "neuralprophet": {
+        "confidence_coefficient": 0.6079565868640594,
+        "accuracy": 0.9489441304472712,
+        "mean_error": 200.28800000000038,
+        "direction_accuracy": 0.16666666666666666,
+        "mean_confidence": 20.0,
+        "sample_size": 6
+      },
+      "chronos-bolt": {
+        "confidence_coefficient": 0.674258403477729,
+        "accuracy": 0.9629609884248502,
+        "mean_error": 147.79767089843745,
+        "direction_accuracy": 0.5,
+        "mean_confidence": 12.0,
+        "sample_size": 6
+      }
+    },
+    "weighted_confidence": {
+      "statsforecast": {
+        "weighted_mean_error": 138.69228029944506,
+        "weighted_accuracy": 0.9649801527400123,
+        "weighted_direction_accuracy": 0.3420356908324527,
+        "weighted_mean_confidence": 17.101784541622635,
+        "effective_sample_size": 4.104428289989433
+      },
+      "neuralprophet": {
+        "weighted_mean_error": 121.76640886982898,
+        "weighted_accuracy": 0.9689602478073464,
+        "weighted_direction_accuracy": 0.10132609781067657,
+        "weighted_mean_confidence": 12.159131737281188,
+        "effective_sample_size": 3.6477395211843566
+      },
+      "chronos-bolt": {
+        "weighted_mean_error": 99.65382161770724,
+        "weighted_accuracy": 0.9750261351889463,
+        "weighted_direction_accuracy": 0.3371292017388645,
+        "weighted_mean_confidence": 8.091100841732748,
+        "effective_sample_size": 4.045550420866374
+      }
+    }
+  }
+}

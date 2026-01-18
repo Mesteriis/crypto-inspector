@@ -1,0 +1,11 @@
+{
+  "chronos-bolt": {
+    "error": "No predictions generated in walk-forward validation"
+  },
+  "statsforecast": {
+    "error": "No predictions generated in walk-forward validation"
+  },
+  "neuralprophet": {
+    "error": "No predictions generated in walk-forward validation"
+  }
+}

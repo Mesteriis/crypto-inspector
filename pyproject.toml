@@ -1,6 +1,6 @@
 [project]
 name = "crypto-inspect"
-version = "0.2.15"
+version = "0.2.16"
 description = "Crypto inspection application"
 requires-python = ">=3.13"
 dependencies = [
@@ -22,6 +22,14 @@ dependencies = [
     "greenlet>=3.3.0",
     "fastmcp>=2.0.0",
     "yfinance>=0.2.0",
+    # ML Forecasting
+    "chronos-forecasting>=1.4.0",   # Amazon Chronos Bolt
+    "torch>=2.0.0",                  # PyTorch backend
+    "statsforecast>=1.7.0",          # AutoARIMA, AutoETS
+    "neuralprophet>=0.8.0",          # Facebook NeuralProphet
+    "optuna>=3.5.0",                 # Hyperparameter optimization
+    "numpy>=1.26.0",
+    "pandas>=2.0.0",
 ]
 
 [project.optional-dependencies]

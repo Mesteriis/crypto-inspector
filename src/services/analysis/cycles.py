@@ -13,6 +13,12 @@ from dataclasses import dataclass
 from datetime import date
 from enum import Enum
 
+from core.constants import (
+    HALVING_DATES,
+    CycleConstants,
+    PriceDefaults,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -115,23 +121,6 @@ PHASE_INFO = {
     },
 }
 
-# Bitcoin halving dates
-HALVING_DATES = [
-    date(2012, 11, 28),
-    date(2016, 7, 9),
-    date(2020, 5, 11),
-    date(2024, 4, 20),
-    date(2028, 4, 15),  # Estimated
-    date(2032, 4, 15),  # Estimated
-]
-
-# Historical ATH data (approximate)
-BTC_ATH_HISTORY = [
-    {"date": date(2013, 11, 30), "price": 1163},
-    {"date": date(2017, 12, 17), "price": 19783},
-    {"date": date(2021, 11, 10), "price": 69000},
-]
-
 
 @dataclass
 class CycleInfo:
@@ -190,7 +179,11 @@ class CycleInfo:
 class CycleDetector:
     """Detects BTC market cycle phases."""
 
-    def __init__(self, ath_price: float = 69000, atl_price: float = 15500):
+    def __init__(
+        self,
+        ath_price: float = PriceDefaults.BTC_ATH,
+        atl_price: float = PriceDefaults.BTC_CYCLE_LOW,
+    ):
         """
         Initialize cycle detector.
 
@@ -257,9 +250,9 @@ class CycleDetector:
         # Typical cycle: ~4 years (1460 days)
 
         # Very close to ATH or new ATH
-        if from_ath_pct < 5:
+        if from_ath_pct < CycleConstants.ATH_EUPHORIA:
             return CyclePhase.EUPHORIA
-        elif from_ath_pct < 20:
+        elif from_ath_pct < CycleConstants.ATH_BULL_RUN:
             # Check if we're going up or down
             if days_since_halving < 365 * 2:  # Within 2 years of halving
                 return CyclePhase.BULL_RUN
@@ -267,25 +260,25 @@ class CycleDetector:
                 return CyclePhase.DISTRIBUTION
 
         # Very close to cycle low
-        elif from_ath_pct > 80:
+        elif from_ath_pct > CycleConstants.ATH_ACCUMULATION:
             if rsi and rsi < 30:
                 return CyclePhase.CAPITULATION
             return CyclePhase.ACCUMULATION
 
         # Middle ground - use halving cycle timing
-        elif days_since_halving < 180:  # 0-6 months after halving
+        elif days_since_halving < CycleConstants.HALVING_ACCUMULATION_END:  # 0-6 months after halving
             return CyclePhase.ACCUMULATION
-        elif days_since_halving < 365:  # 6-12 months after halving
+        elif days_since_halving < CycleConstants.HALVING_EARLY_BULL_END:  # 6-12 months after halving
             return CyclePhase.EARLY_BULL
-        elif days_since_halving < 540:  # 12-18 months after halving
+        elif days_since_halving < CycleConstants.HALVING_BULL_RUN_END:  # 12-18 months after halving
             if from_ath_pct < 30:
                 return CyclePhase.EUPHORIA
             return CyclePhase.BULL_RUN
-        elif days_since_halving < 730:  # 18-24 months after halving
+        elif days_since_halving < CycleConstants.HALVING_DISTRIBUTION_END:  # 18-24 months after halving
             if from_ath_pct < 50:
                 return CyclePhase.DISTRIBUTION
             return CyclePhase.EARLY_BEAR
-        elif days_since_halving < 1095:  # 24-36 months after halving
+        elif days_since_halving < CycleConstants.HALVING_BEAR_END:  # 24-36 months after halving
             if from_ath_pct > 60:
                 return CyclePhase.BEAR_MARKET
             return CyclePhase.EARLY_BEAR
@@ -304,7 +297,7 @@ class CycleDetector:
         Returns:
             Position 0-100 (0=halving, 100=next halving)
         """
-        cycle_length = 365 * 4  # ~4 years
+        cycle_length = CycleConstants.CYCLE_LENGTH_DAYS
         position = (days_since_halving % cycle_length) / cycle_length * 100
         return round(position, 1)
 

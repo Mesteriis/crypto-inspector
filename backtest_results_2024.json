@@ -1,0 +1,60 @@
+{
+  "BTC/USDT": {
+    "1h": {
+      "365": {
+        "symbol": "BTC/USDT",
+        "interval": "1h",
+        "models": [],
+        "best_model": "",
+        "rankings": []
+      }
+    },
+    "4h": {
+      "365": {
+        "symbol": "BTC/USDT",
+        "interval": "4h",
+        "models": [],
+        "best_model": "",
+        "rankings": []
+      }
+    },
+    "1d": {
+      "365": {
+        "symbol": "BTC/USDT",
+        "interval": "1d",
+        "models": [],
+        "best_model": "",
+        "rankings": []
+      }
+    }
+  },
+  "ETH/USDT": {
+    "1h": {
+      "365": {
+        "symbol": "ETH/USDT",
+        "interval": "1h",
+        "models": [],
+        "best_model": "",
+        "rankings": []
+      }
+    },
+    "4h": {
+      "365": {
+        "symbol": "ETH/USDT",
+        "interval": "4h",
+        "models": [],
+        "best_model": "",
+        "rankings": []
+      }
+    },
+    "1d": {
+      "365": {
+        "symbol": "ETH/USDT",
+        "interval": "1d",
+        "models": [],
+        "best_model": "",
+        "rankings": []
+      }
+    }
+  }
+}

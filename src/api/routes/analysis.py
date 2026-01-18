@@ -16,6 +16,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 
+from core.constants import PriceDefaults
 from services.analysis import (
     CycleDetector,
     DerivativesAnalyzer,
@@ -92,9 +93,9 @@ async def get_analysis(symbol: str) -> dict[str, Any]:
         # Cycle analysis for BTC
         if symbol == "BTC":
             # Get current price from derivatives
-            current_price = 100000  # Placeholder
+            current_price = PriceDefaults.PLACEHOLDER_BTC
             if result.get("derivatives") and result["derivatives"].get("funding"):
-                current_price = result["derivatives"]["funding"].get("mark_price", 100000)
+                current_price = result["derivatives"]["funding"].get("mark_price", PriceDefaults.PLACEHOLDER_BTC)
 
             cycle_info = cycles.detect_cycle(current_price)
             result["cycle"] = cycle_info.to_dict()
@@ -151,7 +152,7 @@ async def get_score(symbol: str) -> dict[str, Any]:
             await derivatives.close()
 
         if symbol == "BTC":
-            current_price = 100000  # Placeholder
+            current_price = PriceDefaults.PLACEHOLDER_BTC
             cycle_info = cycles.detect_cycle(current_price)
             cycle_data = {
                 "phase": cycle_info.phase.value,
@@ -239,7 +240,7 @@ async def get_market_summary() -> dict[str, Any]:
 
         # BTC Cycle
         try:
-            cycle_info = cycles.detect_cycle(100000)  # Placeholder price
+            cycle_info = cycles.detect_cycle(PriceDefaults.PLACEHOLDER_BTC)
             result["btc_cycle"] = {
                 "phase": cycle_info.phase.value,
                 "phase_name": cycle_info.phase_name,
