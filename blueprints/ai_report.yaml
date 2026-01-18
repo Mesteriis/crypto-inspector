@@ -1,0 +1,52 @@
+# ==============================================================================
+# Crypto Inspect - AI Report Blueprint
+# ==============================================================================
+# Sends daily AI-generated market analysis
+# ==============================================================================
+
+blueprint:
+  name: AI Daily Report
+  description: Receive daily AI-generated market analysis
+  domain: automation
+  source_url: https://github.com/Mesteriis/crypto-inspector/blob/main/blueprints/ai_report.yaml
+
+  input:
+    time:
+      name: Report Time
+      description: When to receive the daily report
+      selector:
+        time:
+      default: "08:00:00"
+
+    notify_device:
+      name: Device to notify
+      selector:
+        device:
+          integration: mobile_app
+
+trigger:
+  - platform: time
+    at: !input time
+
+condition:
+  - condition: template
+    value_template: "{{ states('sensor.crypto_inspect_ai_daily_summary') != 'No analysis available' }}"
+
+action:
+  - service: notify.mobile_app_{{ device_attr('!input notify_device', 'name') | slugify }}
+    data:
+      title: "🤖 AI Morning Report"
+      message: >-
+        {% set summary = states('sensor.crypto_inspect_ai_daily_summary') %}
+        {% set sentiment = states('sensor.crypto_inspect_ai_market_sentiment') %}
+        {% set recommendation = states('sensor.crypto_inspect_ai_recommendation') %}
+
+        {{ summary[:500] }}
+
+        📊 Sentiment: {{ sentiment }}
+        💡 Action: {{ recommendation }}
+      data:
+        tag: ai_daily_report
+        group: crypto_ai
+
+mode: single

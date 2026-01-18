@@ -1,0 +1,400 @@
+# ==================================================================================
+# CANDLESTICK CHARTS DASHBOARD
+# ==================================================================================
+# Requires: apexcharts-card from HACS
+# https://github.com/RomRider/apexcharts-card
+#
+# Installation:
+# 1. Install HACS (if not already)
+# 2. Go to HACS > Frontend > Search "ApexCharts Card"
+# 3. Install and restart HA
+# ==================================================================================
+
+# Note: This file should be included in the main dashboard or used as a separate view
+# The charts fetch data from the Crypto Inspect API endpoint
+
+# ===================================================================================
+# VIEW: CRYPTO CHARTS - Candlestick charts with indicators
+# ===================================================================================
+title: Charts
+path: crypto-charts
+icon: mdi:chart-candlestick
+type: sections
+max_columns: 2
+sections:
+  # ---------------------------------------------------------------------------------
+  # CHART SELECTOR
+  # ---------------------------------------------------------------------------------
+  - type: grid
+    title: "🎯 Выбор монеты для графиков"
+    cards:
+      - type: entities
+        entities:
+          - entity: input_select.crypto_chart_coin
+            name: "Монета"
+      - type: markdown
+        content: |
+          ### 📊 Свечные графики
+          Отображаются 4 таймфрейма для выбранной монеты:
+          - **15m** - краткосрочный
+          - **1h** - часовой
+          - **4h** - среднесрочный
+          - **1d** - дневной
+
+          *Требуется HACS карточка: apexcharts-card*
+
+  # ---------------------------------------------------------------------------------
+  # 15-MINUTE CHART
+  # ---------------------------------------------------------------------------------
+  - type: grid
+    title: "📈 15 минут"
+    cards:
+      - type: custom:apexcharts-card
+        header:
+          show: true
+          title: "{{ states('input_select.crypto_chart_coin') }}/USDT - 15m"
+          show_states: false
+        chart_type: line
+        update_interval: 1min
+        span:
+          end: now
+        graph_span: 24h
+        apex_config:
+          chart:
+            height: 350px
+            type: candlestick
+            animations:
+              enabled: false
+            toolbar:
+              show: true
+              tools:
+                download: false
+                selection: true
+                zoom: true
+                zoomin: true
+                zoomout: true
+                pan: true
+                reset: true
+          xaxis:
+            type: datetime
+            labels:
+              datetimeFormatter:
+                hour: HH:mm
+          yaxis:
+            tooltip:
+              enabled: true
+            labels:
+              formatter: |
+                EVAL:function(val) {
+                  return val ? val.toLocaleString('en-US', {maximumFractionDigits: 2}) : '';
+                }
+          plotOptions:
+            candlestick:
+              colors:
+                upward: '#26a69a'
+                downward: '#ef5350'
+              wick:
+                useFillColor: true
+        series:
+          - entity: sensor.crypto_inspect_btc_price
+            name: OHLC
+            type: candlestick
+            data_generator: |
+              return fetch('/api/crypto_inspect/candles/' + hass.states['input_select.crypto_chart_coin'].state + '/chart?interval=15m&limit=96')
+                .then(r => r.json())
+                .then(data => data.ohlc || [])
+                .catch(() => []);
+
+  # ---------------------------------------------------------------------------------
+  # 1-HOUR CHART
+  # ---------------------------------------------------------------------------------
+  - type: grid
+    title: "📈 1 час"
+    cards:
+      - type: custom:apexcharts-card
+        header:
+          show: true
+          title: "{{ states('input_select.crypto_chart_coin') }}/USDT - 1h"
+          show_states: false
+        chart_type: line
+        update_interval: 5min
+        span:
+          end: now
+        graph_span: 7d
+        apex_config:
+          chart:
+            height: 350px
+            type: candlestick
+            animations:
+              enabled: false
+            toolbar:
+              show: true
+              tools:
+                download: false
+                selection: true
+                zoom: true
+                zoomin: true
+                zoomout: true
+                pan: true
+                reset: true
+          xaxis:
+            type: datetime
+            labels:
+              datetimeFormatter:
+                day: dd MMM
+                hour: HH:mm
+          yaxis:
+            tooltip:
+              enabled: true
+            labels:
+              formatter: |
+                EVAL:function(val) {
+                  return val ? val.toLocaleString('en-US', {maximumFractionDigits: 2}) : '';
+                }
+          plotOptions:
+            candlestick:
+              colors:
+                upward: '#26a69a'
+                downward: '#ef5350'
+              wick:
+                useFillColor: true
+        series:
+          - entity: sensor.crypto_inspect_btc_price
+            name: OHLC
+            type: candlestick
+            data_generator: |
+              return fetch('/api/crypto_inspect/candles/' + hass.states['input_select.crypto_chart_coin'].state + '/chart?interval=1h&limit=168')
+                .then(r => r.json())
+                .then(data => data.ohlc || [])
+                .catch(() => []);
+
+  # ---------------------------------------------------------------------------------
+  # 4-HOUR CHART
+  # ---------------------------------------------------------------------------------
+  - type: grid
+    title: "📈 4 часа"
+    cards:
+      - type: custom:apexcharts-card
+        header:
+          show: true
+          title: "{{ states('input_select.crypto_chart_coin') }}/USDT - 4h"
+          show_states: false
+        chart_type: line
+        update_interval: 15min
+        span:
+          end: now
+        graph_span: 30d
+        apex_config:
+          chart:
+            height: 350px
+            type: candlestick
+            animations:
+              enabled: false
+            toolbar:
+              show: true
+              tools:
+                download: false
+                selection: true
+                zoom: true
+                zoomin: true
+                zoomout: true
+                pan: true
+                reset: true
+          xaxis:
+            type: datetime
+            labels:
+              datetimeFormatter:
+                day: dd MMM
+          yaxis:
+            tooltip:
+              enabled: true
+            labels:
+              formatter: |
+                EVAL:function(val) {
+                  return val ? val.toLocaleString('en-US', {maximumFractionDigits: 2}) : '';
+                }
+          plotOptions:
+            candlestick:
+              colors:
+                upward: '#26a69a'
+                downward: '#ef5350'
+              wick:
+                useFillColor: true
+        series:
+          - entity: sensor.crypto_inspect_btc_price
+            name: OHLC
+            type: candlestick
+            data_generator: |
+              return fetch('/api/crypto_inspect/candles/' + hass.states['input_select.crypto_chart_coin'].state + '/chart?interval=4h&limit=180')
+                .then(r => r.json())
+                .then(data => data.ohlc || [])
+                .catch(() => []);
+
+  # ---------------------------------------------------------------------------------
+  # DAILY CHART
+  # ---------------------------------------------------------------------------------
+  - type: grid
+    title: "📈 1 день"
+    cards:
+      - type: custom:apexcharts-card
+        header:
+          show: true
+          title: "{{ states('input_select.crypto_chart_coin') }}/USDT - 1d"
+          show_states: false
+        chart_type: line
+        update_interval: 1h
+        span:
+          end: now
+        graph_span: 90d
+        apex_config:
+          chart:
+            height: 350px
+            type: candlestick
+            animations:
+              enabled: false
+            toolbar:
+              show: true
+              tools:
+                download: false
+                selection: true
+                zoom: true
+                zoomin: true
+                zoomout: true
+                pan: true
+                reset: true
+          xaxis:
+            type: datetime
+            labels:
+              datetimeFormatter:
+                month: MMM 'yy
+                day: dd MMM
+          yaxis:
+            tooltip:
+              enabled: true
+            labels:
+              formatter: |
+                EVAL:function(val) {
+                  return val ? val.toLocaleString('en-US', {maximumFractionDigits: 2}) : '';
+                }
+          plotOptions:
+            candlestick:
+              colors:
+                upward: '#26a69a'
+                downward: '#ef5350'
+              wick:
+                useFillColor: true
+        series:
+          - entity: sensor.crypto_inspect_btc_price
+            name: OHLC
+            type: candlestick
+            data_generator: |
+              return fetch('/api/crypto_inspect/candles/' + hass.states['input_select.crypto_chart_coin'].state + '/chart?interval=1d&limit=90')
+                .then(r => r.json())
+                .then(data => data.ohlc || [])
+                .catch(() => []);
+
+  # ---------------------------------------------------------------------------------
+  # VOLUME CHART
+  # ---------------------------------------------------------------------------------
+  - type: grid
+    title: "📊 Объёмы (1h)"
+    cards:
+      - type: custom:apexcharts-card
+        header:
+          show: true
+          title: "Volume - {{ states('input_select.crypto_chart_coin') }}"
+          show_states: false
+        chart_type: bar
+        update_interval: 5min
+        span:
+          end: now
+        graph_span: 24h
+        apex_config:
+          chart:
+            height: 150px
+            type: bar
+            animations:
+              enabled: false
+          xaxis:
+            type: datetime
+            labels:
+              datetimeFormatter:
+                hour: HH:mm
+          yaxis:
+            labels:
+              formatter: |
+                EVAL:function(val) {
+                  if (val >= 1000000) return (val/1000000).toFixed(1) + 'M';
+                  if (val >= 1000) return (val/1000).toFixed(1) + 'K';
+                  return val.toFixed(0);
+                }
+          colors:
+            - '#546E7A'
+        series:
+          - entity: sensor.crypto_inspect_btc_price
+            name: Volume
+            type: column
+            data_generator: |
+              return fetch('/api/crypto_inspect/candles/' + hass.states['input_select.crypto_chart_coin'].state + '/chart?interval=1h&limit=24')
+                .then(r => r.json())
+                .then(data => data.volume || [])
+                .catch(() => []);
+
+  # ---------------------------------------------------------------------------------
+  # STREAMING STATUS
+  # ---------------------------------------------------------------------------------
+  - type: grid
+    title: "📡 Статус данных"
+    cards:
+      - type: markdown
+        content: |
+          ### 📡 Источник данных: Crypto Inspect
+          Данные поступают в реальном времени через WebSocket.
+
+          | Монета | Источник | Статус |
+          |--------|----------|--------|
+          | BTC/USDT | Bybit | 🟢 Active |
+          | ETH/USDT | Bybit | 🟢 Active |
+          | SOL/USDT | Bybit | 🟢 Active |
+          | TON/USDT | Bybit | 🟢 Active |
+          | AR/USDT | Bybit | 🟢 Active |
+
+          *Fallback: Bybit → Binance → REST polling*
+      - type: button
+        name: "🔄 Обновить графики"
+        icon: mdi:refresh
+        tap_action:
+          action: call-service
+          service: browser_mod.refresh
+
+
+# ===================================================================================
+# ALTERNATIVE: iframe with TradingView widgets (no HACS required)
+# ===================================================================================
+# If you prefer TradingView widgets instead of ApexCharts, use this:
+#
+#   - type: grid
+#     title: "📈 TradingView - BTC"
+#     cards:
+#       - type: iframe
+#         url: "https://s.tradingview.com/widgetembed/?frameElementId=tradingview_btc&symbol=BYBIT%3ABTCUSDT&interval=60&hidesidetoolbar=1&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=%5B%5D&theme=dark&style=1&timezone=Etc%2FUTC&withdateranges=1&showpopupbutton=1&studies_overrides=%7B%7D&overrides=%7B%7D&enabled_features=%5B%5D&disabled_features=%5B%5D&showpopupbutton=1&locale=en"
+#         aspect_ratio: "16:9"
+#
+# ===================================================================================
+
+
+# ===================================================================================
+# INPUT SELECT HELPER (add to configuration.yaml)
+# ===================================================================================
+# input_select:
+#   crypto_chart_coin:
+#     name: "Crypto Chart Coin"
+#     options:
+#       - BTC
+#       - ETH
+#       - SOL
+#       - TON
+#       - AR
+#     initial: BTC
+#     icon: mdi:bitcoin
+# ===================================================================================

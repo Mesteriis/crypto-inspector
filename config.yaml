@@ -3,7 +3,7 @@
 
 name: "Crypto Inspect"
 description: "Cryptocurrency candlestick data collector and analyzer"
-version: "0.1.0"
+version: "0.2.0"
 slug: "crypto_inspect"
 url: "https://github.com/Mesteriis/crypto-inspector"
 arch:
@@ -25,8 +25,10 @@ services:
 # Port mapping for external access (sensors, automations)
 ports:
   9999/tcp: 9999
+  9998/tcp: 9998
 ports_description:
   9999/tcp: "API port for Home Assistant sensors and external access"
+  9998/tcp: "MCP server port for AI agent integration"
 
 # Configuration options shown in add-on UI
 options:
@@ -49,6 +51,33 @@ options:
   alert_on_strong_signals: true
   alert_threshold_buy: 75
   alert_threshold_sell: 25
+  # Bybit Exchange API (supports !secret)
+  bybit_api_key: ""
+  bybit_api_secret: ""
+  bybit_testnet: false
+  # MCP Server (Model Context Protocol for AI agents)
+  mcp_enabled: true
+  mcp_port: 9998
+  # Historical Data Backfill
+  backfill_enabled: true
+  backfill_crypto_years: 10
+  backfill_traditional_years: 1
+  # AI Analysis (ChatGPT / Ollama)
+  ai_enabled: false
+  ai_provider: "ollama"
+  openai_api_key: ""
+  ollama_host: "http://192.168.1.2:11434"
+  ollama_model: "llama3.2"
+  ai_analysis_interval_hours: 24
+  ai_language: "ru"
+  # UX Features
+  goal_enabled: false
+  goal_target_value: 100000
+  goal_name: "Financial Freedom"
+  goal_name_ru: "Финансовая свобода"
+  briefing_morning_enabled: true
+  briefing_evening_enabled: true
+  notification_mode: "smart"
 
 schema:
   api_port: port
@@ -67,6 +96,28 @@ schema:
   alert_on_strong_signals: bool?
   alert_threshold_buy: int(50,100)?
   alert_threshold_sell: int(0,50)?
+  bybit_api_key: password?
+  bybit_api_secret: password?
+  bybit_testnet: bool?
+  mcp_enabled: bool?
+  mcp_port: port?
+  backfill_enabled: bool?
+  backfill_crypto_years: int(1,15)?
+  backfill_traditional_years: int(1,5)?
+  ai_enabled: bool?
+  ai_provider: list(ollama|openai)?
+  openai_api_key: password?
+  ollama_host: str?
+  ollama_model: str?
+  ai_analysis_interval_hours: int(1,168)?
+  ai_language: list(en|ru)?
+  goal_enabled: bool?
+  goal_target_value: int(1000,100000000)?
+  goal_name: str?
+  goal_name_ru: str?
+  briefing_morning_enabled: bool?
+  briefing_evening_enabled: bool?
+  notification_mode: list(all|smart|digest_only|critical_only|silent)?
 
 # Map configuration directory - include secrets for API keys
 map:

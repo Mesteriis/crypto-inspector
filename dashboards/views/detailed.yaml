@@ -1,0 +1,197 @@
+# =============================================================================
+# Level 2: Detailed Dashboard - Expandable sections with more context
+# =============================================================================
+# This view provides more detail with expandable sections
+# Good for daily check-ins and monitoring
+#
+# Copy to your HA dashboard or include in a tabbed view
+# =============================================================================
+
+title: Crypto Detailed
+icon: mdi:view-list
+path: crypto-detailed
+type: sections
+
+sections:
+  # === Smart Summary Section ===
+  - type: grid
+    title: "📊 Обзор рынка / Market Overview"
+    columns: 2
+    cards:
+      # Market Pulse with details
+      - type: custom:mushroom-template-card
+        primary: >-
+          {{ states('sensor.crypto_inspect_market_pulse') }}
+        secondary: >-
+          Уверенность: {{ states('sensor.crypto_inspect_market_pulse_confidence') }}%
+          {{ state_attr('sensor.crypto_inspect_market_pulse', 'reason_ru') }}
+        icon: mdi:pulse
+        icon_color: >-
+          {% set sentiment = states('sensor.crypto_inspect_market_pulse') %}
+          {% if 'Бычий' in sentiment %}green{% elif 'Медвежий' in sentiment %}red{% else %}orange{% endif %}
+        multiline_secondary: true
+        tap_action:
+          action: more-info
+
+      # Today's Action with details
+      - type: custom:mushroom-template-card
+        primary: >-
+          {{ states('sensor.crypto_inspect_today_action') }}
+        secondary: >-
+          Приоритет: {{ states('sensor.crypto_inspect_today_action_priority') }}
+          {{ state_attr('sensor.crypto_inspect_today_action', 'details_ru') }}
+        icon: mdi:clipboard-check
+        icon_color: >-
+          {% set priority = state_attr('sensor.crypto_inspect_today_action_priority', 'priority') %}
+          {% if priority == 'high' %}red{% elif priority == 'medium' %}orange{% else %}green{% endif %}
+        multiline_secondary: true
+
+  # === Portfolio Section ===
+  - type: grid
+    title: "💼 Портфель / Portfolio"
+    columns: 2
+    cards:
+      # Portfolio Health
+      - type: custom:mushroom-template-card
+        primary: >-
+          Здоровье: {{ states('sensor.crypto_inspect_portfolio_health') }}
+        secondary: >-
+          Score: {{ states('sensor.crypto_inspect_portfolio_health_score') }}%
+          {{ state_attr('sensor.crypto_inspect_portfolio_health', 'main_issue_ru') }}
+        icon: mdi:shield-check
+        icon_color: >-
+          {% set score = states('sensor.crypto_inspect_portfolio_health_score') | int(50) %}
+          {% if score > 70 %}green{% elif score > 40 %}orange{% else %}red{% endif %}
+        multiline_secondary: true
+
+      # Portfolio Value
+      - type: custom:mushroom-template-card
+        primary: >-
+          ${{ states('sensor.crypto_inspect_portfolio_value') | float | round(2) }}
+        secondary: >-
+          24h: {{ states('sensor.crypto_inspect_portfolio_pnl_24h') }}%
+        icon: mdi:wallet
+        icon_color: >-
+          {% set pnl = states('sensor.crypto_inspect_portfolio_pnl_24h') | float(0) %}
+          {% if pnl > 0 %}green{% elif pnl < 0 %}red{% else %}grey{% endif %}
+
+  # === Goal Tracking Section ===
+  - type: conditional
+    conditions:
+      - entity: sensor.crypto_inspect_goal_progress
+        state_not: unavailable
+    card:
+      type: vertical-stack
+      title: "🎯 Цель / Goal"
+      cards:
+        - type: custom:mushroom-template-card
+          primary: >-
+            {{ state_attr('sensor.crypto_inspect_goal_target', 'goal_name_ru') }}
+          secondary: >-
+            {{ states('sensor.crypto_inspect_goal_progress') }} •
+            Осталось: ${{ states('sensor.crypto_inspect_goal_remaining') }}
+          icon: mdi:trophy
+          icon_color: amber
+
+        - type: gauge
+          entity: sensor.crypto_inspect_goal_progress
+          name: Прогресс к цели
+          min: 0
+          max: 100
+          severity:
+            green: 75
+            yellow: 25
+            red: 0
+
+  # === Alerts Section ===
+  - type: grid
+    title: "🔔 Оповещения / Alerts"
+    columns: 2
+    cards:
+      - type: custom:mushroom-template-card
+        primary: >-
+          {{ states('sensor.crypto_inspect_pending_alerts_count') }} в ожидании
+        secondary: >-
+          Критических: {{ states('sensor.crypto_inspect_pending_alerts_critical') }}
+        icon: mdi:bell-badge
+        icon_color: >-
+          {% if states('sensor.crypto_inspect_pending_alerts_critical') | int > 0 %}red
+          {% elif states('sensor.crypto_inspect_pending_alerts_count') | int > 0 %}orange
+          {% else %}green{% endif %}
+
+      - type: custom:mushroom-template-card
+        primary: >-
+          {{ states('sensor.crypto_inspect_daily_digest_ready') }}
+        secondary: >-
+          Режим: {{ states('sensor.crypto_inspect_notification_mode') }}
+        icon: mdi:newspaper
+        icon_color: blue
+
+  # === Briefings Section ===
+  - type: grid
+    title: "📰 Брифинги / Briefings"
+    columns: 2
+    cards:
+      - type: custom:mushroom-template-card
+        primary: Утренний брифинг
+        secondary: >-
+          {{ states('sensor.crypto_inspect_morning_briefing') }}
+        icon: mdi:weather-sunny
+        icon_color: amber
+
+      - type: custom:mushroom-template-card
+        primary: Вечерний брифинг
+        secondary: >-
+          {{ states('sensor.crypto_inspect_evening_briefing') }}
+        icon: mdi:weather-night
+        icon_color: indigo
+
+  # === Market Indicators Section ===
+  - type: grid
+    title: "📈 Индикаторы / Indicators"
+    columns: 3
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_fear_greed
+        name: Fear & Greed
+        icon: mdi:emoticon-neutral
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_btc_dominance
+        name: BTC Dominance
+        icon: mdi:crown
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_altseason_status
+        name: Altseason
+        icon: mdi:rocket-launch
+
+      - type: custom:mushroom-template-card
+        primary: "RSI"
+        secondary: |
+          {% set data = states('sensor.crypto_inspect_ta_rsi') | from_json %}
+          BTC: {{ data.BTC | default('N/A') }} | ETH: {{ data.ETH | default('N/A') }}
+        icon: mdi:chart-line
+
+      - type: custom:mushroom-template-card
+        primary: "Trend"
+        secondary: |
+          {% set data = states('sensor.crypto_inspect_ta_trend') | from_json %}
+          BTC: {{ data.BTC | default('N/A') }} | ETH: {{ data.ETH | default('N/A') }}
+        icon: mdi:trending-up
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_risk_status
+        name: Risk Status
+        icon: mdi:shield-alert
+
+  # === Weekly Outlook Section ===
+  - type: grid
+    title: "📅 Недельный прогноз / Weekly Outlook"
+    columns: 1
+    cards:
+      - type: markdown
+        content: >-
+          **{{ states('sensor.crypto_inspect_weekly_outlook') }}**
+
+          {{ state_attr('sensor.crypto_inspect_weekly_outlook', 'key_events_ru') | join(', ') if state_attr('sensor.crypto_inspect_weekly_outlook', 'key_events_ru') else 'Нет ключевых событий' }}

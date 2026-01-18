@@ -1,0 +1,2103 @@
+# Crypto Inspect - Documentation
+
+## Обзор
+
+Crypto Inspect - это профессиональный криптовалютный анализатор, интегрированный с Home Assistant. Add-on собирает рыночные данные, анализирует тренды, отслеживает ваш портфель на Bybit и отправляет все данные в виде сенсоров.
+
+## Быстрый старт
+
+1. Установите add-on
+2. Настройте Bybit API ключи (опционально)
+3. Запустите add-on
+4. Сенсоры появятся автоматически в Home Assistant
+
+## Конфигурация
+
+### Основные параметры
+
+```yaml
+api_port: 9999              # Порт API
+database_type: sqlite       # sqlite или postgres
+symbols:                    # Торговые пары для отслеживания
+  - BTC/USDT
+  - ETH/USDT
+log_level: info            # debug, info, warning, error
+```
+
+### Bybit Integration
+
+Для синхронизации с Bybit добавьте API ключи:
+
+```yaml
+bybit_api_key: !secret bybit_api_key
+bybit_api_secret: !secret bybit_api_secret
+bybit_testnet: false
+```
+
+В файле `secrets.yaml`:
+```yaml
+bybit_api_key: "your_api_key"
+bybit_api_secret: "your_api_secret"
+```
+
+**Важно:** В настройках Bybit API включите:
+- Read-only access
+- Wallet - Read
+- Position - Read
+- Order - Read
+
+### Параметры анализа
+
+```yaml
+analysis_enabled: true          # Включить анализ
+analysis_interval_hours: 4      # Интервал анализа (часы)
+alert_on_strong_signals: true   # Уведомления о сигналах
+alert_threshold_buy: 75         # Порог сигнала покупки (0-100)
+alert_threshold_sell: 25        # Порог сигнала продажи (0-100)
+```
+
+### AI анализ (ChatGPT / Ollama)
+
+Интеграция с AI для анализа рынка. Поддерживаются OpenAI (ChatGPT) и Ollama (локальный).
+
+```yaml
+ai_enabled: false               # Включить AI анализ
+ai_provider: "ollama"           # ollama | openai
+openai_api_key: ""              # API ключ OpenAI (если provider=openai)
+openai_model: "gpt-4o-mini"     # Модель OpenAI
+ollama_host: "http://192.168.1.2:11434"  # Хост Ollama
+ollama_model: "llama3.2"        # Модель Ollama
+ai_analysis_interval_hours: 24  # Интервал AI анализа (часы)
+ai_language: "ru"               # Язык отчётов (ru | en)
+```
+
+**Приоритет провайдеров:** Если указан `openai_api_key`, то OpenAI будет основным провайдером, Ollama - фолбэк. Если OpenAI недоступен, система автоматически переключится на Ollama.
+
+**AI возможности:**
+- Ежедневная сводка рынка
+- Анализ настроения (sentiment)
+- Рекомендации по позициям
+- Анализ конкретного символа
+
+---
+
+## Сенсоры
+
+После запуска add-on автоматически создает сенсоры в Home Assistant. Все сенсоры имеют префикс `sensor.crypto_inspect_`.
+
+### Цены и объемы
+
+| Сенсор | Описание | Пример значения |
+|--------|----------|-----------------|
+| `prices` | Текущие цены всех пар | `{"BTC/USDT": "100000"}` |
+| `changes_24h` | Изменение за 24ч (%) | `{"BTC/USDT": "2.50"}` |
+| `volumes_24h` | Объемы торгов | `{"BTC/USDT": "1500000000"}` |
+| `highs_24h` | Максимумы 24ч | `{"BTC/USDT": "102000"}` |
+| `lows_24h` | Минимумы 24ч | `{"BTC/USDT": "98000"}` |
+
+### Bybit Account
+
+| Сенсор | Описание |
+|--------|----------|
+| `bybit_balance` | Общий баланс (USDT) |
+| `bybit_pnl_24h` | P&L за 24 часа (%) |
+| `bybit_pnl_7d` | P&L за 7 дней (%) |
+| `bybit_positions` | Количество открытых позиций |
+| `bybit_unrealized_pnl` | Нереализованная прибыль (USDT) |
+
+### Ленивый Инвестор
+
+Система анализа для долгосрочных инвесторов.
+
+| Сенсор | Описание |
+|--------|----------|
+| `do_nothing_ok` | Можно ли ничего не делать? |
+| `investor_phase` | Текущая фаза рынка |
+| `calm_indicator` | Индикатор спокойствия (0-100) |
+| `red_flags` | Количество красных флагов |
+| `dca_signal` | Сигнал для DCA |
+| `dca_result` | Рекомендуемая сумма DCA |
+| `weekly_insight` | Недельный обзор |
+
+### Рыночные индикаторы
+
+| Сенсор | Описание |
+|--------|----------|
+| `fear_greed` | Fear & Greed Index (0-100) |
+| `btc_dominance` | Доминация Bitcoin (%) |
+| `altseason_index` | Индекс сезона альткоинов |
+| `altseason_status` | Статус альтсезона |
+
+### DCA Calculator
+
+Расчет уровней для усреднения позиции.
+
+| Сенсор | Описание |
+|--------|----------|
+| `dca_next_level` | Следующий уровень для покупки |
+| `dca_zone` | Текущая зона (Buy/Wait/Overbought) |
+| `dca_risk_score` | Оценка риска |
+
+### Take Profit Advisor
+
+Рекомендации по фиксации прибыли.
+
+| Сенсор | Описание |
+|--------|----------|
+| `btc_tp_level_1` | Take Profit уровень 1 |
+| `btc_tp_level_2` | Take Profit уровень 2 |
+| `profit_action` | Рекомендуемое действие |
+| `greed_level` | Уровень жадности рынка |
+
+### Волатильность и корреляции
+
+| Сенсор | Описание |
+|--------|----------|
+| `btc_volatility_30d` | 30-дневная волатильность BTC (%) |
+| `volatility_percentile` | Перцентиль волатильности |
+| `volatility_status` | Статус (Low/Normal/High/Extreme) |
+| `btc_eth_correlation` | Корреляция BTC/ETH |
+| `btc_sp500_correlation` | Корреляция BTC/S&P500 |
+| `correlation_status` | Статус корреляции |
+
+### Макро-события
+
+| Сенсор | Описание |
+|--------|----------|
+| `next_macro_event` | Следующее макро-событие |
+| `days_to_fomc` | Дней до заседания FOMC |
+| `macro_risk_week` | Риск текущей недели |
+
+### Token Unlocks
+
+| Сенсор | Описание |
+|--------|----------|
+| `unlocks_next_7d` | Анлоков в ближайшие 7 дней |
+| `unlock_next_event` | Следующий анлок |
+| `unlock_risk_level` | Уровень риска анлоков |
+
+### On-Chain данные
+
+| Сенсор | Описание |
+|--------|----------|
+| `whale_alerts_24h` | Whale-алертов за 24ч |
+| `whale_net_flow` | Нетто-поток китов |
+| `whale_last_alert` | Последний whale-алерт |
+| `btc_exchange_netflow` | Поток BTC на биржи |
+| `exchange_flow_signal` | Сигнал потока |
+
+### ETH Gas
+
+| Сенсор | Описание |
+|--------|----------|
+| `eth_gas_slow` | Медленная скорость (Gwei) |
+| `eth_gas_standard` | Стандартная скорость |
+| `eth_gas_fast` | Быстрая скорость |
+| `eth_gas_status` | Статус газа |
+
+### Арбитраж
+
+| Сенсор | Описание |
+|--------|----------|
+| `btc_arb_spread` | Спред арбитража BTC (%) |
+| `funding_arb_best` | Лучшая возможность фандинга |
+| `arb_opportunity` | Уровень возможности |
+
+### AI Анализ
+
+| Сенсор | Описание |
+|--------|----------|
+| `ai_daily_summary` | Ежедневная AI-сводка рынка |
+| `ai_market_sentiment` | AI оценка настроения рынка |
+| `ai_recommendation` | AI рекомендация (Buy/Hold/Sell) |
+| `ai_last_analysis` | Время последнего анализа |
+| `ai_provider` | Используемый AI провайдер |
+
+### Технический анализ (TA)
+
+**BTC индикаторы:**
+
+| Сенсор | Описание |
+|--------|----------|
+| `btc_rsi` | RSI (14) для BTC |
+| `btc_macd_signal` | MACD сигнал (Buy/Sell/Hold) |
+| `btc_bb_position` | Позиция в Bollinger Bands (%) |
+| `btc_trend` | Текущий тренд (Uptrend/Downtrend/Sideways) |
+| `btc_trend_strength` | Сила тренда (0-100) |
+| `btc_support` | Ближайший уровень поддержки |
+| `btc_resistance` | Ближайший уровень сопротивления |
+
+**ETH индикаторы:**
+
+| Сенсор | Описание |
+|--------|----------|
+| `eth_rsi` | RSI (14) для ETH |
+| `eth_macd_signal` | MACD сигнал |
+| `eth_bb_position` | Позиция в Bollinger Bands |
+| `eth_trend` | Текущий тренд |
+
+**Агрегированные:**
+
+| Сенсор | Описание |
+|--------|----------|
+| `ta_confluence` | Confluence Score (0-100) |
+| `ta_signal_count` | Количество активных сигналов |
+| `ta_last_update` | Время последнего обновления |
+
+### Риск-менеджмент
+
+| Сенсор | Описание |
+|--------|----------|
+| `portfolio_sharpe` | Sharpe Ratio портфеля |
+| `portfolio_sortino` | Sortino Ratio портфеля |
+| `portfolio_max_drawdown` | Максимальная просадка (%) |
+| `portfolio_current_drawdown` | Текущая просадка (%) |
+| `portfolio_var_95` | Value at Risk 95% |
+| `portfolio_volatility` | 30-дневная волатильность (%) |
+| `risk_status` | Статус риска (Low/Medium/High/Critical) |
+
+### DCA Backtesting
+
+| Сенсор | Описание |
+|--------|----------|
+| `backtest_dca_roi` | ROI фиксированного DCA (%) |
+| `backtest_smart_dca_roi` | ROI умного DCA (%) |
+| `backtest_lump_sum_roi` | ROI единовременной покупки (%) |
+| `backtest_best_strategy` | Лучшая стратегия |
+| `backtest_period` | Период бэктеста |
+
+### Ликвидации
+
+| Сенсор | Описание |
+|--------|----------|
+| `btc_liq_long_nearest` | Ближайшая ликвидация лонгов |
+| `btc_liq_short_nearest` | Ближайшая ликвидация шортов |
+| `liq_risk_level` | Уровень риска |
+
+### Традиционные финансы
+
+Данные по классическим активам (металлы, индексы, форекс, сырьё) через Yahoo Finance API.
+
+**Металлы:**
+
+| Сенсор | Описание |
+|--------|----------|
+| `gold_price` | Золото (USD) |
+| `silver_price` | Серебро (USD) |
+| `platinum_price` | Платина (USD) |
+
+**Индексы:**
+
+| Сенсор | Описание |
+|--------|----------|
+| `sp500_price` | S&P 500 |
+| `nasdaq_price` | NASDAQ |
+| `dji_price` | Dow Jones |
+| `dax_price` | DAX (EUR) |
+
+**Форекс:**
+
+| Сенсор | Описание |
+|--------|----------|
+| `eur_usd` | EUR/USD |
+| `gbp_usd` | GBP/USD |
+| `dxy_index` | Индекс доллара (DXY) |
+
+**Сырьё:**
+
+| Сенсор | Описание |
+|--------|----------|
+| `oil_brent` | Нефть Brent (USD) |
+| `oil_wti` | Нефть WTI (USD) |
+| `natural_gas` | Природный газ (USD) |
+
+---
+
+## Примеры Lovelace
+
+### Карточка Bybit Account
+
+```yaml
+type: entities
+title: 💰 Bybit Account
+entities:
+  - entity: sensor.crypto_inspect_bybit_balance
+    name: Баланс
+  - entity: sensor.crypto_inspect_bybit_pnl_24h
+    name: P&L 24ч
+  - entity: sensor.crypto_inspect_bybit_pnl_7d
+    name: P&L 7д
+  - entity: sensor.crypto_inspect_bybit_positions
+    name: Позиции
+```
+
+### Карточка Fear & Greed с цветом
+
+```yaml
+type: custom:mushroom-template-card
+primary: Fear & Greed Index
+secondary: "{{ states('sensor.crypto_inspect_fear_greed') }}"
+icon: mdi:emoticon-neutral
+icon_color: |
+  {% set val = state_attr('sensor.crypto_inspect_fear_greed', 'value') | int(50) %}
+  {% if val <= 25 %}red
+  {% elif val <= 45 %}orange
+  {% elif val <= 55 %}yellow
+  {% elif val <= 75 %}green
+  {% else %}light-green{% endif %}
+```
+
+### Карточка Ленивого инвестора
+
+```yaml
+type: vertical-stack
+cards:
+  - type: custom:mushroom-template-card
+    primary: "{{ states('sensor.crypto_inspect_do_nothing_ok') }}"
+    secondary: "{{ state_attr('sensor.crypto_inspect_do_nothing_ok', 'reason') }}"
+    icon: mdi:meditation
+    icon_color: |
+      {% if state_attr('sensor.crypto_inspect_do_nothing_ok', 'value') %}green{% else %}orange{% endif %}
+
+  - type: entities
+    entities:
+      - entity: sensor.crypto_inspect_investor_phase
+      - entity: sensor.crypto_inspect_calm_indicator
+      - entity: sensor.crypto_inspect_red_flags
+      - entity: sensor.crypto_inspect_dca_signal
+```
+
+### DCA Zones
+
+```yaml
+type: custom:mushroom-template-card
+primary: DCA Zone
+secondary: |
+  {{ states('sensor.crypto_inspect_dca_zone') }}
+  Next: ${{ states('sensor.crypto_inspect_dca_next_level') }}
+icon: mdi:target
+icon_color: |
+  {% set zone = states('sensor.crypto_inspect_dca_zone') %}
+  {% if 'Buy' in zone %}green
+  {% elif 'Wait' in zone %}yellow
+  {% else %}red{% endif %}
+```
+
+### Take Profit
+
+```yaml
+type: glance
+title: 🎯 Take Profit
+entities:
+  - entity: sensor.crypto_inspect_btc_tp_level_1
+    name: TP1
+  - entity: sensor.crypto_inspect_btc_tp_level_2
+    name: TP2
+  - entity: sensor.crypto_inspect_profit_action
+    name: Action
+```
+
+### Macro Events
+
+```yaml
+type: entities
+title: 📅 Upcoming Events
+entities:
+  - entity: sensor.crypto_inspect_next_macro_event
+    name: Next Event
+  - entity: sensor.crypto_inspect_days_to_fomc
+    name: Days to FOMC
+  - entity: sensor.crypto_inspect_macro_risk_week
+    name: Week Risk
+  - entity: sensor.crypto_inspect_unlock_next_event
+    name: Next Unlock
+```
+
+### Gas Tracker
+
+```yaml
+type: glance
+title: ⛽ ETH Gas
+entities:
+  - entity: sensor.crypto_inspect_eth_gas_slow
+    name: Slow
+  - entity: sensor.crypto_inspect_eth_gas_standard
+    name: Standard
+  - entity: sensor.crypto_inspect_eth_gas_fast
+    name: Fast
+```
+
+### Whale Activity
+
+```yaml
+type: horizontal-stack
+cards:
+  - type: custom:mushroom-template-card
+    primary: 🐋 Whales 24h
+    secondary: "{{ states('sensor.crypto_inspect_whale_alerts_24h') }}"
+    icon: mdi:fish
+
+  - type: custom:mushroom-template-card
+    primary: Exchange Flow
+    secondary: "{{ states('sensor.crypto_inspect_exchange_flow_signal') }}"
+    icon: mdi:bank-transfer
+```
+
+### Arbitrage Scanner
+
+```yaml
+type: entities
+title: ⚡ Arbitrage
+entities:
+  - entity: sensor.crypto_inspect_btc_arb_spread
+    name: BTC Spread %
+  - entity: sensor.crypto_inspect_funding_arb_best
+    name: Best Funding
+  - entity: sensor.crypto_inspect_arb_opportunity
+    name: Opportunity
+```
+
+### Традиционные финансы
+
+```yaml
+type: glance
+title: "🥇 Металлы"
+entities:
+  - entity: sensor.crypto_inspect_gold_price
+    name: "Золото"
+    icon: mdi:gold
+  - entity: sensor.crypto_inspect_silver_price
+    name: "Серебро"
+  - entity: sensor.crypto_inspect_platinum_price
+    name: "Платина"
+```
+
+```yaml
+type: entities
+title: "📈 Индексы"
+entities:
+  - entity: sensor.crypto_inspect_sp500_price
+    name: "S&P 500"
+  - entity: sensor.crypto_inspect_nasdaq_price
+    name: "NASDAQ"
+  - entity: sensor.crypto_inspect_dji_price
+    name: "Dow Jones"
+  - entity: sensor.crypto_inspect_dax_price
+    name: "DAX"
+```
+
+```yaml
+type: glance
+title: "💱 Форекс"
+entities:
+  - entity: sensor.crypto_inspect_eur_usd
+    name: "EUR/USD"
+  - entity: sensor.crypto_inspect_gbp_usd
+    name: "GBP/USD"
+  - entity: sensor.crypto_inspect_dxy_index
+    name: "DXY"
+```
+
+```yaml
+type: entities
+title: "🛢️ Сырьё"
+entities:
+  - entity: sensor.crypto_inspect_oil_brent
+    name: "Нефть Brent"
+    icon: mdi:barrel
+  - entity: sensor.crypto_inspect_oil_wti
+    name: "Нефть WTI"
+  - entity: sensor.crypto_inspect_natural_gas
+    name: "Газ"
+    icon: mdi:fire
+```
+
+---
+
+## Автоматизации / Automations
+
+Полный набор автоматизаций с поддержкой русского и английского языков.
+
+---
+
+### 🌐 Настройка языка (configuration.yaml)
+
+```yaml
+input_select:
+  crypto_notification_language:
+    name: "Crypto Notification Language"
+    options:
+      - Russian
+      - English
+    initial: Russian
+    icon: mdi:translate
+```
+
+---
+
+### 📊 Ценовые алерты
+
+#### BTC достиг целевой цены
+
+```yaml
+automation:
+  - alias: "BTC Price Target Alert"
+    trigger:
+      - platform: template
+        value_template: "{{ states('sensor.crypto_inspect_prices') | from_json | default({}) | selectattr('key', 'eq', 'BTC/USDT') | map(attribute='value') | first | float(0) > 110000 }}"
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "🚀 BTC Price Alert"
+          message: >-
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            Bitcoin превысил $110,000!
+            {% else %}
+            Bitcoin exceeded $110,000!
+            {% endif %}
+```
+
+#### Значительное падение цены (>5% за 24ч)
+
+```yaml
+automation:
+  - alias: "Major Price Drop Alert"
+    trigger:
+      - platform: template
+        value_template: "{{ states('sensor.crypto_inspect_changes_24h') | from_json | default({}) | selectattr('key', 'eq', 'BTC/USDT') | map(attribute='value') | first | float(0) < -5 }}"
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "📉 Price Drop Alert"
+          message: >-
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            BTC упал более чем на 5% за 24 часа. Возможность для DCA?
+            {% else %}
+            BTC dropped more than 5% in 24 hours. DCA opportunity?
+            {% endif %}
+```
+
+---
+
+### 😱 Fear & Greed Index
+
+#### Экстремальный страх (зона покупки)
+
+```yaml
+automation:
+  - alias: "Extreme Fear Alert"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.crypto_inspect_fear_greed
+        below: 20
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "😱 Extreme Fear"
+          message: >-
+            {% set fg = states('sensor.crypto_inspect_fear_greed') %}
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            Fear & Greed Index: {{ fg }}. Исторически хорошее время для покупки!
+            {% else %}
+            Fear & Greed Index: {{ fg }}. Historically a good time to buy!
+            {% endif %}
+```
+
+#### Экстремальная жадность (зона осторожности)
+
+```yaml
+automation:
+  - alias: "Extreme Greed Alert"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.crypto_inspect_fear_greed
+        above: 80
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "🤑 Extreme Greed"
+          message: >-
+            {% set fg = states('sensor.crypto_inspect_fear_greed') %}
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            Fear & Greed Index: {{ fg }}. Рынок перегрет, рассмотрите фиксацию прибыли.
+            {% else %}
+            Fear & Greed Index: {{ fg }}. Market overheated, consider taking profits.
+            {% endif %}
+```
+
+---
+
+### 💰 DCA (усреднение позиции)
+
+#### Вход в зону покупки
+
+```yaml
+automation:
+  - alias: "DCA Buy Zone Alert"
+    trigger:
+      - platform: state
+        entity_id: sensor.crypto_inspect_dca_zone
+        to: "Buy Zone"
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "💰 DCA Opportunity"
+          message: >-
+            {% set level = states('sensor.crypto_inspect_dca_next_level') %}
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            Рынок в зоне покупки! Уровень: ${{ level }}
+            {% else %}
+            Market in buy zone! Level: ${{ level }}
+            {% endif %}
+```
+
+#### Еженедельное напоминание о DCA
+
+```yaml
+automation:
+  - alias: "Weekly DCA Reminder"
+    trigger:
+      - platform: time
+        at: "09:00:00"
+    condition:
+      - condition: time
+        weekday:
+          - mon
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "📅 Weekly DCA"
+          message: >-
+            {% set zone = states('sensor.crypto_inspect_dca_zone') %}
+            {% set signal = states('sensor.crypto_inspect_dca_signal') %}
+            {% set amount = states('sensor.crypto_inspect_dca_result') %}
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            Понедельник - день DCA!
+            Зона: {{ zone }}
+            Рекомендация: {{ signal }}
+            Сумма: €{{ amount }}
+            {% else %}
+            Monday - DCA day!
+            Zone: {{ zone }}
+            Recommendation: {{ signal }}
+            Amount: €{{ amount }}
+            {% endif %}
+```
+
+#### Сигнал "Ленивого инвестора" изменился
+
+```yaml
+automation:
+  - alias: "Lazy Investor Signal Change"
+    trigger:
+      - platform: state
+        entity_id: sensor.crypto_inspect_do_nothing_ok
+    condition:
+      - condition: template
+        value_template: "{{ trigger.from_state.state != trigger.to_state.state }}"
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "🧘 Investor Status"
+          message: >-
+            {% set status = states('sensor.crypto_inspect_do_nothing_ok') %}
+            {% set reason = state_attr('sensor.crypto_inspect_do_nothing_ok', 'reason') %}
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            Статус изменился: {{ status }}
+            Причина: {{ reason }}
+            {% else %}
+            Status changed: {{ status }}
+            Reason: {{ reason }}
+            {% endif %}
+```
+
+---
+
+### 🎯 Take Profit
+
+#### Достигнут уровень TP1
+
+```yaml
+automation:
+  - alias: "Take Profit Level 1 Alert"
+    trigger:
+      - platform: state
+        entity_id: sensor.crypto_inspect_profit_action
+        to: "Scale Out"
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "🎯 Take Profit Signal"
+          message: >-
+            {% set tp1 = states('sensor.crypto_inspect_btc_tp_level_1') %}
+            {% set tp2 = states('sensor.crypto_inspect_btc_tp_level_2') %}
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            Рекомендация: частичная фиксация прибыли!
+            TP1: ${{ tp1 }} | TP2: ${{ tp2 }}
+            {% else %}
+            Recommendation: partial profit taking!
+            TP1: ${{ tp1 }} | TP2: ${{ tp2 }}
+            {% endif %}
+```
+
+#### Полная фиксация прибыли
+
+```yaml
+automation:
+  - alias: "Full Take Profit Alert"
+    trigger:
+      - platform: state
+        entity_id: sensor.crypto_inspect_profit_action
+        to: "Take Profit"
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "💰 Full TP Signal"
+          message: >-
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            Рынок перегрет! Рассмотрите полную фиксацию прибыли.
+            {% else %}
+            Market overheated! Consider full profit taking.
+            {% endif %}
+          data:
+            priority: high
+            ttl: 0
+```
+
+---
+
+### 📈 Волатильность
+
+#### Экстремальная волатильность
+
+```yaml
+automation:
+  - alias: "Extreme Volatility Alert"
+    trigger:
+      - platform: state
+        entity_id: sensor.crypto_inspect_volatility_status
+        to: "Extreme"
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "⚠️ Extreme Volatility"
+          message: >-
+            {% set vol = states('sensor.crypto_inspect_btc_volatility_30d') %}
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            Волатильность {{ vol }}%! Будьте осторожны с позициями.
+            {% else %}
+            Volatility {{ vol }}%! Be careful with your positions.
+            {% endif %}
+```
+
+#### Низкая волатильность (затишье перед бурей)
+
+```yaml
+automation:
+  - alias: "Low Volatility Alert"
+    trigger:
+      - platform: state
+        entity_id: sensor.crypto_inspect_volatility_status
+        to: "Low"
+        for:
+          hours: 24
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "🌊 Calm Before Storm?"
+          message: >-
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            Волатильность аномально низкая уже 24ч. Возможен сильный импульс.
+            {% else %}
+            Volatility abnormally low for 24h. Strong move possible.
+            {% endif %}
+```
+
+---
+
+### 🐋 On-Chain данные
+
+#### Whale Alert
+
+```yaml
+automation:
+  - alias: "Whale Movement Alert"
+    trigger:
+      - platform: state
+        entity_id: sensor.crypto_inspect_whale_last_alert
+    condition:
+      - condition: template
+        value_template: "{{ trigger.to_state.state != 'unknown' and trigger.to_state.state != trigger.from_state.state }}"
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "🐋 Whale Alert"
+          message: >-
+            {% set alert = states('sensor.crypto_inspect_whale_last_alert') %}
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            Движение кита: {{ alert }}
+            {% else %}
+            Whale movement: {{ alert }}
+            {% endif %}
+```
+
+#### Bullish Exchange Flow (отток с бирж)
+
+```yaml
+automation:
+  - alias: "Bullish Exchange Flow"
+    trigger:
+      - platform: state
+        entity_id: sensor.crypto_inspect_exchange_flow_signal
+        to: "Bullish"
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "🟢 Bullish Exchange Flow"
+          message: >-
+            {% set netflow = states('sensor.crypto_inspect_btc_exchange_netflow') %}
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            BTC выводят с бирж. Netflow: {{ netflow }} BTC
+            {% else %}
+            BTC being withdrawn from exchanges. Netflow: {{ netflow }} BTC
+            {% endif %}
+```
+
+#### Bearish Exchange Flow (приток на биржи)
+
+```yaml
+automation:
+  - alias: "Bearish Exchange Flow"
+    trigger:
+      - platform: state
+        entity_id: sensor.crypto_inspect_exchange_flow_signal
+        to: "Bearish"
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "🔴 Bearish Exchange Flow"
+          message: >-
+            {% set netflow = states('sensor.crypto_inspect_btc_exchange_netflow') %}
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            BTC заводят на биржи - возможна распродажа. Netflow: {{ netflow }} BTC
+            {% else %}
+            BTC flowing to exchanges - possible selloff. Netflow: {{ netflow }} BTC
+            {% endif %}
+```
+
+---
+
+### ⛽ ETH Gas Tracker
+
+#### Низкий газ (оптимальное время для транзакций)
+
+```yaml
+automation:
+  - alias: "Low Gas Alert"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.crypto_inspect_eth_gas_standard
+        below: 20
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "⛽ Low Gas!"
+          message: >-
+            {% set gas = states('sensor.crypto_inspect_eth_gas_standard') %}
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            ETH Gas всего {{ gas }} Gwei. Отличное время для транзакций!
+            {% else %}
+            ETH Gas only {{ gas }} Gwei. Great time for transactions!
+            {% endif %}
+```
+
+#### Высокий газ (предупреждение)
+
+```yaml
+automation:
+  - alias: "High Gas Warning"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.crypto_inspect_eth_gas_standard
+        above: 100
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "⛽ High Gas Warning"
+          message: >-
+            {% set gas = states('sensor.crypto_inspect_eth_gas_standard') %}
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            ETH Gas {{ gas }} Gwei. Отложите некритичные транзакции.
+            {% else %}
+            ETH Gas {{ gas }} Gwei. Delay non-critical transactions.
+            {% endif %}
+```
+
+---
+
+### 📅 Макро-события
+
+#### Напоминание о FOMC
+
+```yaml
+automation:
+  - alias: "FOMC Reminder"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.crypto_inspect_days_to_fomc
+        below: 2
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "📅 FOMC Alert"
+          message: >-
+            {% set days = states('sensor.crypto_inspect_days_to_fomc') %}
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            FOMC через {{ days }} дня! Ожидайте повышенную волатильность.
+            {% else %}
+            FOMC in {{ days }} days! Expect increased volatility.
+            {% endif %}
+```
+
+#### Высокий риск недели
+
+```yaml
+automation:
+  - alias: "High Risk Week Alert"
+    trigger:
+      - platform: state
+        entity_id: sensor.crypto_inspect_macro_risk_week
+        to: "High"
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "⚠️ High Risk Week"
+          message: >-
+            {% set event = states('sensor.crypto_inspect_next_macro_event') %}
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            На этой неделе много важных макро-событий. Следующее: {{ event }}
+            {% else %}
+            Many important macro events this week. Next: {{ event }}
+            {% endif %}
+```
+
+#### Token Unlock предупреждение
+
+```yaml
+automation:
+  - alias: "Token Unlock Warning"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.crypto_inspect_unlocks_next_7d
+        above: 5
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "🔓 Token Unlocks"
+          message: >-
+            {% set count = states('sensor.crypto_inspect_unlocks_next_7d') %}
+            {% set next = states('sensor.crypto_inspect_unlock_next_event') %}
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            {{ count }} анлоков за 7 дней! Следующий: {{ next }}
+            {% else %}
+            {{ count }} unlocks in 7 days! Next: {{ next }}
+            {% endif %}
+```
+
+---
+
+### 🌊 Altseason
+
+#### Начало альтсезона
+
+```yaml
+automation:
+  - alias: "Altseason Started"
+    trigger:
+      - platform: state
+        entity_id: sensor.crypto_inspect_altseason_status
+        to: "Altseason"
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "🌊 Altseason!"
+          message: >-
+            {% set index = states('sensor.crypto_inspect_altseason_index') %}
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            Альтсезон начался! Index: {{ index }}. Время для альткоинов.
+            {% else %}
+            Altseason started! Index: {{ index }}. Time for altcoins.
+            {% endif %}
+```
+
+#### Bitcoin Season (время для BTC)
+
+```yaml
+automation:
+  - alias: "Bitcoin Season"
+    trigger:
+      - platform: state
+        entity_id: sensor.crypto_inspect_altseason_status
+        to: "Bitcoin Season"
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "₿ Bitcoin Season"
+          message: >-
+            {% set dom = states('sensor.crypto_inspect_btc_dominance') %}
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            Деньги перетекают в Bitcoin. BTC Dominance: {{ dom }}%
+            {% else %}
+            Money flowing to Bitcoin. BTC Dominance: {{ dom }}%
+            {% endif %}
+```
+
+---
+
+### ⚡ Ликвидации
+
+#### Высокий риск ликвидаций
+
+```yaml
+automation:
+  - alias: "Liquidation Risk Warning"
+    trigger:
+      - platform: state
+        entity_id: sensor.crypto_inspect_liq_risk_level
+        to: "High"
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "⚡ Liquidation Risk"
+          message: >-
+            {% set long_liq = states('sensor.crypto_inspect_btc_liq_long_nearest') %}
+            {% set short_liq = states('sensor.crypto_inspect_btc_liq_short_nearest') %}
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            Высокий риск ликвидаций!
+            Long: ${{ long_liq }} | Short: ${{ short_liq }}
+            {% else %}
+            High liquidation risk!
+            Long: ${{ long_liq }} | Short: ${{ short_liq }}
+            {% endif %}
+```
+
+---
+
+### 💱 Funding Rate
+
+#### Экстремальный положительный фандинг
+
+```yaml
+automation:
+  - alias: "High Positive Funding Alert"
+    trigger:
+      - platform: template
+        value_template: "{{ state_attr('sensor.crypto_inspect_funding_rates', 'btc_rate') | float(0) > 0.05 }}"
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "💱 High Funding Rate"
+          message: >-
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            BTC funding rate очень высокий! Лонги перегреты, возможна коррекция.
+            {% else %}
+            BTC funding rate very high! Longs overheated, correction possible.
+            {% endif %}
+```
+
+#### Отрицательный фандинг (возможность для лонга)
+
+```yaml
+automation:
+  - alias: "Negative Funding Alert"
+    trigger:
+      - platform: template
+        value_template: "{{ state_attr('sensor.crypto_inspect_funding_rates', 'btc_rate') | float(0) < -0.01 }}"
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "💱 Negative Funding"
+          message: >-
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            BTC funding отрицательный! Шорты платят лонгам - возможен рост.
+            {% else %}
+            BTC funding negative! Shorts paying longs - growth possible.
+            {% endif %}
+```
+
+---
+
+### ⚖️ Арбитраж
+
+#### Арбитражная возможность
+
+```yaml
+automation:
+  - alias: "Arbitrage Opportunity Alert"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.crypto_inspect_btc_arb_spread
+        above: 0.5
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "⚖️ Arbitrage Opportunity"
+          message: >-
+            {% set spread = states('sensor.crypto_inspect_btc_arb_spread') %}
+            {% set opp = states('sensor.crypto_inspect_arb_opportunity') %}
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            BTC spread {{ spread }}%! Возможность: {{ opp }}
+            {% else %}
+            BTC spread {{ spread }}%! Opportunity: {{ opp }}
+            {% endif %}
+```
+
+---
+
+### 🔗 Корреляции
+
+#### BTC декоррелировался от S&P500
+
+```yaml
+automation:
+  - alias: "BTC SP500 Decorrelation"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.crypto_inspect_btc_sp500_correlation
+        below: 0.3
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "🔗 Decorrelation Alert"
+          message: >-
+            {% set corr = states('sensor.crypto_inspect_btc_sp500_correlation') %}
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            BTC декоррелировался от S&P500 ({{ corr }}). Крипта движется независимо!
+            {% else %}
+            BTC decorrelated from S&P500 ({{ corr }}). Crypto moving independently!
+            {% endif %}
+```
+
+---
+
+### 💼 Bybit Portfolio
+
+#### Значительная прибыль за 24ч
+
+```yaml
+automation:
+  - alias: "Bybit Profit Alert"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.crypto_inspect_bybit_pnl_24h
+        above: 5
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "💰 Bybit Profit!"
+          message: >-
+            {% set pnl = states('sensor.crypto_inspect_bybit_pnl_24h') %}
+            {% set balance = states('sensor.crypto_inspect_bybit_balance') %}
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            P&L за 24ч: +{{ pnl }}%! Баланс: ${{ balance }}
+            {% else %}
+            P&L 24h: +{{ pnl }}%! Balance: ${{ balance }}
+            {% endif %}
+```
+
+#### Значительный убыток за 24ч
+
+```yaml
+automation:
+  - alias: "Bybit Loss Alert"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.crypto_inspect_bybit_pnl_24h
+        below: -5
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "📉 Bybit Loss Alert"
+          message: >-
+            {% set pnl = states('sensor.crypto_inspect_bybit_pnl_24h') %}
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            P&L за 24ч: {{ pnl }}%! Проверьте позиции.
+            {% else %}
+            P&L 24h: {{ pnl }}%! Check your positions.
+            {% endif %}
+          data:
+            priority: high
+```
+
+#### Баланс достиг цели
+
+```yaml
+automation:
+  - alias: "Bybit Balance Target"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.crypto_inspect_bybit_balance
+        above: 10000
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "🎉 Balance Target!"
+          message: >-
+            {% set balance = states('sensor.crypto_inspect_bybit_balance') | int %}
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            Баланс Bybit достиг ${{ balance }}!
+            {% else %}
+            Bybit balance reached ${{ balance }}!
+            {% endif %}
+```
+
+---
+
+### 🚩 Красные флаги
+
+#### Множество красных флагов
+
+```yaml
+automation:
+  - alias: "Multiple Red Flags Alert"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.crypto_inspect_red_flags
+        above: 3
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "🚩 Multiple Red Flags!"
+          message: >-
+            {% set count = states('sensor.crypto_inspect_red_flags') %}
+            {% set flags = state_attr('sensor.crypto_inspect_red_flags', 'flags_list') %}
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            {{ count }} красных флагов!
+            {{ flags }}
+            {% else %}
+            {{ count }} red flags detected!
+            {{ flags }}
+            {% endif %}
+          data:
+            priority: high
+```
+
+---
+
+### 🥇 Традиционные финансы
+
+#### Золото достигло рекорда
+
+```yaml
+automation:
+  - alias: "Gold Record High"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.crypto_inspect_gold_price
+        above: 2500
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "🥇 Gold ATH!"
+          message: >-
+            {% set price = states('sensor.crypto_inspect_gold_price') %}
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            Золото выше ${{ price }}!
+            {% else %}
+            Gold above ${{ price }}!
+            {% endif %}
+```
+
+#### DXY (доллар) укрепляется
+
+```yaml
+automation:
+  - alias: "DXY Strength Alert"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.crypto_inspect_dxy_index
+        above: 105
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "💵 Strong Dollar"
+          message: >-
+            {% set dxy = states('sensor.crypto_inspect_dxy_index') %}
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            DXY: {{ dxy }}. Сильный доллар - давление на рисковые активы.
+            {% else %}
+            DXY: {{ dxy }}. Strong dollar - pressure on risk assets.
+            {% endif %}
+```
+
+#### S&P500 падение
+
+```yaml
+automation:
+  - alias: "SP500 Drop Alert"
+    trigger:
+      - platform: template
+        value_template: "{{ state_attr('sensor.crypto_inspect_sp500_price', 'change_percent') | float(0) < -2 }}"
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "📉 S&P500 Drop"
+          message: >-
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            S&P500 падает более чем на 2%! Возможно давление на крипту.
+            {% else %}
+            S&P500 dropping more than 2%! Possible pressure on crypto.
+            {% endif %}
+```
+
+---
+
+### 📱 Утренний отчёт
+
+```yaml
+automation:
+  - alias: "Morning Crypto Report"
+    trigger:
+      - platform: time
+        at: "08:00:00"
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "☀️ Crypto Morning"
+          message: >-
+            {% set fg = states('sensor.crypto_inspect_fear_greed') %}
+            {% set vol = states('sensor.crypto_inspect_volatility_status') %}
+            {% set dca = states('sensor.crypto_inspect_dca_zone') %}
+            {% set balance = states('sensor.crypto_inspect_bybit_balance') %}
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            📊 F&G: {{ fg }}
+            📈 Волатильность: {{ vol }}
+            💰 DCA: {{ dca }}
+            {% if balance != 'unknown' %}💼 Bybit: ${{ balance | int }}{% endif %}
+            {% else %}
+            📊 F&G: {{ fg }}
+            📈 Volatility: {{ vol }}
+            💰 DCA: {{ dca }}
+            {% if balance != 'unknown' %}💼 Bybit: ${{ balance | int }}{% endif %}
+            {% endif %}
+```
+
+---
+
+### 🌙 Вечерний обзор
+
+```yaml
+automation:
+  - alias: "Evening Market Review"
+    trigger:
+      - platform: time
+        at: "21:00:00"
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "🌙 Evening Review"
+          message: >-
+            {% set whales = states('sensor.crypto_inspect_whale_alerts_24h') %}
+            {% set event = states('sensor.crypto_inspect_next_macro_event') %}
+            {% set flags = states('sensor.crypto_inspect_red_flags') %}
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            🐋 Whale алертов: {{ whales }}
+            📅 Следующее событие: {{ event }}
+            🚩 Красных флагов: {{ flags }}
+            {% else %}
+            🐋 Whale alerts: {{ whales }}
+            📅 Next event: {{ event }}
+            🚩 Red flags: {{ flags }}
+            {% endif %}
+```
+
+---
+
+### 🎛️ Смена фазы рынка
+
+```yaml
+automation:
+  - alias: "Market Phase Change"
+    trigger:
+      - platform: state
+        entity_id: sensor.crypto_inspect_investor_phase
+    condition:
+      - condition: template
+        value_template: "{{ trigger.from_state.state != trigger.to_state.state and trigger.from_state.state != 'unknown' }}"
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "🎛️ Market Phase Changed"
+          message: >-
+            {% set phase = trigger.to_state.state %}
+            {% set desc = state_attr('sensor.crypto_inspect_investor_phase', 'description') %}
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            Новая фаза: {{ phase }}
+            {{ desc }}
+            {% else %}
+            New phase: {{ phase }}
+            {{ desc }}
+            {% endif %}
+```
+
+---
+
+### 📲 Actionable Notifications (iOS)
+
+Для iOS можно добавить кнопки действий:
+
+```yaml
+automation:
+  - alias: "DCA Actionable Alert"
+    trigger:
+      - platform: state
+        entity_id: sensor.crypto_inspect_dca_zone
+        to: "Buy Zone"
+    action:
+      - service: notify.mobile_app_iphone
+        data:
+          title: "💰 DCA Opportunity"
+          message: >-
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            Войти в позицию?
+            {% else %}
+            Enter position?
+            {% endif %}
+          data:
+            actions:
+              - action: "OPEN_BYBIT"
+                title: >-
+                  {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+                  Открыть Bybit
+                  {% else %}
+                  Open Bybit
+                  {% endif %}
+                uri: "bybit://"
+              - action: "DISMISS"
+                title: >-
+                  {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+                  Позже
+                  {% else %}
+                  Later
+                  {% endif %}
+```
+
+---
+
+### 🔔 TTS оповещения (голосовые)
+
+```yaml
+automation:
+  - alias: "Voice Alert Extreme Fear"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.crypto_inspect_fear_greed
+        below: 15
+    action:
+      - service: tts.google_translate_say
+        data:
+          entity_id: media_player.living_room_speaker
+          message: >-
+            {% set fg = states('sensor.crypto_inspect_fear_greed') %}
+            {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+            Внимание! Экстремальный страх на крипторынке. Fear and Greed index {{ fg }}. Возможно хорошее время для покупки.
+            {% else %}
+            Attention! Extreme fear in crypto market. Fear and Greed index {{ fg }}. Possibly a good time to buy.
+            {% endif %}
+```
+
+---
+
+## CSV Export (Bybit)
+
+Add-on позволяет экспортировать данные в CSV для налоговой отчетности.
+
+### Endpoints
+
+- `http://homeassistant.local:9999/api/bybit/export/trades` - История сделок
+- `http://homeassistant.local:9999/api/bybit/export/pnl` - P&L по активам
+- `http://homeassistant.local:9999/api/bybit/export/tax` - Формат для налоговой
+
+### Параметры
+
+```
+?start_date=2024-01-01&end_date=2024-12-31
+```
+
+---
+
+## Troubleshooting
+
+### Сенсоры не появляются
+
+1. Убедитесь что MQTT broker настроен в Home Assistant
+2. Проверьте что add-on запущен (зеленый статус)
+3. Посмотрите логи: Settings → Add-ons → Crypto Inspect → Logs
+
+### Bybit не подключается
+
+1. Проверьте API ключи в настройках
+2. Убедитесь что ваш IP разрешен в Bybit API Management
+3. Для реального аккаунта: `bybit_testnet: false`
+4. Проверьте права API (Read-only достаточно)
+
+### Данные не обновляются
+
+1. Проверьте `sensor.crypto_inspect_sync_status`
+2. Проверьте интернет на хосте Home Assistant
+3. Некоторые данные обновляются раз в несколько часов (корреляции, макро)
+
+### Ошибки в логах
+
+- `MQTT not configured` - Настройте MQTT в HA
+- `Bybit API error` - Проверьте API ключи
+- `Rate limit` - Слишком частые запросы, подождите
+
+---
+
+## MCP Server (Model Context Protocol)
+
+Crypto Inspect включает MCP сервер для интеграции с AI-агентами (Claude Desktop, Gemini, OpenAI Agents и др.).
+
+### Конфигурация
+
+```yaml
+mcp_enabled: true    # Включить MCP сервер
+mcp_port: 9998       # Порт MCP сервера
+```
+
+MCP сервер запускается автоматически на отдельном порту и предоставляет все данные через стандартный протокол MCP.
+
+### Подключение к Claude Desktop
+
+Добавьте в `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "crypto-inspect": {
+      "command": "curl",
+      "args": ["http://homeassistant.local:9998/sse"]
+    }
+  }
+}
+```
+
+### Доступные инструменты (Tools)
+
+#### Криптовалюты
+
+| Tool | Описание | Параметры |
+|------|----------|-----------||
+| `get_crypto_prices` | Текущие цены криптовалют | - |
+| `get_crypto_analysis` | Технический анализ символа | `symbol: str` |
+| `get_candlesticks` | Исторические свечи | `symbol: str, interval: str, limit: int` |
+| `get_market_summary` | Обзор рынка | - |
+| `get_btc_dominance` | Доминация Bitcoin | - |
+| `get_altseason_index` | Индекс альтсезона | - |
+
+#### Индикаторы и аналитика
+
+| Tool | Описание | Параметры |
+|------|----------|-----------||
+| `get_fear_greed_index` | Индекс страха и жадности | - |
+| `get_volatility` | Волатильность рынка | - |
+| `get_correlations` | Корреляции между активами | - |
+| `get_dca_recommendation` | Рекомендации по DCA | - |
+| `get_profit_taking_levels` | Уровни фиксации прибыли | `symbol: str` |
+
+#### Деривативы
+
+| Tool | Описание | Параметры |
+|------|----------|-----------||
+| `get_funding_rates` | Ставки финансирования | - |
+| `get_liquidation_levels` | Уровни ликвидаций | `symbol: str` |
+| `get_arbitrage_opportunities` | Арбитражные возможности | - |
+
+#### On-Chain данные
+
+| Tool | Описание | Параметры |
+|------|----------|-----------||
+| `get_whale_alerts` | Крупные переводы | - |
+| `get_exchange_flow` | Потоки на биржи | - |
+| `get_gas_tracker` | ETH Gas Tracker | - |
+
+#### Традиционные финансы
+
+| Tool | Описание | Параметры |
+|------|----------|-----------||
+| `get_traditional_finance` | Все традиционные активы | - |
+| `get_metals_prices` | Золото, серебро, платина | - |
+| `get_indices_prices` | S&P500, NASDAQ, DAX | - |
+| `get_forex_prices` | EUR/USD, GBP/USD, DXY | - |
+| `get_commodities_prices` | Нефть, газ | - |
+
+#### Макро и события
+
+| Tool | Описание | Параметры |
+|------|----------|-----------||
+| `get_macro_events` | Макроэкономические события | - |
+| `get_token_unlocks` | Token Unlock расписание | - |
+
+#### Портфель и статус
+
+| Tool | Описание | Параметры |
+|------|----------|-----------||
+| `get_investor_status` | Статус "ленивого инвестора" | - |
+| `get_bybit_portfolio` | Портфель Bybit (если настроен) | - |
+| `get_signals` | Последние торговые сигналы | `hours: int` |
+
+### Доступные ресурсы (Resources)
+
+| Resource URI | Описание |
+|--------------|----------|
+| `crypto://prices` | Текущие цены всех пар |
+| `crypto://analysis/{symbol}` | Анализ по символу |
+| `crypto://candles/{symbol}/{interval}` | Свечные данные |
+| `finance://metals` | Цены металлов |
+| `finance://indices` | Цены индексов |
+| `finance://forex` | Курсы валют |
+| `finance://commodities` | Цены сырья |
+
+### Пример использования в Claude
+
+```
+Пользователь: Какая сейчас ситуация на крипторынке?
+
+Claude: [использует get_market_summary, get_fear_greed_index, get_btc_dominance]
+
+Биткоин торгуется на уровне $100,000, Fear & Greed Index показывает 72 (Жадность).
+Доминация BTC составляет 54.3%, что указывает на...
+```
+
+---
+
+## Historical Data Backfill
+
+При первом запуске Crypto Inspect автоматически загружает исторические данные.
+
+### Конфигурация
+
+```yaml
+backfill_enabled: true           # Включить backfill
+backfill_crypto_years: 10        # Лет истории для крипты
+backfill_traditional_years: 1    # Лет истории для традиционных активов
+backfill_intervals: "1d,4h,1h"   # Интервалы для загрузки
+```
+
+### Как это работает
+
+1. При первом запуске система проверяет наличие маркерного файла `/data/backfill_completed`
+2. Если файл отсутствует, запускается фоновая загрузка данных:
+   - **Криптовалюты**: до 10 лет истории для всех настроенных пар
+   - **Традиционные активы**: 1 год истории (Gold, S&P500, EUR/USD и др.)
+3. Данные загружаются в фоне, не блокируя основной функционал
+4. После завершения создается маркерный файл
+
+### API для мониторинга
+
+| Endpoint | Описание |
+|----------|----------|
+| `GET /api/backfill/status` | Статус загрузки |
+| `POST /api/backfill/trigger` | Запустить backfill вручную |
+| `GET /api/backfill/gaps` | Найти пропуски в данных |
+
+### Пример ответа `/api/backfill/status`
+
+```json
+{
+  "is_running": false,
+  "completed": true,
+  "crypto_symbols": ["BTC/USDT", "ETH/USDT"],
+  "crypto_years": 10,
+  "traditional_symbols": ["GC=F", "^GSPC"],
+  "traditional_years": 1,
+  "last_run": "2025-01-15T12:00:00Z"
+}
+```
+
+---
+
+## UX Enhancement Suite
+
+### Smart Summary / Умная сводка
+
+Агрегированные сенсоры для быстрого понимания рынка.
+
+| Сенсор | Описание / Description |
+|--------|------------------------|
+| `market_pulse` | Настроение рынка (Бычий/Нейтральный/Медвежий) / Market sentiment |
+| `market_pulse_confidence` | Уверенность оценки (%) / Confidence level |
+| `portfolio_health` | Здоровье портфеля / Portfolio health status |
+| `portfolio_health_score` | Оценка здоровья (0-100) / Health score |
+| `today_action` | Рекомендуемое действие на сегодня / Today's action |
+| `today_action_priority` | Приоритет действия / Action priority |
+| `weekly_outlook` | Недельный прогноз / Weekly outlook |
+
+### Notifications / Уведомления
+
+Умная система приоритетных уведомлений с дайджестами.
+
+| Сенсор | Описание |
+|--------|----------|
+| `pending_alerts_count` | Количество ожидающих оповещений |
+| `pending_alerts_critical` | Критических оповещений |
+| `daily_digest_ready` | Готов ли дайджест |
+| `notification_mode` | Режим уведомлений |
+
+**Режимы уведомлений:**
+- `all` - Все сразу
+- `smart` - Только критические сразу, остальное в дайджест
+- `digest_only` - Только дайджест
+- `critical_only` - Только критические
+- `silent` - Без уведомлений
+
+### Briefings / Брифинги
+
+Утренние и вечерние отчёты.
+
+| Сенсор | Описание |
+|--------|----------|
+| `morning_briefing` | Статус утреннего брифинга |
+| `evening_briefing` | Статус вечернего брифинга |
+| `briefing_last_sent` | Время последнего брифинга |
+
+### Goal Tracking / Отслеживание целей
+
+Личные финансовые цели с визуальным прогрессом.
+
+| Сенсор | Описание |
+|--------|----------|
+| `goal_target` | Целевая сумма (USDT) |
+| `goal_progress` | Прогресс (%) |
+| `goal_remaining` | Осталось до цели (USDT) |
+| `goal_days_estimate` | Оценка дней до цели |
+| `goal_status` | Статус цели |
+
+**Конфигурация:**
+
+```yaml
+# config.yaml
+goal_enabled: true
+goal_target_value: 100000
+goal_name: "Financial Freedom"
+goal_name_ru: "Финансовая свобода"
+```
+
+**Этапы (milestones):** 10%, 25%, 50%, 75%, 90%, 100%
+
+### Progressive Disclosure Dashboards
+
+Три уровня дашбордов:
+
+1. **Summary** (`dashboards/views/summary.yaml`) - 4 плитки, 2 секунды на понимание
+2. **Detailed** (`dashboards/views/detailed.yaml`) - Расширенные секции с контекстом
+3. **Power User** (`dashboards/views/power_user.yaml`) - Все технические данные
+
+### UX Blueprints
+
+| Blueprint | Описание |
+|-----------|----------|
+| `daily_digest.yaml` | Ежедневный дайджест оповещений |
+| `morning_briefing.yaml` | Утренний брифинг |
+| `evening_briefing.yaml` | Вечерний брифинг |
+| `goal_milestone.yaml` | Уведомления о достижении этапов |
+
+### UX API Endpoints
+
+| Endpoint | Описание |
+|----------|----------|
+| `GET /api/summary/market-pulse` | Market Pulse сентимент |
+| `GET /api/summary/portfolio-health` | Здоровье портфеля |
+| `GET /api/summary/today-action` | Действие на сегодня |
+| `GET /api/summary/full` | Полная сводка |
+| `GET /api/briefing/morning` | Утренний брифинг |
+| `GET /api/briefing/evening` | Вечерний брифинг |
+| `GET /api/briefing/notifications/digest` | Дневной дайджест |
+| `POST /api/briefing/notifications/mode` | Установить режим |
+| `GET /api/goals/progress` | Прогресс цели |
+| `GET /api/goals/milestones` | Достигнутые этапы |
+| `POST /api/goals/record` | Записать значение |
+
+### Пример карточки Market Pulse
+
+```yaml
+type: custom:mushroom-template-card
+primary: "{{ states('sensor.crypto_inspect_market_pulse') }}"
+secondary: "{{ state_attr('sensor.crypto_inspect_market_pulse', 'reason_ru') }}"
+icon: mdi:pulse
+icon_color: |-
+  {% set sentiment = states('sensor.crypto_inspect_market_pulse') %}
+  {% if 'Бычий' in sentiment %}green
+  {% elif 'Медвежий' in sentiment %}red
+  {% else %}orange{% endif %}
+```
+
+### Пример карточки Goal Progress
+
+```yaml
+type: vertical-stack
+cards:
+  - type: custom:mushroom-template-card
+    primary: "{{ state_attr('sensor.crypto_inspect_goal_target', 'goal_name_ru') }}"
+    secondary: "{{ states('sensor.crypto_inspect_goal_progress') }} • Осталось: ${{ states('sensor.crypto_inspect_goal_remaining') }}"
+    icon: mdi:trophy
+    icon_color: amber
+
+  - type: gauge
+    entity: sensor.crypto_inspect_goal_progress
+    name: Прогресс к цели
+    min: 0
+    max: 100
+    severity:
+      green: 75
+      yellow: 25
+      red: 0
+```
+
+---
+
+## API Reference
+
+Add-on предоставляет REST API на порту 9999.
+
+### Основные
+
+| Endpoint | Описание |
+|----------|----------|
+| `GET /health` | Статус сервиса |
+| `GET /api/bybit/balance` | Bybit баланс |
+| `GET /api/bybit/positions` | Bybit позиции |
+| `GET /api/bybit/pnl?period=7d` | P&L за период |
+| `GET /api/analysis/{symbol}` | Анализ символа |
+| `GET /api/market/summary` | Обзор рынка |
+| `GET /api/investor/status` | Статус инвестора |
+| `GET /api/candles/{symbol}` | Данные свечей |
+
+### AI Анализ
+
+| Endpoint | Описание |
+|----------|----------|
+| `GET /api/ai/summary` | Последняя AI сводка |
+| `POST /api/ai/analyze` | Запустить AI анализ |
+| `GET /api/ai/analyze/{symbol}` | AI анализ символа |
+| `GET /api/ai/status` | Статус AI сервиса |
+
+### Технический анализ
+
+| Endpoint | Описание |
+|----------|----------|
+| `GET /api/ta/{symbol}` | Технические индикаторы |
+| `GET /api/ta/{symbol}/signals` | Торговые сигналы |
+| `GET /api/ta/confluence` | Confluence скор |
+
+### Риск-менеджмент
+
+| Endpoint | Описание |
+|----------|----------|
+| `GET /api/risk/portfolio` | Риск-метрики портфеля |
+| `GET /api/risk/stress-test` | Стресс-тест портфеля |
+
+### DCA Backtesting
+
+| Endpoint | Описание |
+|----------|----------|
+| `GET /api/backtest/dca?symbol=BTC&years=5` | DCA бэктест |
+| `GET /api/backtest/smart-dca?symbol=BTC&years=5` | Smart DCA бэктест |
+| `GET /api/backtest/compare?symbol=BTC` | Сравнение стратегий |
+
+---
+
+## Примеры Lovelace - Advanced Analytics
+
+### AI Insights карточка
+
+```yaml
+type: markdown
+title: "🤖 AI Анализ"
+content: |
+  ### {{ states('sensor.crypto_inspect_ai_market_sentiment') }}
+
+  **Рекомендация:** {{ states('sensor.crypto_inspect_ai_recommendation') }}
+
+  {{ states('sensor.crypto_inspect_ai_daily_summary') }}
+
+  ---
+  *Обновлено: {{ states('sensor.crypto_inspect_ai_last_analysis') }}*
+  *Провайдер: {{ states('sensor.crypto_inspect_ai_provider') }}*
+```
+
+### Технический анализ BTC
+
+```yaml
+type: grid
+title: "📈 BTC Technical"
+cards:
+  - type: tile
+    entity: sensor.crypto_inspect_btc_rsi
+    name: "RSI"
+    icon: mdi:chart-line
+    color: |
+      {% set rsi = states('sensor.crypto_inspect_btc_rsi') | int(50) %}
+      {% if rsi > 70 %}red
+      {% elif rsi < 30 %}green
+      {% else %}blue{% endif %}
+  - type: tile
+    entity: sensor.crypto_inspect_btc_trend
+    name: "Тренд"
+    icon: mdi:trending-up
+    color: |
+      {% set trend = states('sensor.crypto_inspect_btc_trend') %}
+      {% if 'Up' in trend %}green
+      {% elif 'Down' in trend %}red
+      {% else %}grey{% endif %}
+  - type: tile
+    entity: sensor.crypto_inspect_btc_macd_signal
+    name: "MACD"
+    icon: mdi:signal
+  - type: tile
+    entity: sensor.crypto_inspect_ta_confluence
+    name: "Confluence"
+    icon: mdi:check-all
+```
+
+### RSI с зонами
+
+```yaml
+type: custom:apexcharts-card
+header:
+  show: true
+  title: "BTC RSI"
+chart_type: radialBar
+series:
+  - entity: sensor.crypto_inspect_btc_rsi
+    name: RSI
+apex_config:
+  plotOptions:
+    radialBar:
+      startAngle: -135
+      endAngle: 135
+      dataLabels:
+        name:
+          show: true
+        value:
+          fontSize: '24px'
+      track:
+        background: '#333'
+  colors:
+    - |
+      EVAL:function(value) {
+        if (value > 70) return '#ef5350';
+        if (value < 30) return '#26a69a';
+        return '#42a5f5';
+      }
+```
+
+### Риск-менеджмент
+
+```yaml
+type: entities
+title: "⚠️ Риск-метрики"
+entities:
+  - entity: sensor.crypto_inspect_portfolio_sharpe
+    name: "Sharpe Ratio"
+    icon: mdi:chart-areaspline
+  - entity: sensor.crypto_inspect_portfolio_sortino
+    name: "Sortino Ratio"
+    icon: mdi:chart-line-variant
+  - entity: sensor.crypto_inspect_portfolio_max_drawdown
+    name: "Макс. просадка"
+    icon: mdi:trending-down
+  - entity: sensor.crypto_inspect_portfolio_var_95
+    name: "VaR 95%"
+    icon: mdi:alert
+  - entity: sensor.crypto_inspect_risk_status
+    name: "Статус риска"
+    icon: mdi:shield-alert
+```
+
+### DCA Backtest результаты
+
+```yaml
+type: markdown
+title: "📊 DCA Backtest"
+content: |
+  ### Сравнение стратегий ({{ states('sensor.crypto_inspect_backtest_period') }})
+
+  | Стратегия | ROI |
+  |----------|-----|
+  | **Fixed DCA** | {{ states('sensor.crypto_inspect_backtest_dca_roi') }}% |
+  | **Smart DCA** | {{ states('sensor.crypto_inspect_backtest_smart_dca_roi') }}% |
+  | **Lump Sum** | {{ states('sensor.crypto_inspect_backtest_lump_sum_roi') }}% |
+
+  🏆 **Лучшая:** {{ states('sensor.crypto_inspect_backtest_best_strategy') }}
+```
+
+### Поддержка/Сопротивление
+
+```yaml
+type: glance
+title: "🚧 Уровни BTC"
+entities:
+  - entity: sensor.crypto_inspect_btc_support
+    name: "Поддержка"
+    icon: mdi:arrow-down-bold
+  - entity: sensor.crypto_inspect_btc_resistance
+    name: "Сопротивление"
+    icon: mdi:arrow-up-bold
+```
+
+---
+
+## Поддержка
+
+Если у вас возникли проблемы:
+
+1. Проверьте логи add-on
+2. Создайте issue на GitHub с логами и описанием проблемы
+
+GitHub: https://github.com/Mesteriis/crypto-inspector
+
+---
+
+## Blueprint Автоматизации
+
+Gotovye Blueprint-ы для быстрой настройки автоматизаций.
+
+### Установка
+
+1. Скопируйте файлы из `/blueprints/` в `config/blueprints/automation/crypto_inspect/`
+2. Перезагрузите Home Assistant
+3. Создайте автоматизацию из Blueprint: Settings → Automations → “+ Create Automation” → “Use Blueprint”
+
+### Доступные Blueprint-ы
+
+| Blueprint | Описание |
+|-----------|----------|
+| `price_alert.yaml` | Алерт при достижении цены |
+| `fear_greed_alert.yaml` | Алерт Fear & Greed Index |
+| `dca_reminder.yaml` | Еженедельное напоминание DCA |
+| `technical_signal.yaml` | Алерт технического сигнала |
+| `risk_alert.yaml` | Предупреждение о риске портфеля |
+| `ai_report.yaml` | Ежедневный AI отчёт |
+| `whale_alert.yaml` | Алерт китов |
+| `portfolio_milestone.yaml` | Достижение цели портфеля |
+
+### Пример использования Price Alert
+
+После импорта blueprint, создайте автоматизацию:
+
+1. Выберите символ (BTC, ETH, SOL)
+2. Укажите условие (above/below)
+3. Укажите целевую цену
+4. Выберите сервис уведомлений
+
+### Пример DCA Reminder
+
+Настраиваемые параметры:
+- День недели (Пн-Вс)
+- Время напоминания
+- Базовая сумма DCA
+- Сервис уведомлений
+
+Blueprint автоматически учитывает Fear & Greed Index для расчёта Smart DCA множителя.

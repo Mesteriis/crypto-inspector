@@ -1,0 +1,101 @@
+# ==============================================================================
+# Crypto Inspect - Technical Signal Alert Blueprint
+# ==============================================================================
+# Notifies on significant technical analysis signals
+# ==============================================================================
+
+blueprint:
+  name: Technical Signal Alert
+  description: Get notified on important TA signals (RSI extremes, trend changes)
+  domain: automation
+  source_url: https://github.com/Mesteriis/crypto-inspector/blob/main/blueprints/technical_signal.yaml
+
+  input:
+    signal_type:
+      name: Signal Type
+      description: What type of signal to monitor
+      selector:
+        select:
+          options:
+            - label: RSI Oversold (<30)
+              value: rsi_oversold
+            - label: RSI Overbought (>70)
+              value: rsi_overbought
+            - label: Trend Change
+              value: trend_change
+            - label: Strong Buy Signal
+              value: strong_buy
+            - label: Strong Sell Signal
+              value: strong_sell
+      default: rsi_oversold
+
+    symbol:
+      name: Symbol
+      description: Which crypto to monitor
+      selector:
+        select:
+          options:
+            - BTC
+            - ETH
+      default: BTC
+
+    notify_device:
+      name: Device to notify
+      selector:
+        device:
+          integration: mobile_app
+
+trigger:
+  - platform: template
+    value_template: >-
+      {% set signal_type = '!input signal_type' %}
+      {% set symbol = '!input symbol' | lower %}
+      {% set rsi = states('sensor.crypto_inspect_' + symbol + '_rsi') | float(50) %}
+      {% set trend = states('sensor.crypto_inspect_' + symbol + '_trend') %}
+      {% set ta_signal = states('sensor.crypto_inspect_ta_signal') %}
+
+      {% if signal_type == 'rsi_oversold' %}
+        {{ rsi < 30 }}
+      {% elif signal_type == 'rsi_overbought' %}
+        {{ rsi > 70 }}
+      {% elif signal_type == 'trend_change' %}
+        {{ trend != states('sensor.crypto_inspect_' + symbol + '_trend') }}
+      {% elif signal_type == 'strong_buy' %}
+        {{ ta_signal == 'Strong Buy' }}
+      {% elif signal_type == 'strong_sell' %}
+        {{ ta_signal == 'Strong Sell' }}
+      {% else %}
+        false
+      {% endif %}
+
+condition: []
+
+action:
+  - service: notify.mobile_app_{{ device_attr('!input notify_device', 'name') | slugify }}
+    data:
+      title: >-
+        {% set signal_type = '!input signal_type' %}
+        {% if signal_type == 'rsi_oversold' %}📉 RSI Oversold
+        {% elif signal_type == 'rsi_overbought' %}📈 RSI Overbought
+        {% elif signal_type == 'trend_change' %}🔄 Trend Change
+        {% elif signal_type == 'strong_buy' %}🟢 Strong Buy
+        {% elif signal_type == 'strong_sell' %}🔴 Strong Sell
+        {% endif %}
+      message: >-
+        {% set symbol = '!input symbol' | lower %}
+        {% set rsi = states('sensor.crypto_inspect_' + symbol + '_rsi') %}
+        {% set trend = states('sensor.crypto_inspect_' + symbol + '_trend') %}
+        {% set confluence = states('sensor.crypto_inspect_ta_confluence') %}
+
+        {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+        !input symbol: RSI {{ rsi }}, Тренд: {{ trend }}
+        Confluence Score: {{ confluence }}
+        {% else %}
+        !input symbol: RSI {{ rsi }}, Trend: {{ trend }}
+        Confluence Score: {{ confluence }}
+        {% endif %}
+      data:
+        tag: crypto_ta_!input symbol
+        group: crypto_alerts
+
+mode: single

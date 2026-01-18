@@ -1,0 +1,134 @@
+# =============================================================================
+# Morning Briefing Blueprint
+# =============================================================================
+# Sends a comprehensive morning report with overnight changes and today's outlook
+#
+# Usage: Import into Home Assistant blueprints and configure notification service
+# =============================================================================
+
+blueprint:
+  name: "Crypto Morning Briefing / Утренний брифинг"
+  description: >-
+    Send a comprehensive morning briefing with overnight market changes.
+    Отправляет комплексный утренний брифинг с изменениями за ночь.
+  domain: automation
+  author: "Crypto Inspect Add-on"
+  source_url: "https://github.com/Mesteriis/crypto-inspector"
+
+  input:
+    notify_device:
+      name: "Notification Service / Сервис уведомлений"
+      description: >-
+        The notification service to use.
+        Сервис уведомлений для отправки.
+      selector:
+        text:
+      default: "notify.mobile_app"
+
+    send_time:
+      name: "Send Time / Время отправки"
+      description: >-
+        Time to send the morning briefing.
+        Время для отправки утреннего брифинга.
+      selector:
+        time:
+      default: "08:00:00"
+
+    language:
+      name: "Language / Язык"
+      description: >-
+        Notification language.
+        Язык уведомлений.
+      selector:
+        select:
+          options:
+            - label: "English"
+              value: "en"
+            - label: "Русский"
+              value: "ru"
+      default: "ru"
+
+    skip_weekends:
+      name: "Skip Weekends / Пропускать выходные"
+      description: >-
+        Skip briefings on weekends.
+        Пропускать брифинги в выходные.
+      selector:
+        boolean:
+      default: false
+
+trigger:
+  - platform: time
+    at: !input send_time
+
+condition:
+  - condition: template
+    value_template: >-
+      {% set skip_weekends = skip_weekends | default(false) %}
+      {% if skip_weekends %}
+        {{ now().weekday() < 5 }}
+      {% else %}
+        true
+      {% endif %}
+
+action:
+  - variables:
+      lang: !input language
+      btc_price: "{{ states('sensor.crypto_inspect_prices') }}"
+      btc_change: "{{ state_attr('sensor.crypto_inspect_changes_24h', 'BTC/USDT') | default('N/A') }}"
+      fear_greed: "{{ states('sensor.crypto_inspect_fear_greed') }}"
+      market_pulse: "{{ states('sensor.crypto_inspect_market_pulse') }}"
+      today_action: "{{ states('sensor.crypto_inspect_today_action') }}"
+
+  - choose:
+      # Russian
+      - conditions:
+          - condition: template
+            value_template: "{{ lang == 'ru' }}"
+        sequence:
+          - service: !input notify_device
+            data:
+              title: "☀️ Доброе утро! Крипто-брифинг"
+              message: >-
+                🌙 За ночь:
+                BTC: ${{ btc_price }} ({{ btc_change }}%)
+                Страх/Жадность: {{ fear_greed }}
+
+                📈 Рынок: {{ market_pulse }}
+                {{ state_attr('sensor.crypto_inspect_market_pulse', 'reason_ru') }}
+
+                🎯 Сегодня: {{ today_action }}
+                {{ state_attr('sensor.crypto_inspect_today_action', 'details_ru') }}
+
+                💼 Портфель: {{ states('sensor.crypto_inspect_portfolio_health') }}
+              data:
+                group: "crypto-briefing"
+                tag: "morning-briefing"
+                importance: default
+
+      # English (default)
+      - conditions:
+          - condition: template
+            value_template: "{{ lang == 'en' }}"
+        sequence:
+          - service: !input notify_device
+            data:
+              title: "☀️ Good Morning! Crypto Briefing"
+              message: >-
+                🌙 Overnight:
+                BTC: ${{ btc_price }} ({{ btc_change }}%)
+                Fear/Greed: {{ fear_greed }}
+
+                📈 Market: {{ market_pulse }}
+                {{ state_attr('sensor.crypto_inspect_market_pulse', 'reason') }}
+
+                🎯 Today: {{ today_action }}
+                {{ state_attr('sensor.crypto_inspect_today_action', 'details') }}
+
+                💼 Portfolio: {{ states('sensor.crypto_inspect_portfolio_health') }}
+              data:
+                group: "crypto-briefing"
+                tag: "morning-briefing"
+                importance: default
+
+mode: single

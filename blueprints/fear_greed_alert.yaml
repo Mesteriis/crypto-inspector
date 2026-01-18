@@ -1,0 +1,82 @@
+# ==============================================================================
+# Crypto Inspect - Fear & Greed Alert Blueprint
+# ==============================================================================
+# Notifies when Fear & Greed Index crosses a threshold
+# ==============================================================================
+
+blueprint:
+  name: Fear & Greed Alert
+  description: Get notified on extreme market sentiment
+  domain: automation
+  source_url: https://github.com/Mesteriis/crypto-inspector/blob/main/blueprints/fear_greed_alert.yaml
+
+  input:
+    threshold:
+      name: Threshold Value
+      description: Fear & Greed index threshold (0-100)
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 1
+      default: 20
+
+    condition:
+      name: Condition
+      description: Trigger when F&G is...
+      selector:
+        select:
+          options:
+            - label: Below threshold (Fear)
+              value: below
+            - label: Above threshold (Greed)
+              value: above
+      default: below
+
+    notify_device:
+      name: Device to notify
+      selector:
+        device:
+          integration: mobile_app
+
+trigger:
+  - platform: numeric_state
+    entity_id: sensor.crypto_inspect_fear_greed
+    below: "{{ 'input threshold' if 'input condition' == 'below' else 999 }}"
+    above: "{{ 'input threshold' if 'input condition' == 'above' else -1 }}"
+
+condition: []
+
+action:
+  - service: notify.mobile_app_{{ device_attr('!input notify_device', 'name') | slugify }}
+    data:
+      title: >-
+        {% if states('sensor.crypto_inspect_fear_greed') | int < 25 %}
+        😱 Extreme Fear
+        {% elif states('sensor.crypto_inspect_fear_greed') | int > 75 %}
+        🤑 Extreme Greed
+        {% else %}
+        📊 F&G Alert
+        {% endif %}
+      message: >-
+        {% set fg = states('sensor.crypto_inspect_fear_greed') %}
+        {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+        Fear & Greed Index: {{ fg }}
+        {% if fg | int < 25 %}
+        Исторически хорошее время для покупки!
+        {% elif fg | int > 75 %}
+        Рынок перегрет, рассмотрите фиксацию прибыли.
+        {% endif %}
+        {% else %}
+        Fear & Greed Index: {{ fg }}
+        {% if fg | int < 25 %}
+        Historically a good time to buy!
+        {% elif fg | int > 75 %}
+        Market overheated, consider taking profits.
+        {% endif %}
+        {% endif %}
+      data:
+        tag: crypto_fear_greed
+        group: crypto_alerts
+
+mode: single

@@ -1,0 +1,327 @@
+# =============================================================================
+# Level 3: Power User Dashboard - All technical data and controls
+# =============================================================================
+# This view shows all available data for advanced users
+# Includes technical indicators, risk metrics, and all controls
+#
+# Copy to your HA dashboard or include in a tabbed view
+# =============================================================================
+
+title: Crypto Power User
+icon: mdi:chart-multiple
+path: crypto-power
+type: sections
+
+sections:
+  # === Technical Analysis Section ===
+  - type: grid
+    title: "📊 Technical Analysis"
+    columns: 4
+    cards:
+      - type: custom:mushroom-template-card
+        primary: "RSI"
+        secondary: |
+          {% set data = states('sensor.crypto_inspect_ta_rsi') | from_json %}
+          BTC: {{ data.BTC | default('N/A') }} | ETH: {{ data.ETH | default('N/A') }}
+        icon: mdi:chart-line
+
+      - type: custom:mushroom-template-card
+        primary: "MACD"
+        secondary: |
+          {% set data = states('sensor.crypto_inspect_ta_macd_signal') | from_json %}
+          BTC: {{ data.BTC | default('N/A') }} | ETH: {{ data.ETH | default('N/A') }}
+        icon: mdi:signal
+
+      - type: custom:mushroom-template-card
+        primary: "BB Position"
+        secondary: |
+          {% set data = states('sensor.crypto_inspect_ta_bb_position') | from_json %}
+          BTC: {{ data.BTC | default('N/A') }}% | ETH: {{ data.ETH | default('N/A') }}%
+        icon: mdi:chart-bell-curve
+
+      - type: custom:mushroom-template-card
+        primary: "Trend"
+        secondary: |
+          {% set data = states('sensor.crypto_inspect_ta_trend') | from_json %}
+          BTC: {{ data.BTC | default('N/A') }} | ETH: {{ data.ETH | default('N/A') }}
+        icon: mdi:trending-up
+
+      - type: custom:mushroom-template-card
+        primary: "Support"
+        secondary: |
+          {% set data = states('sensor.crypto_inspect_ta_support') | from_json %}
+          BTC: ${{ '{:,.0f}'.format(data.BTC | default(0)) }}
+        icon: mdi:arrow-down-bold
+
+      - type: custom:mushroom-template-card
+        primary: "Resistance"
+        secondary: |
+          {% set data = states('sensor.crypto_inspect_ta_resistance') | from_json %}
+          BTC: ${{ '{:,.0f}'.format(data.BTC | default(0)) }}
+        icon: mdi:arrow-up-bold
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_ta_confluence
+        name: TA Score
+        icon: mdi:check-all
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_ta_signal
+        name: TA Signal
+        icon: mdi:traffic-light
+
+  # === Multi-Timeframe Trends ===
+  - type: grid
+    title: "⏱️ Multi-Timeframe Trends"
+    columns: 3
+    cards:
+      - type: custom:mushroom-template-card
+        primary: "MTF Trends"
+        secondary: |
+          {% set data = states('sensor.crypto_inspect_ta_trend_mtf') | from_json %}
+          {% set btc = data.BTC | default({}) %}
+          1H: {{ btc.get('1h', 'N/A') }} | 4H: {{ btc.get('4h', 'N/A') }} | 1D: {{ btc.get('1d', 'N/A') }}
+        icon: mdi:clock-outline
+        layout: vertical
+
+  # === Risk Management Section ===
+  - type: grid
+    title: "⚠️ Risk Management"
+    columns: 4
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_portfolio_sharpe
+        name: Sharpe
+        icon: mdi:chart-areaspline
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_portfolio_sortino
+        name: Sortino
+        icon: mdi:chart-line-variant
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_portfolio_max_drawdown
+        name: Max DD
+        icon: mdi:trending-down
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_portfolio_current_drawdown
+        name: Current DD
+        icon: mdi:arrow-down
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_portfolio_var_95
+        name: VaR 95%
+        icon: mdi:alert
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_risk_status
+        name: Risk Status
+        icon: mdi:shield-alert
+
+      - type: custom:mushroom-template-card
+        primary: "Volatility 30d"
+        secondary: |
+          {% set data = states('sensor.crypto_inspect_volatility_30d') | from_json %}
+          BTC: {{ data.BTC | default('N/A') }}%
+        icon: mdi:chart-bell-curve
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_volatility_status
+        name: Vol Status
+        icon: mdi:pulse
+
+  # === On-Chain & Derivatives ===
+  - type: grid
+    title: "🔗 On-Chain & Derivatives"
+    columns: 4
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_fear_greed
+        name: Fear & Greed
+        icon: mdi:emoticon-neutral
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_whale_net_flow
+        name: Whale Flow
+        icon: mdi:fish
+
+      - type: custom:mushroom-template-card
+        primary: "Exchange Flow"
+        secondary: |
+          {% set data = states('sensor.crypto_inspect_exchange_netflows') | from_json %}
+          BTC: {{ data.BTC | default(0) }} BTC
+        icon: mdi:bank-transfer
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_exchange_flow_signal
+        name: Flow Signal
+        icon: mdi:trending-up
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_liq_risk_level
+        name: Liq Risk
+        icon: mdi:alert-decagram
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_stablecoin_flow
+        name: Stablecoin
+        icon: mdi:swap-horizontal
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_altseason_index
+        name: Altseason
+        icon: mdi:rocket-launch
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_btc_dominance
+        name: BTC.D
+        icon: mdi:crown
+
+  # === Correlations ===
+  - type: grid
+    title: "🔗 Correlations"
+    columns: 3
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_btc_eth_correlation
+        name: BTC/ETH
+        icon: mdi:link-variant
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_btc_sp500_correlation
+        name: BTC/S&P500
+        icon: mdi:chart-line-variant
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_correlation_status
+        name: Status
+        icon: mdi:connection
+
+  # === Traditional Markets ===
+  - type: grid
+    title: "🏛️ Traditional Markets"
+    columns: 4
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_gold_price
+        name: Gold
+        icon: mdi:gold
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_silver_price
+        name: Silver
+        icon: mdi:circle-outline
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_sp500_price
+        name: S&P 500
+        icon: mdi:chart-line
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_dxy_index
+        name: DXY
+        icon: mdi:currency-usd
+
+  # === Backtesting Results ===
+  - type: grid
+    title: "📈 DCA Backtest Results"
+    columns: 4
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_backtest_dca_roi
+        name: DCA ROI
+        icon: mdi:percent
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_backtest_smart_dca_roi
+        name: Smart DCA
+        icon: mdi:brain
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_backtest_lump_sum_roi
+        name: Lump Sum
+        icon: mdi:cash
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_backtest_best_strategy
+        name: Best
+        icon: mdi:trophy
+
+  # === Signals History ===
+  - type: grid
+    title: "📡 Signals"
+    columns: 3
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_signals_today
+        name: Today
+        icon: mdi:signal
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_signals_win_rate
+        name: Win Rate
+        icon: mdi:trophy
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_signals_last
+        name: Last Signal
+        icon: mdi:traffic-light
+
+  # === Divergences ===
+  - type: grid
+    title: "🔀 Divergences"
+    columns: 2
+    cards:
+      - type: custom:mushroom-template-card
+        primary: "Divergences"
+        secondary: |
+          {% set data = states('sensor.crypto_inspect_divergences') | from_json %}
+          BTC: {{ data.BTC | default('None') }} | ETH: {{ data.ETH | default('None') }}
+        icon: mdi:call-split
+        layout: vertical
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_divergences_active
+        name: Active
+        icon: mdi:call-merge
+
+  # === Macro Events ===
+  - type: grid
+    title: "📅 Macro Calendar"
+    columns: 3
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_next_macro_event
+        name: Next Event
+        icon: mdi:calendar-star
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_days_to_fomc
+        name: Days to FOMC
+        icon: mdi:calendar-clock
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_macro_risk_week
+        name: Macro Risk
+        icon: mdi:calendar-alert
+
+  # === System Status ===
+  - type: grid
+    title: "⚙️ System Status"
+    columns: 3
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_sync_status
+        name: Sync
+        icon: mdi:sync
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_last_sync
+        name: Last Sync
+        icon: mdi:clock-outline
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_candles_count
+        name: Candles
+        icon: mdi:database

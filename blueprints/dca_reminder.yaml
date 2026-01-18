@@ -1,0 +1,120 @@
+# ==============================================================================
+# Crypto Inspect - DCA Reminder Blueprint
+# ==============================================================================
+# Weekly DCA reminder with market-adjusted recommendations
+# ==============================================================================
+
+blueprint:
+  name: DCA Reminder
+  description: Weekly reminder to execute your DCA strategy
+  domain: automation
+  source_url: https://github.com/Mesteriis/crypto-inspector/blob/main/blueprints/dca_reminder.yaml
+
+  input:
+    day_of_week:
+      name: Day of Week
+      description: Which day to send the reminder
+      selector:
+        select:
+          options:
+            - label: Monday
+              value: mon
+            - label: Tuesday
+              value: tue
+            - label: Wednesday
+              value: wed
+            - label: Thursday
+              value: thu
+            - label: Friday
+              value: fri
+            - label: Saturday
+              value: sat
+            - label: Sunday
+              value: sun
+      default: mon
+
+    time:
+      name: Time
+      description: What time to send the reminder
+      selector:
+        time:
+      default: "09:00:00"
+
+    base_amount:
+      name: Base DCA Amount
+      description: Your regular DCA amount (will be adjusted by market conditions)
+      selector:
+        number:
+          min: 10
+          max: 10000
+          step: 10
+          unit_of_measurement: "€"
+      default: 100
+
+    notify_device:
+      name: Device to notify
+      selector:
+        device:
+          integration: mobile_app
+
+trigger:
+  - platform: time
+    at: !input time
+
+condition:
+  - condition: time
+    weekday:
+      - !input day_of_week
+
+action:
+  - service: notify.mobile_app_{{ device_attr('!input notify_device', 'name') | slugify }}
+    data:
+      title: "📅 Weekly DCA"
+      message: >-
+        {% set zone = states('sensor.crypto_inspect_dca_zone') %}
+        {% set signal = states('sensor.crypto_inspect_dca_signal') %}
+        {% set result = states('sensor.crypto_inspect_dca_result') %}
+        {% set fg = states('sensor.crypto_inspect_fear_greed') | int(50) %}
+        {% set base = !input base_amount | float %}
+
+        {% if fg < 20 %}
+          {% set multiplier = 2.0 %}
+        {% elif fg < 40 %}
+          {% set multiplier = 1.5 %}
+        {% elif fg < 60 %}
+          {% set multiplier = 1.0 %}
+        {% elif fg < 80 %}
+          {% set multiplier = 0.5 %}
+        {% else %}
+          {% set multiplier = 0.25 %}
+        {% endif %}
+
+        {% set amount = (base * multiplier) | round(0) %}
+
+        {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+        🗓 Время для еженедельной покупки!
+
+        📊 F&G: {{ fg }}
+        🎯 Зона: {{ zone }}
+        💡 Сигнал: {{ signal }}
+
+        💰 Рекомендуемая сумма: €{{ amount }}
+        (базовая €{{ base | int }} × {{ multiplier }})
+        {% else %}
+        🗓 Time for your weekly DCA!
+
+        📊 F&G: {{ fg }}
+        🎯 Zone: {{ zone }}
+        💡 Signal: {{ signal }}
+
+        💰 Recommended amount: €{{ amount }}
+        (base €{{ base | int }} × {{ multiplier }})
+        {% endif %}
+      data:
+        tag: dca_reminder
+        group: crypto_dca
+        actions:
+          - action: "OPEN_EXCHANGE"
+            title: "Open Exchange"
+
+mode: single

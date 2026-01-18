@@ -1,0 +1,125 @@
+# =============================================================================
+# Level 1: Quick Glance Dashboard - 4 tiles, 2 seconds to understand
+# =============================================================================
+# This is the simplest view showing only the most important information
+# Perfect for mobile or quick status checks
+#
+# Copy to your HA dashboard or include in a tabbed view
+# =============================================================================
+
+title: Crypto Summary
+icon: mdi:view-dashboard
+path: crypto-summary
+type: sections
+
+sections:
+  # Row 1: Main Status Cards
+  - type: grid
+    columns: 2
+    cards:
+      # Market Pulse Card
+      - type: custom:mushroom-template-card
+        primary: >-
+          {{ states('sensor.crypto_inspect_market_pulse') }}
+        secondary: >-
+          {{ state_attr('sensor.crypto_inspect_market_pulse', 'reason_ru') }}
+        icon: mdi:pulse
+        icon_color: >-
+          {% set sentiment = states('sensor.crypto_inspect_market_pulse') %}
+          {% if 'Бычий' in sentiment or 'Bullish' in sentiment %}green
+          {% elif 'Медвежий' in sentiment or 'Bearish' in sentiment %}red
+          {% else %}orange{% endif %}
+        badge_icon: >-
+          {% set conf = state_attr('sensor.crypto_inspect_market_pulse_confidence', 'value') | int(50) %}
+          {% if conf > 70 %}mdi:check-circle{% elif conf > 40 %}mdi:alert-circle{% else %}mdi:help-circle{% endif %}
+        tap_action:
+          action: more-info
+
+      # Portfolio Health Card
+      - type: custom:mushroom-template-card
+        primary: >-
+          {{ states('sensor.crypto_inspect_portfolio_health') }}
+        secondary: >-
+          Score: {{ states('sensor.crypto_inspect_portfolio_health_score') }}%
+        icon: mdi:shield-check
+        icon_color: >-
+          {% set score = states('sensor.crypto_inspect_portfolio_health_score') | int(50) %}
+          {% if score > 70 %}green{% elif score > 40 %}orange{% else %}red{% endif %}
+        tap_action:
+          action: more-info
+
+  # Row 2: Action & Alerts
+  - type: grid
+    columns: 2
+    cards:
+      # Today's Action Card
+      - type: custom:mushroom-template-card
+        primary: >-
+          {{ states('sensor.crypto_inspect_today_action') }}
+        secondary: >-
+          {{ state_attr('sensor.crypto_inspect_today_action', 'details_ru') }}
+        icon: mdi:clipboard-check
+        icon_color: >-
+          {% set priority = state_attr('sensor.crypto_inspect_today_action_priority', 'priority') %}
+          {% if priority == 'high' %}red{% elif priority == 'medium' %}orange{% else %}green{% endif %}
+        tap_action:
+          action: more-info
+
+      # Pending Alerts Card
+      - type: custom:mushroom-template-card
+        primary: >-
+          {% set count = states('sensor.crypto_inspect_pending_alerts_count') | int(0) %}
+          {% if count == 0 %}Нет оповещений
+          {% else %}{{ count }} оповещений{% endif %}
+        secondary: >-
+          {% set critical = states('sensor.crypto_inspect_pending_alerts_critical') | int(0) %}
+          {% if critical > 0 %}⚠️ {{ critical }} критических{% else %}Всё спокойно{% endif %}
+        icon: mdi:bell-badge
+        icon_color: >-
+          {% set critical = states('sensor.crypto_inspect_pending_alerts_critical') | int(0) %}
+          {% if critical > 0 %}red{% elif states('sensor.crypto_inspect_pending_alerts_count') | int(0) > 0 %}orange{% else %}green{% endif %}
+        tap_action:
+          action: navigate
+          navigation_path: /lovelace/crypto-detailed
+
+  # Row 3: Goal Progress (if enabled)
+  - type: conditional
+    conditions:
+      - entity: sensor.crypto_inspect_goal_progress
+        state_not: unavailable
+    card:
+      type: custom:mushroom-template-card
+      primary: >-
+        {{ state_attr('sensor.crypto_inspect_goal_status', 'goal_name_ru') }}
+      secondary: >-
+        {{ states('sensor.crypto_inspect_goal_progress') }} к цели
+      icon: mdi:trophy
+      icon_color: amber
+      layout: horizontal
+      multiline_secondary: false
+      fill_container: true
+
+  # Row 4: Quick Price Overview
+  - type: grid
+    columns: 3
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_prices
+        name: BTC
+        icon: mdi:bitcoin
+        primary_info: state
+        secondary_info: none
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_fear_greed
+        name: F&G
+        icon: mdi:emoticon-neutral
+        primary_info: state
+        secondary_info: none
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_btc_dominance
+        name: BTC.D
+        icon: mdi:crown
+        primary_info: state
+        secondary_info: none

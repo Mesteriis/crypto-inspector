@@ -1,0 +1,132 @@
+# =============================================================================
+# Evening Briefing Blueprint
+# =============================================================================
+# Sends a day-end summary with performance and tomorrow's preview
+#
+# Usage: Import into Home Assistant blueprints and configure notification service
+# =============================================================================
+
+blueprint:
+  name: "Crypto Evening Briefing / Вечерний брифинг"
+  description: >-
+    Send an evening summary with day's performance and tomorrow's preview.
+    Отправляет вечернюю сводку с результатами дня и прогнозом на завтра.
+  domain: automation
+  author: "Crypto Inspect Add-on"
+  source_url: "https://github.com/Mesteriis/crypto-inspector"
+
+  input:
+    notify_device:
+      name: "Notification Service / Сервис уведомлений"
+      description: >-
+        The notification service to use.
+        Сервис уведомлений для отправки.
+      selector:
+        text:
+      default: "notify.mobile_app"
+
+    send_time:
+      name: "Send Time / Время отправки"
+      description: >-
+        Time to send the evening briefing.
+        Время для отправки вечернего брифинга.
+      selector:
+        time:
+      default: "21:00:00"
+
+    language:
+      name: "Language / Язык"
+      description: >-
+        Notification language.
+        Язык уведомлений.
+      selector:
+        select:
+          options:
+            - label: "English"
+              value: "en"
+            - label: "Русский"
+              value: "ru"
+      default: "ru"
+
+    include_weekly_friday:
+      name: "Include Weekly Summary on Friday / Включать недельную сводку по пятницам"
+      description: >-
+        Add weekly summary section on Fridays.
+        Добавлять недельную сводку по пятницам.
+      selector:
+        boolean:
+      default: true
+
+trigger:
+  - platform: time
+    at: !input send_time
+
+condition: []
+
+action:
+  - variables:
+      lang: !input language
+      include_weekly: !input include_weekly_friday
+      is_friday: "{{ now().weekday() == 4 }}"
+      btc_price: "{{ states('sensor.crypto_inspect_prices') }}"
+      btc_change: "{{ state_attr('sensor.crypto_inspect_changes_24h', 'BTC/USDT') | default('N/A') }}"
+      portfolio_pnl: "{{ states('sensor.crypto_inspect_portfolio_pnl_24h') | default('N/A') }}"
+      alerts_count: "{{ states('sensor.crypto_inspect_pending_alerts_count') | int(0) }}"
+      risk_status: "{{ states('sensor.crypto_inspect_risk_status') }}"
+
+  - choose:
+      # Russian
+      - conditions:
+          - condition: template
+            value_template: "{{ lang == 'ru' }}"
+        sequence:
+          - service: !input notify_device
+            data:
+              title: "🌙 Добрый вечер! Дневная сводка"
+              message: >-
+                📊 Результаты дня:
+                BTC: ${{ btc_price }} ({{ btc_change }}%)
+                Портфель: {{ portfolio_pnl }}%
+
+                ⚠️ Риск: {{ risk_status }}
+                🔔 Оповещений: {{ alerts_count }}
+
+                {% if include_weekly and is_friday %}
+                📅 Недельная сводка:
+                {{ states('sensor.crypto_inspect_weekly_outlook') }}
+                {% endif %}
+
+                Хорошего вечера! 🌟
+              data:
+                group: "crypto-briefing"
+                tag: "evening-briefing"
+                importance: default
+
+      # English (default)
+      - conditions:
+          - condition: template
+            value_template: "{{ lang == 'en' }}"
+        sequence:
+          - service: !input notify_device
+            data:
+              title: "🌙 Good Evening! Daily Summary"
+              message: >-
+                📊 Day's Results:
+                BTC: ${{ btc_price }} ({{ btc_change }}%)
+                Portfolio: {{ portfolio_pnl }}%
+
+                ⚠️ Risk: {{ risk_status }}
+                🔔 Alerts: {{ alerts_count }}
+
+                {% if include_weekly and is_friday %}
+                📅 Weekly Summary:
+                {{ states('sensor.crypto_inspect_weekly_outlook') }}
+                {% endif %}
+
+                Have a great evening! 🌟
+              data:
+                group: "crypto-briefing"
+                tag: "evening-briefing"
+                importance: default
+
+mode: single

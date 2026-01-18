@@ -1,0 +1,90 @@
+# ==============================================================================
+# Crypto Inspect - Price Alert Blueprint
+# ==============================================================================
+# Sends notification when crypto price crosses a threshold
+# ==============================================================================
+
+blueprint:
+  name: Crypto Price Alert
+  description: Get notified when a cryptocurrency reaches your target price
+  domain: automation
+  source_url: https://github.com/Mesteriis/crypto-inspector/blob/main/blueprints/price_alert.yaml
+
+  input:
+    symbol:
+      name: Cryptocurrency
+      description: Which crypto to monitor
+      selector:
+        select:
+          options:
+            - BTC
+            - ETH
+            - SOL
+            - ADA
+            - XRP
+      default: BTC
+
+    condition:
+      name: Condition
+      description: When to trigger
+      selector:
+        select:
+          options:
+            - label: Above target
+              value: above
+            - label: Below target
+              value: below
+      default: above
+
+    target_price:
+      name: Target Price
+      description: Price threshold in USDT
+      selector:
+        number:
+          min: 0
+          max: 1000000
+          step: 1
+          unit_of_measurement: USDT
+      default: 100000
+
+    notify_device:
+      name: Device to notify
+      description: Mobile device for notifications
+      selector:
+        device:
+          integration: mobile_app
+
+trigger:
+  - platform: template
+    value_template: >-
+      {% set prices = states('sensor.crypto_inspect_prices') | from_json | default({}) %}
+      {% set symbol = '!input symbol' + '/USDT' %}
+      {% set price = prices.get(symbol, 0) | float(0) %}
+      {% set target = !input target_price | float(0) %}
+      {% set condition = '!input condition' %}
+      {% if condition == 'above' %}
+        {{ price > target }}
+      {% else %}
+        {{ price < target }}
+      {% endif %}
+
+condition: []
+
+action:
+  - service: notify.mobile_app_{{ device_attr('!input notify_device', 'name') | slugify }}
+    data:
+      title: "💰 Price Alert: !input symbol"
+      message: >-
+        {% set prices = states('sensor.crypto_inspect_prices') | from_json | default({}) %}
+        {% set symbol = '!input symbol' + '/USDT' %}
+        {% set price = prices.get(symbol, 0) | float(0) %}
+        {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+        !input symbol достиг ${{ price | round(0) }}!
+        {% else %}
+        !input symbol reached ${{ price | round(0) }}!
+        {% endif %}
+      data:
+        tag: crypto_price_!input symbol
+        group: crypto_alerts
+
+mode: single

@@ -1,6 +1,6 @@
 [project]
 name = "crypto-inspect"
-version = "0.1.0"
+version = "0.2.0"
 description = "Crypto inspection application"
 requires-python = ">=3.13"
 dependencies = [
@@ -20,6 +20,8 @@ dependencies = [
     "apscheduler>=3.10.0",
     "websockets>=12.0",
     "greenlet>=3.3.0",
+    "fastmcp>=2.0.0",
+    "yfinance>=0.2.0",
 ]
 
 [project.optional-dependencies]
@@ -39,12 +41,16 @@ build-backend = "hatchling.build"
 packages = ["src"]
 
 [tool.ruff]
-line-length = 100
+line-length = 120
 src = ["src"]
 exclude = ["alembic/versions/*", "crypto_analyzer/*"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
+ignore = ["E741", "UP038"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/services/analysis/explanations.py" = ["E501"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

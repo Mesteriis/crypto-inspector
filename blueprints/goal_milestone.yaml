@@ -1,0 +1,224 @@
+# =============================================================================
+# Goal Milestone Blueprint
+# =============================================================================
+# Celebrates goal milestones at 10%, 25%, 50%, 75%, 90%, and 100%
+#
+# Usage: Import into Home Assistant blueprints and configure notification service
+# =============================================================================
+
+blueprint:
+  name: "Crypto Goal Milestone / Этап цели"
+  description: >-
+    Celebrate portfolio goal milestones with notifications.
+    Отмечает достижение этапов финансовой цели уведомлениями.
+  domain: automation
+  author: "Crypto Inspect Add-on"
+  source_url: "https://github.com/Mesteriis/crypto-inspector"
+
+  input:
+    notify_device:
+      name: "Notification Service / Сервис уведомлений"
+      description: >-
+        The notification service to use.
+        Сервис уведомлений для отправки.
+      selector:
+        text:
+      default: "notify.mobile_app"
+
+    language:
+      name: "Language / Язык"
+      description: >-
+        Notification language.
+        Язык уведомлений.
+      selector:
+        select:
+          options:
+            - label: "English"
+              value: "en"
+            - label: "Русский"
+              value: "ru"
+      default: "ru"
+
+    milestone_10:
+      name: "Notify at 10% / Уведомлять на 10%"
+      selector:
+        boolean:
+      default: true
+
+    milestone_25:
+      name: "Notify at 25% / Уведомлять на 25%"
+      selector:
+        boolean:
+      default: true
+
+    milestone_50:
+      name: "Notify at 50% / Уведомлять на 50%"
+      selector:
+        boolean:
+      default: true
+
+    milestone_75:
+      name: "Notify at 75% / Уведомлять на 75%"
+      selector:
+        boolean:
+      default: true
+
+    milestone_90:
+      name: "Notify at 90% / Уведомлять на 90%"
+      selector:
+        boolean:
+      default: true
+
+    milestone_100:
+      name: "Notify at 100% / Уведомлять на 100%"
+      selector:
+        boolean:
+      default: true
+
+trigger:
+  - platform: numeric_state
+    entity_id: sensor.crypto_inspect_goal_progress
+    above: 10
+    id: "milestone_10"
+  - platform: numeric_state
+    entity_id: sensor.crypto_inspect_goal_progress
+    above: 25
+    id: "milestone_25"
+  - platform: numeric_state
+    entity_id: sensor.crypto_inspect_goal_progress
+    above: 50
+    id: "milestone_50"
+  - platform: numeric_state
+    entity_id: sensor.crypto_inspect_goal_progress
+    above: 75
+    id: "milestone_75"
+  - platform: numeric_state
+    entity_id: sensor.crypto_inspect_goal_progress
+    above: 90
+    id: "milestone_90"
+  - platform: numeric_state
+    entity_id: sensor.crypto_inspect_goal_progress
+    above: 100
+    id: "milestone_100"
+
+condition:
+  - condition: or
+    conditions:
+      - condition: and
+        conditions:
+          - condition: trigger
+            id: "milestone_10"
+          - condition: template
+            value_template: "{{ milestone_10 | default(true) }}"
+      - condition: and
+        conditions:
+          - condition: trigger
+            id: "milestone_25"
+          - condition: template
+            value_template: "{{ milestone_25 | default(true) }}"
+      - condition: and
+        conditions:
+          - condition: trigger
+            id: "milestone_50"
+          - condition: template
+            value_template: "{{ milestone_50 | default(true) }}"
+      - condition: and
+        conditions:
+          - condition: trigger
+            id: "milestone_75"
+          - condition: template
+            value_template: "{{ milestone_75 | default(true) }}"
+      - condition: and
+        conditions:
+          - condition: trigger
+            id: "milestone_90"
+          - condition: template
+            value_template: "{{ milestone_90 | default(true) }}"
+      - condition: and
+        conditions:
+          - condition: trigger
+            id: "milestone_100"
+          - condition: template
+            value_template: "{{ milestone_100 | default(true) }}"
+
+action:
+  - variables:
+      lang: !input language
+      progress: "{{ states('sensor.crypto_inspect_goal_progress') | float(0) | round(1) }}"
+      goal_name: "{{ state_attr('sensor.crypto_inspect_goal_target', 'goal_name') }}"
+      goal_name_ru: "{{ state_attr('sensor.crypto_inspect_goal_target', 'goal_name_ru') }}"
+      current: "{{ state_attr('sensor.crypto_inspect_goal_progress', 'current') | float(0) }}"
+      target: "{{ state_attr('sensor.crypto_inspect_goal_progress', 'target') | float(0) }}"
+      remaining: "{{ state_attr('sensor.crypto_inspect_goal_progress', 'remaining') | float(0) }}"
+      milestone: "{{ trigger.id | replace('milestone_', '') }}"
+
+  - variables:
+      emoji_map:
+        "10": "🌱"
+        "25": "📈"
+        "50": "🚀"
+        "75": "🌟"
+        "90": "🔥"
+        "100": "🏆"
+      emoji: "{{ emoji_map[milestone] | default('🎯') }}"
+
+  - choose:
+      # Russian
+      - conditions:
+          - condition: template
+            value_template: "{{ lang == 'ru' }}"
+        sequence:
+          - service: !input notify_device
+            data:
+              title: "{{ emoji }} Этап цели: {{ milestone }}%!"
+              message: >-
+                {% if milestone == '100' %}
+                🎉 Поздравляем! Вы достигли цели "{{ goal_name_ru }}"!
+
+                Итоговая сумма: ${{ current | round(2) }}
+
+                Это потрясающее достижение! 🏆
+                {% else %}
+                Вы достигли {{ milestone }}% цели "{{ goal_name_ru }}"!
+
+                Текущее: ${{ current | round(2) }}
+                Цель: ${{ target | round(2) }}
+                Осталось: ${{ remaining | round(2) }}
+
+                Продолжайте в том же духе! 💪
+                {% endif %}
+              data:
+                group: "crypto-goals"
+                tag: "goal-milestone-{{ milestone }}"
+                importance: high
+
+      # English (default)
+      - conditions:
+          - condition: template
+            value_template: "{{ lang == 'en' }}"
+        sequence:
+          - service: !input notify_device
+            data:
+              title: "{{ emoji }} Goal Milestone: {{ milestone }}%!"
+              message: >-
+                {% if milestone == '100' %}
+                🎉 Congratulations! You've achieved your "{{ goal_name }}" goal!
+
+                Final amount: ${{ current | round(2) }}
+
+                This is an amazing achievement! 🏆
+                {% else %}
+                You've reached {{ milestone }}% of your "{{ goal_name }}" goal!
+
+                Current: ${{ current | round(2) }}
+                Target: ${{ target | round(2) }}
+                Remaining: ${{ remaining | round(2) }}
+
+                Keep up the great work! 💪
+                {% endif %}
+              data:
+                group: "crypto-goals"
+                tag: "goal-milestone-{{ milestone }}"
+                importance: high
+
+mode: single

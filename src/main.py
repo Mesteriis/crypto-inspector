@@ -60,9 +60,7 @@ async def start_websocket_streaming() -> None:
 
     async def on_source_change(symbol: str, old_source, new_source) -> None:
         """Handle source change."""
-        logger.warning(
-            f"Stream source changed for {symbol}: {old_source.value} -> {new_source.value}"
-        )
+        logger.warning(f"Stream source changed for {symbol}: {old_source.value} -> {new_source.value}")
 
     await init_stream_manager(
         symbols=symbols,
@@ -83,6 +81,53 @@ async def stop_websocket_streaming() -> None:
     logger.info("WebSocket streaming stopped")
 
 
+async def start_mcp_server() -> None:
+    """Start MCP server if enabled."""
+    if not settings.MCP_ENABLED:
+        logger.info("MCP server disabled")
+        return
+
+    from services.mcp import start_mcp_server as _start_mcp_server
+
+    success = await _start_mcp_server()
+    if success:
+        logger.info(f"MCP server started on port {settings.MCP_PORT}")
+    else:
+        logger.warning("MCP server failed to start")
+
+
+async def stop_mcp_server() -> None:
+    """Stop MCP server."""
+    from services.mcp import stop_mcp_server as _stop_mcp_server
+
+    await _stop_mcp_server()
+
+
+async def run_initial_backfill() -> None:
+    """Run initial data backfill if enabled."""
+    if not settings.BACKFILL_ENABLED:
+        logger.info("Data backfill disabled")
+        return
+
+    from services.backfill import get_backfill_manager
+
+    logger.info("Checking for initial data backfill...")
+    manager = get_backfill_manager()
+
+    # Run backfill in background to not block startup
+    import asyncio
+
+    asyncio.create_task(_run_backfill_background(manager))
+
+
+async def _run_backfill_background(manager) -> None:
+    """Run backfill in background."""
+    try:
+        await manager.check_and_backfill()
+    except Exception as e:
+        logger.error(f"Backfill error: {e}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """Application lifespan manager."""
@@ -91,11 +136,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     # Start WebSocket streaming
     await start_websocket_streaming()
 
+    # Start MCP server
+    await start_mcp_server()
+
+    # Run initial backfill (background task)
+    await run_initial_backfill()
+
     # Start scheduler
     async with scheduler_lifespan(app):
         yield
 
-    # Stop WebSocket streaming
+    # Stop services
+    await stop_mcp_server()
     await stop_websocket_streaming()
 
     logger.info(f"{settings.APP_NAME} shutdown complete")

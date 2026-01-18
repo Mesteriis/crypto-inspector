@@ -1,0 +1,123 @@
+# =============================================================================
+# Daily Digest Blueprint
+# =============================================================================
+# Sends aggregated daily notifications at a specified time
+# Collects all non-critical alerts from the day and sends them as one message
+#
+# Usage: Import into Home Assistant blueprints and configure notification service
+# =============================================================================
+
+blueprint:
+  name: "Crypto Daily Digest / Ежедневный дайджест"
+  description: >-
+    Send a daily digest of all non-critical crypto alerts.
+    Отправляет ежедневный дайджест всех некритических крипто-оповещений.
+  domain: automation
+  author: "Crypto Inspect Add-on"
+  source_url: "https://github.com/Mesteriis/crypto-inspector"
+
+  input:
+    notify_device:
+      name: "Notification Service / Сервис уведомлений"
+      description: >-
+        The notification service to use.
+        Сервис уведомлений для отправки.
+      selector:
+        text:
+      default: "notify.mobile_app"
+
+    send_time:
+      name: "Send Time / Время отправки"
+      description: >-
+        Time to send the daily digest.
+        Время для отправки ежедневного дайджеста.
+      selector:
+        time:
+      default: "20:00:00"
+
+    language:
+      name: "Language / Язык"
+      description: >-
+        Notification language.
+        Язык уведомлений.
+      selector:
+        select:
+          options:
+            - label: "English"
+              value: "en"
+            - label: "Русский"
+              value: "ru"
+      default: "ru"
+
+    min_alerts:
+      name: "Minimum Alerts / Минимум оповещений"
+      description: >-
+        Minimum number of alerts to send digest (skip if fewer).
+        Минимальное количество оповещений для отправки дайджеста.
+      selector:
+        number:
+          min: 0
+          max: 20
+          mode: slider
+      default: 1
+
+trigger:
+  - platform: time
+    at: !input send_time
+
+condition:
+  - condition: numeric_state
+    entity_id: sensor.crypto_inspect_pending_alerts_count
+    above: !input min_alerts
+
+action:
+  - variables:
+      lang: !input language
+      pending: "{{ states('sensor.crypto_inspect_pending_alerts_count') | int(0) }}"
+      critical: "{{ states('sensor.crypto_inspect_pending_alerts_critical') | int(0) }}"
+      digest_ready: "{{ states('sensor.crypto_inspect_daily_digest_ready') }}"
+
+  - choose:
+      # Russian
+      - conditions:
+          - condition: template
+            value_template: "{{ lang == 'ru' }}"
+        sequence:
+          - service: !input notify_device
+            data:
+              title: "📊 Ежедневный крипто-дайджест"
+              message: >-
+                {{ pending }} оповещений за сегодня
+                {% if critical > 0 %}⚠️ {{ critical }} критических{% endif %}
+
+                {{ state_attr('sensor.crypto_inspect_market_pulse', 'reason_ru') }}
+
+                📈 Рынок: {{ states('sensor.crypto_inspect_market_pulse') }}
+                🎯 Действие: {{ states('sensor.crypto_inspect_today_action') }}
+              data:
+                group: "crypto-digest"
+                tag: "daily-digest"
+                importance: default
+
+      # English (default)
+      - conditions:
+          - condition: template
+            value_template: "{{ lang == 'en' }}"
+        sequence:
+          - service: !input notify_device
+            data:
+              title: "📊 Daily Crypto Digest"
+              message: >-
+                {{ pending }} alerts today
+                {% if critical > 0 %}⚠️ {{ critical }} critical{% endif %}
+
+                {{ state_attr('sensor.crypto_inspect_market_pulse', 'reason') }}
+
+                📈 Market: {{ states('sensor.crypto_inspect_market_pulse') }}
+                🎯 Action: {{ states('sensor.crypto_inspect_today_action') }}
+              data:
+                group: "crypto-digest"
+                tag: "daily-digest"
+                importance: default
+
+mode: single

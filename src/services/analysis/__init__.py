@@ -7,10 +7,19 @@ This package provides comprehensive cryptocurrency analysis:
 - Scoring Engine (composite recommendations)
 - On-Chain Metrics (Fear & Greed, etc.)
 - Derivatives Analysis (funding, OI)
+- Lazy Investor Analysis (signals for passive investors)
 """
 
 from services.analysis.cycles import CycleDetector, CycleInfo, CyclePhase
 from services.analysis.derivatives import DerivativesAnalyzer, DerivativesMetrics
+from services.analysis.investor import (
+    InvestorStatus,
+    LazyInvestorAnalyzer,
+    MarketPhase,
+    RedFlag,
+    RiskLevel,
+    get_investor_analyzer,
+)
 from services.analysis.onchain import OnChainAnalyzer, OnChainMetrics
 from services.analysis.patterns import DetectedPattern, PatternDetector
 from services.analysis.scoring import CompositeScore, ScoringEngine
@@ -36,4 +45,11 @@ __all__ = [
     # Derivatives
     "DerivativesAnalyzer",
     "DerivativesMetrics",
+    # Investor
+    "LazyInvestorAnalyzer",
+    "InvestorStatus",
+    "MarketPhase",
+    "RiskLevel",
+    "RedFlag",
+    "get_investor_analyzer",
 ]

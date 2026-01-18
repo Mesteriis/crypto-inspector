@@ -1,0 +1,86 @@
+# ==============================================================================
+# Crypto Inspect - Risk Alert Blueprint
+# ==============================================================================
+# Notifies when portfolio risk exceeds thresholds
+# ==============================================================================
+
+blueprint:
+  name: Portfolio Risk Alert
+  description: Get notified when portfolio risk metrics exceed safe levels
+  domain: automation
+  source_url: https://github.com/Mesteriis/crypto-inspector/blob/main/blueprints/risk_alert.yaml
+
+  input:
+    risk_level:
+      name: Risk Level Trigger
+      description: Minimum risk level to trigger alert
+      selector:
+        select:
+          options:
+            - label: High Risk
+              value: High
+            - label: Critical Risk
+              value: Critical
+      default: High
+
+    drawdown_threshold:
+      name: Drawdown Threshold
+      description: Alert when drawdown exceeds this percentage
+      selector:
+        number:
+          min: 5
+          max: 50
+          step: 5
+          unit_of_measurement: "%"
+      default: 20
+
+    notify_device:
+      name: Device to notify
+      selector:
+        device:
+          integration: mobile_app
+
+trigger:
+  - platform: state
+    entity_id: sensor.crypto_inspect_risk_status
+    to: !input risk_level
+
+  - platform: numeric_state
+    entity_id: sensor.crypto_inspect_portfolio_current_drawdown
+    above: !input drawdown_threshold
+
+condition: []
+
+action:
+  - service: notify.mobile_app_{{ device_attr('!input notify_device', 'name') | slugify }}
+    data:
+      title: "⚠️ Portfolio Risk Alert"
+      message: >-
+        {% set status = states('sensor.crypto_inspect_risk_status') %}
+        {% set dd = states('sensor.crypto_inspect_portfolio_current_drawdown') %}
+        {% set max_dd = states('sensor.crypto_inspect_portfolio_max_drawdown') %}
+        {% set var = states('sensor.crypto_inspect_portfolio_var_95') %}
+
+        {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+        🚨 Статус риска: {{ status }}
+
+        📉 Текущая просадка: {{ dd }}%
+        📊 Макс. просадка: {{ max_dd }}%
+        ⚡ VaR 95%: {{ var }}%
+
+        Рассмотрите снижение позиций или хеджирование.
+        {% else %}
+        🚨 Risk Status: {{ status }}
+
+        📉 Current Drawdown: {{ dd }}%
+        📊 Max Drawdown: {{ max_dd }}%
+        ⚡ VaR 95%: {{ var }}%
+
+        Consider reducing positions or hedging.
+        {% endif %}
+      data:
+        tag: crypto_risk
+        group: crypto_alerts
+        priority: high
+
+mode: single

@@ -1,0 +1,62 @@
+# ==============================================================================
+# Crypto Inspect - Portfolio Milestone Blueprint
+# ==============================================================================
+# Celebrates when portfolio reaches target value
+# ==============================================================================
+
+blueprint:
+  name: Portfolio Milestone
+  description: Get notified when your portfolio reaches a target value
+  domain: automation
+  source_url: https://github.com/Mesteriis/crypto-inspector/blob/main/blueprints/portfolio_milestone.yaml
+
+  input:
+    target_value:
+      name: Target Portfolio Value
+      description: Celebrate when portfolio exceeds this value
+      selector:
+        number:
+          min: 100
+          max: 1000000
+          step: 100
+          unit_of_measurement: USDT
+      default: 10000
+
+    notify_device:
+      name: Device to notify
+      selector:
+        device:
+          integration: mobile_app
+
+trigger:
+  - platform: numeric_state
+    entity_id: sensor.crypto_inspect_bybit_balance
+    above: !input target_value
+
+condition: []
+
+action:
+  - service: notify.mobile_app_{{ device_attr('!input notify_device', 'name') | slugify }}
+    data:
+      title: "🎉 Portfolio Milestone!"
+      message: >-
+        {% set balance = states('sensor.crypto_inspect_bybit_balance') | float | round(0) %}
+        {% set target = !input target_value %}
+
+        {% if is_state('input_select.crypto_notification_language', 'Russian') %}
+        Поздравляем! Ваш портфель достиг ${{ balance }}!
+
+        🎯 Цель: ${{ target }}
+        ✅ Достигнуто!
+        {% else %}
+        Congratulations! Your portfolio reached ${{ balance }}!
+
+        🎯 Target: ${{ target }}
+        ✅ Achieved!
+        {% endif %}
+      data:
+        tag: portfolio_milestone
+        group: crypto_portfolio
+        importance: high
+
+mode: single
