@@ -3,7 +3,7 @@
 
 name: "Crypto Inspect"
 description: "Сбор и анализ данных криптовалютных свечей"
-version: "0.2.3"
+version: "0.2.4"
 slug: "crypto_inspect"
 url: "https://github.com/Mesteriis/crypto-inspector"
 arch:
@@ -16,12 +16,10 @@ host_network: true
 panel_icon: "mdi:chart-line"
 panel_title: "Crypto Inspect"
 
-# Сервисы от других аддонов
 services:
   - mysql:want
   - mqtt:want
 
-# Порты для внешнего доступа
 ports:
   9999/tcp: 9999
   9998/tcp: 9998
@@ -29,74 +27,52 @@ ports_description:
   9999/tcp: "API порт для сенсоров Home Assistant"
   9998/tcp: "MCP сервер для интеграции с AI-агентами"
 
-# Настройки, отображаемые в UI аддона
+# Минимальные настройки - всё работает из коробки
 options:
-  api_port: 9999
-  database_type: "sqlite"
-  postgres_host: ""
-  postgres_port: 5432
-  postgres_database: "crypto_inspect"
-  postgres_username: ""
-  postgres_password: ""
-  redis_url: ""
-  log_level: "info"
   symbols:
     - "BTCUSDT"
     - "ETHUSDT"
-  fetch_interval_minutes: 60
-  analysis_enabled: true
-  analysis_interval_hours: 4
-  alert_on_strong_signals: true
-  alert_threshold_buy: 75
-  alert_threshold_sell: 25
-  bybit_api_key: ""
-  bybit_api_secret: ""
-  bybit_testnet: false
-  mcp_enabled: true
-  mcp_port: 9998
-  backfill_enabled: true
-  backfill_crypto_years: 10
-  backfill_traditional_years: 1
-  ai_enabled: false
-  ai_provider: "ollama"
-  openai_api_key: ""
-  ollama_host: "http://localhost:11434"
-  ollama_model: "llama3.2"
-  ai_analysis_interval_hours: 24
-  ai_language: "ru"
-  goal_enabled: false
-  goal_target_value: 100000
-  goal_name: "Финансовая свобода"
-  briefing_morning_enabled: true
-  briefing_evening_enabled: true
-  notification_mode: "smart"
 
+# Схема с дефолтами - все поля опциональны
 schema:
-  api_port: port
-  database_type: list(sqlite|postgres)
+  # === Основные ===
+  api_port: port?
+  log_level: list(debug|info|warning|error)?
+  symbols:
+    - str
+
+  # === База данных ===
+  database_type: list(sqlite|postgres)?
   postgres_host: str?
   postgres_port: port?
   postgres_database: str?
   postgres_username: str?
   postgres_password: password?
   redis_url: str?
-  log_level: list(debug|info|warning|error)
-  symbols:
-    - str
-  fetch_interval_minutes: int(1,1440)
+
+  # === Анализ рынка ===
+  fetch_interval_minutes: int(1,1440)?
   analysis_enabled: bool?
   analysis_interval_hours: int(1,24)?
   alert_on_strong_signals: bool?
   alert_threshold_buy: int(50,100)?
   alert_threshold_sell: int(0,50)?
+
+  # === Биржи ===
   bybit_api_key: password?
   bybit_api_secret: password?
   bybit_testnet: bool?
+
+  # === MCP Server ===
   mcp_enabled: bool?
   mcp_port: port?
+
+  # === Загрузка истории ===
   backfill_enabled: bool?
   backfill_crypto_years: int(1,15)?
   backfill_traditional_years: int(1,5)?
+
+  # === AI анализ ===
   ai_enabled: bool?
   ai_provider: list(ollama|openai)?
   openai_api_key: password?
@@ -104,6 +80,8 @@ schema:
   ollama_model: str?
   ai_analysis_interval_hours: int(1,168)?
   ai_language: list(en|ru)?
+
+  # === Цели и уведомления ===
   goal_enabled: bool?
   goal_target_value: int(1000,100000000)?
   goal_name: str?
@@ -111,7 +89,6 @@ schema:
   briefing_evening_enabled: bool?
   notification_mode: list(all|smart|digest_only|critical_only|silent)?
 
-# Маппинг директорий
 map:
   - config:ro
   - ssl:ro
