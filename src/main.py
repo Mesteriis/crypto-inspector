@@ -87,20 +87,26 @@ async def start_mcp_server() -> None:
         logger.info("MCP server disabled")
         return
 
-    from services.mcp import start_mcp_server as _start_mcp_server
+    try:
+        from services.mcp import start_mcp_server as _start_mcp_server
 
-    success = await _start_mcp_server()
-    if success:
-        logger.info(f"MCP server started on port {settings.MCP_PORT}")
-    else:
-        logger.warning("MCP server failed to start")
+        success = await _start_mcp_server()
+        if success:
+            logger.info(f"MCP server started on port {settings.MCP_PORT}")
+        else:
+            logger.warning("MCP server failed to start")
+    except ImportError as e:
+        logger.warning(f"MCP server not available (missing dependency): {e}")
 
 
 async def stop_mcp_server() -> None:
     """Stop MCP server."""
-    from services.mcp import stop_mcp_server as _stop_mcp_server
+    try:
+        from services.mcp import stop_mcp_server as _stop_mcp_server
 
-    await _stop_mcp_server()
+        await _stop_mcp_server()
+    except ImportError:
+        pass  # MCP not available
 
 
 async def run_initial_backfill() -> None:

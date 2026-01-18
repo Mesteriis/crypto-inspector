@@ -50,9 +50,8 @@ fi
 
 # === Торговые пары ===
 if bashio::config.has_value 'symbols'; then
-    # Get symbols as JSON array and convert to comma-separated string
-    SYMBOLS_JSON=$(bashio::config 'symbols')
-    export HA_SYMBOLS=$(echo "${SYMBOLS_JSON}" | jq -r 'if type == "array" then join(",") else . end' 2>/dev/null || echo "${SYMBOLS_JSON}")
+    # bashio returns array elements on separate lines, join with comma
+    export HA_SYMBOLS=$(bashio::config 'symbols' | tr '\n' ',' | sed 's/,$//')
 else
     export HA_SYMBOLS="BTCUSDT,ETHUSDT"
 fi
