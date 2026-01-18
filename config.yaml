@@ -3,9 +3,10 @@
 
 name: "Crypto Inspect"
 description: "Сбор и анализ данных криптовалютных свечей"
-version: "0.2.7"
+version: "0.2.8"
 slug: "crypto_inspect"
 url: "https://github.com/Mesteriis/crypto-inspector"
+init: false
 arch:
   - amd64
   - aarch64

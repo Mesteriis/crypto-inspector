@@ -1,0 +1,16 @@
+#!/command/with-contenv bashio
+# shellcheck shell=bash
+# ==============================================================================
+# Home Assistant Add-on: Crypto Inspect
+# Finish script - called when service stops
+# ==============================================================================
+
+declare exit_code=${1}
+declare signal=${2}
+
+bashio::log.info "Service stopped with exit code ${exit_code} (signal ${signal})"
+
+if [[ "${exit_code}" -ne 0 ]] && [[ "${exit_code}" -ne 256 ]]; then
+    bashio::log.warning "Service crashed, halting add-on"
+    /run/s6/basedir/bin/halt
+fi
