@@ -276,13 +276,15 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Get platform
+      - name: Get platform and base image
         id: platform
         run: |
           if [ "${{ matrix.arch }}" = "amd64" ]; then
             echo "platform=linux/amd64" >> $GITHUB_OUTPUT
+            echo "base_image=ghcr.io/home-assistant/amd64-base-python:3.13-alpine3.21" >> $GITHUB_OUTPUT
           else
             echo "platform=linux/arm64" >> $GITHUB_OUTPUT
+            echo "base_image=ghcr.io/home-assistant/aarch64-base-python:3.13-alpine3.21" >> $GITHUB_OUTPUT
           fi
 
       - name: Test build HA add-on
@@ -294,6 +296,8 @@ jobs:
           push: false
           load: true
           tags: test-build:${{ matrix.arch }}
+          build-args: |
+            BUILD_FROM=${{ steps.platform.outputs.base_image }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -489,13 +493,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get platform
+      - name: Get platform and base image
         id: platform
         run: |
           if [ "${{ matrix.arch }}" = "amd64" ]; then
             echo "platform=linux/amd64" >> $GITHUB_OUTPUT
+            echo "base_image=ghcr.io/home-assistant/amd64-base-python:3.13-alpine3.21" >> $GITHUB_OUTPUT
           else
             echo "platform=linux/arm64" >> $GITHUB_OUTPUT
+            echo "base_image=ghcr.io/home-assistant/aarch64-base-python:3.13-alpine3.21" >> $GITHUB_OUTPUT
           fi
 
       - name: Build and push HA add-on
@@ -508,6 +514,8 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.arch }}:${{ needs.create-release.outputs.version }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.arch }}:latest
+          build-args: |
+            BUILD_FROM=${{ steps.platform.outputs.base_image }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
