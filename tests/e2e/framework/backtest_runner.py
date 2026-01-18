@@ -368,7 +368,7 @@ class BacktestRunner:
 
             if len(self._candles) < self.config.min_candles_for_analysis:
                 run.errors.append(
-                    f"Insufficient data: {len(self._candles)} candles, " f"need {self.config.min_candles_for_analysis}"
+                    f"Insufficient data: {len(self._candles)} candles, need {self.config.min_candles_for_analysis}"
                 )
                 run.end_time = datetime.now(UTC)
                 return run
