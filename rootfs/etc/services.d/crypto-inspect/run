@@ -5,8 +5,6 @@
 # Runs the Crypto Inspect application
 # ==============================================================================
 
-set -e
-
 bashio::log.info "Starting Crypto Inspect add-on..."
 
 # === Основные настройки с дефолтами ===
@@ -123,7 +121,7 @@ cd /app
 
 bashio::log.info "Initializing database..."
 if [[ "${DB_TYPE}" == "sqlite" ]]; then
-    python -c "
+    python3 -c "
 from db.base import Base
 from sqlalchemy import create_engine
 engine = create_engine('sqlite:////data/crypto_inspect.db')
@@ -136,7 +134,7 @@ else
 fi
 
 bashio::log.info "Starting server on port ${API_PORT}..."
-exec python -m uvicorn main:app \
+exec python3 -m uvicorn main:app \
     --host 0.0.0.0 \
     --port "${API_PORT}" \
     --log-level "${LOG_LEVEL}"
