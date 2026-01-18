@@ -51,6 +51,7 @@ ignore = ["E741", "UP038"]
 
 [tool.ruff.lint.per-file-ignores]
 "src/services/analysis/explanations.py" = ["E501"]
+"scripts/generate_docs.py" = ["E501"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
