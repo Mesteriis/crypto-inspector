@@ -1,8 +1,11 @@
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from api.router import api_router
 from core.config import settings
@@ -172,7 +175,16 @@ app = FastAPI(
 
 app.include_router(api_router)
 
+# Static files for web UI
+static_dir = Path(__file__).parent / "static"
+if static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
 
 @app.get("/")
 async def root():
+    """Serve web UI."""
+    index_file = static_dir / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
     return {"message": f"Welcome to {settings.APP_NAME}"}

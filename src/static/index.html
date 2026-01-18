@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Inspect</title>
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --success: #34a853;
+            --warning: #fbbc04;
+            --danger: #ea4335;
+            --bg: #1e1e2e;
+            --surface: #2d2d3f;
+            --text: #ffffff;
+            --text-secondary: #a0a0b0;
+            --border: #3d3d4f;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: var(--surface);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .status {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .tabs {
+            display: flex;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0 1rem;
+        }
+
+        .tab {
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            color: var(--text);
+            background: rgba(255,255,255,0.05);
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .content {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Sensors Grid */
+        .sensors-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .sensor-card {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 1.25rem;
+            border: 1px solid var(--border);
+        }
+
+        .sensor-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .sensor-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: rgba(26, 115, 232, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .sensor-name {
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .sensor-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .sensor-unit {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .sensor-updated {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        /* Status colors */
+        .status-online { color: var(--success); }
+        .status-warning { color: var(--warning); }
+        .status-error { color: var(--danger); }
+
+        /* API Docs */
+        .api-section {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border);
+        }
+
+        .api-endpoint {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .method {
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .method.get { background: rgba(52, 168, 83, 0.2); color: var(--success); }
+        .method.post { background: rgba(26, 115, 232, 0.2); color: var(--primary); }
+
+        .endpoint-path {
+            font-family: monospace;
+            font-size: 1rem;
+        }
+
+        code {
+            background: var(--bg);
+            padding: 0.125rem 0.5rem;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
+        /* Dashboard embed */
+        .dashboard-frame {
+            width: 100%;
+            height: calc(100vh - 200px);
+            border: none;
+            border-radius: 12px;
+            background: var(--surface);
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            color: var(--text-secondary);
+        }
+
+        .refresh-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+
+        .refresh-btn:hover {
+            background: #1557b0;
+        }
+
+        h2 {
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+
+        h3 {
+            margin: 1rem 0 0.5rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .external-link {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .external-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">📊 Crypto Inspect</div>
+        <div class="status">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">Подключение...</span>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" data-tab="sensors">🔢 Сенсоры</div>
+        <div class="tab" data-tab="dashboard">📈 Dashboard</div>
+        <div class="tab" data-tab="api">🔧 API</div>
+    </div>
+
+    <div class="content">
+        <!-- Sensors Tab -->
+        <div class="tab-content active" id="sensors">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2>Состояние сенсоров</h2>
+                <button class="refresh-btn" onclick="loadSensors()">🔄 Обновить</button>
+            </div>
+            <div class="sensors-grid" id="sensorsGrid">
+                <div class="loading">Загрузка сенсоров...</div>
+            </div>
+        </div>
+
+        <!-- Dashboard Tab -->
+        <div class="tab-content" id="dashboard">
+            <h2>Dashboard Configuration</h2>
+            <p style="margin-bottom: 1rem;">
+                Полная документация доступна на
+                <a href="https://mesteriis.github.io/crypto-inspector/" target="_blank" class="external-link">
+                    GitHub Pages
+                </a>
+            </p>
+            <iframe
+                src="https://mesteriis.github.io/crypto-inspector/"
+                class="dashboard-frame"
+                title="Crypto Inspect Dashboard"
+            ></iframe>
+        </div>
+
+        <!-- API Tab -->
+        <div class="tab-content" id="api">
+            <h2>API Endpoints</h2>
+
+            <div class="api-section">
+                <h3>Health</h3>
+                <div class="api-endpoint">
+                    <span class="method get">GET</span>
+                    <span class="endpoint-path">/health</span>
+                </div>
+                <p>Проверка состояния сервиса</p>
+            </div>
+
+            <div class="api-section">
+                <h3>Сенсоры</h3>
+                <div class="api-endpoint">
+                    <span class="method get">GET</span>
+                    <span class="endpoint-path">/sensors</span>
+                </div>
+                <p>Все данные сенсоров для REST интеграции с Home Assistant</p>
+
+                <div class="api-endpoint" style="margin-top: 1rem;">
+                    <span class="method get">GET</span>
+                    <span class="endpoint-path">/sensors/ha-config</span>
+                </div>
+                <p>Пример конфигурации для configuration.yaml</p>
+            </div>
+
+            <div class="api-section">
+                <h3>Рынок</h3>
+                <div class="api-endpoint">
+                    <span class="method get">GET</span>
+                    <span class="endpoint-path">/summary/market-pulse</span>
+                </div>
+                <p>Текущий пульс рынка (бычий/медвежий/нейтральный)</p>
+
+                <div class="api-endpoint" style="margin-top: 1rem;">
+                    <span class="method get">GET</span>
+                    <span class="endpoint-path">/summary/today-action</span>
+                </div>
+                <p>Рекомендуемое действие на сегодня</p>
+            </div>
+
+            <div class="api-section">
+                <h3>Инвестор</h3>
+                <div class="api-endpoint">
+                    <span class="method get">GET</span>
+                    <span class="endpoint-path">/investor/status</span>
+                </div>
+                <p>Статус "Ленивого инвестора" - можно ли ничего не делать</p>
+
+                <div class="api-endpoint" style="margin-top: 1rem;">
+                    <span class="method get">GET</span>
+                    <span class="endpoint-path">/investor/phase</span>
+                </div>
+                <p>Текущая фаза рыночного цикла</p>
+            </div>
+
+            <div class="api-section">
+                <h3>Свечи</h3>
+                <div class="api-endpoint">
+                    <span class="method get">GET</span>
+                    <span class="endpoint-path">/candles/{symbol}</span>
+                </div>
+                <p>Исторические свечи для символа. Параметры: <code>interval</code>, <code>limit</code></p>
+            </div>
+
+            <div class="api-section">
+                <h3>OpenAPI</h3>
+                <p>Полная документация API доступна по адресу <a href="/docs" class="external-link">/docs</a> (Swagger UI)</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // Load sensors
+        async function loadSensors() {
+            const grid = document.getElementById('sensorsGrid');
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+
+            try {
+                // Fetch multiple endpoints
+                const [sensorsRes, healthRes, investorRes, marketRes] = await Promise.all([
+                    fetch('/sensors').catch(() => null),
+                    fetch('/health').catch(() => null),
+                    fetch('/investor/status').catch(() => null),
+                    fetch('/summary/market-pulse').catch(() => null),
+                ]);
+
+                const sensors = sensorsRes ? await sensorsRes.json() : {};
+                const health = healthRes ? await healthRes.json() : {};
+                const investor = investorRes ? await investorRes.json() : {};
+                const market = marketRes ? await marketRes.json() : {};
+
+                statusDot.style.background = '#34a853';
+                statusText.textContent = 'Онлайн';
+
+                const cards = [
+                    {
+                        name: 'Статус',
+                        value: sensors.status || 'online',
+                        icon: '✅',
+                        class: 'status-online'
+                    },
+                    {
+                        name: 'Буфер',
+                        value: sensors.buffer_size || 0,
+                        unit: 'свечей',
+                        icon: '💾'
+                    },
+                    {
+                        name: 'Сохранено',
+                        value: sensors.flushed_total || 0,
+                        unit: 'свечей',
+                        icon: '📊'
+                    },
+                    {
+                        name: 'Do Nothing OK',
+                        value: investor.do_nothing_ok?.state || '—',
+                        icon: '🧘',
+                        class: investor.do_nothing_ok?.state === 'Да' ? 'status-online' : ''
+                    },
+                    {
+                        name: 'Фаза рынка',
+                        value: investor.phase?.name_ru || '—',
+                        icon: '📈'
+                    },
+                    {
+                        name: 'Market Pulse',
+                        value: market.sentiment_ru || '—',
+                        icon: '💓'
+                    },
+                    {
+                        name: 'Fear & Greed',
+                        value: investor.fear_greed?.value || '—',
+                        icon: '😰'
+                    },
+                    {
+                        name: 'Ошибки буфера',
+                        value: sensors.errors_total || 0,
+                        icon: '⚠️',
+                        class: sensors.errors_total > 0 ? 'status-error' : ''
+                    },
+                ];
+
+                grid.innerHTML = cards.map(card => `
+                    <div class="sensor-card">
+                        <div class="sensor-header">
+                            <div class="sensor-icon">${card.icon}</div>
+                            <div class="sensor-name">${card.name}</div>
+                        </div>
+                        <div class="sensor-value ${card.class || ''}">${card.value}</div>
+                        ${card.unit ? `<div class="sensor-unit">${card.unit}</div>` : ''}
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                console.error('Failed to load sensors:', error);
+                statusDot.style.background = '#ea4335';
+                statusText.textContent = 'Ошибка подключения';
+                grid.innerHTML = '<div class="loading">Ошибка загрузки сенсоров</div>';
+            }
+        }
+
+        // Initial load
+        loadSensors();
+
+        // Auto-refresh every 30 seconds
+        setInterval(loadSensors, 30000);
+    </script>
+</body>
+</html>

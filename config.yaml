@@ -3,7 +3,7 @@
 
 name: "Crypto Inspect"
 description: "Сбор и анализ данных криптовалютных свечей"
-version: "0.2.13"
+version: "0.2.14"
 slug: "crypto_inspect"
 url: "https://github.com/Mesteriis/crypto-inspector"
 init: false
@@ -30,7 +30,7 @@ ports_description:
 
 # Минимальные настройки - всё работает из коробки
 options:
-  mcp_enabled: false
+  mcp_enabled: true
   symbols:
     # === Основные ===
     - "BTCUSDT"    # Bitcoin - цифровое золото

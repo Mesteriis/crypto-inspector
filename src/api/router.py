@@ -13,6 +13,7 @@ from api.routes import (
     health,
     investor,
     portfolio,
+    sensors,
     signals,
     streaming,
     summary,
@@ -34,3 +35,4 @@ api_router.include_router(briefing.router)
 api_router.include_router(goals.router)
 api_router.include_router(ai.router)
 api_router.include_router(backtest.router)
+api_router.include_router(sensors.router)

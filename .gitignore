@@ -47,3 +47,4 @@ Thumbs.db
 
 # Generated docs (built in CI)
 docs/
+*.log
