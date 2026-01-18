@@ -37,8 +37,9 @@ COPY alembic.ini ./
 # Copy rootfs (s6-overlay service scripts)
 COPY rootfs /
 
-# Make run script executable
-RUN chmod a+x /etc/services.d/crypto-inspect/run
+# Make scripts executable
+RUN chmod a+x /etc/services.d/crypto-inspect/run \
+    && chmod a+x /etc/services.d/crypto-inspect/finish
 
 # Build arguments
 ARG BUILD_ARCH

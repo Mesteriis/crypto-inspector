@@ -3,7 +3,7 @@
 
 name: "Crypto Inspect"
 description: "Сбор и анализ данных криптовалютных свечей"
-version: "0.2.4"
+version: "0.2.5"
 slug: "crypto_inspect"
 url: "https://github.com/Mesteriis/crypto-inspector"
 arch:
@@ -30,8 +30,21 @@ ports_description:
 # Минимальные настройки - всё работает из коробки
 options:
   symbols:
+    # Основные
     - "BTCUSDT"
     - "ETHUSDT"
+    # Layer 1
+    - "SOLUSDT"
+    - "TONUSDT"
+    - "ARUSDT"
+    - "AVAXUSDT"
+    # AI проекты
+    - "RENDERUSDT"
+    - "FETUSDT"
+    - "AGIXUSDT"
+    - "OCEANUSDT"
+    - "TABORUSDT"
+    - "WLDUSDT"
 
 # Схема с дефолтами - все поля опциональны
 schema:
