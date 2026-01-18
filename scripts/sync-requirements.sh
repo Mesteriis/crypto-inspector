@@ -22,26 +22,41 @@ with open("pyproject.toml", "rb") as f:
 # Get dependencies
 deps = data.get("project", {}).get("dependencies", [])
 
-# Group dependencies by category
+# Categories with their keywords
+categories = [
+    ("Core web framework", ["fastapi", "uvicorn"]),
+    ("Database", ["sqlalchemy", "alembic", "asyncpg", "psycopg", "aiosqlite"]),
+    ("Task queue (optional for HA)", ["celery", "redis"]),
+    ("Data validation", ["pydantic"]),
+    ("Utilities", ["dotenv", "httpx", "apscheduler"]),
+    ("MCP Server", ["fastmcp", "mcp"]),
+    ("Crypto & Finance", ["ccxt", "yfinance", "pandas", "numpy", "ta"]),
+    ("AI & LLM", ["openai", "ollama", "langchain", "anthropic"]),
+    ("HTTP & Network", ["aiohttp", "websockets", "requests"]),
+]
+
 output = []
 output.append("# Auto-generated from pyproject.toml - do not edit manually")
 output.append("# Run: make sync-requirements")
 output.append("")
-output.append("# Core web framework")
-output.extend([d for d in deps if any(x in d.lower() for x in ["fastapi", "uvicorn"])])
-output.append("")
-output.append("# Database")
-output.extend([d for d in deps if any(x in d.lower() for x in ["sqlalchemy", "alembic", "asyncpg", "psycopg", "aiosqlite"])])
-output.append("")
-output.append("# Task queue (optional for HA)")
-output.extend([d for d in deps if any(x in d.lower() for x in ["celery", "redis"])])
-output.append("")
-output.append("# Data validation")
-output.extend([d for d in deps if "pydantic" in d.lower()])
-output.append("")
-output.append("# Utilities")
-output.extend([d for d in deps if any(x in d.lower() for x in ["dotenv", "httpx", "apscheduler"])])
-output.append("")
+
+used_deps = set()
+
+# Process categorized deps
+for category, keywords in categories:
+    matches = [d for d in deps if d not in used_deps and any(x in d.lower() for x in keywords)]
+    if matches:
+        output.append(f"# {category}")
+        output.extend(matches)
+        used_deps.update(matches)
+        output.append("")
+
+# Add remaining deps that weren't categorized
+remaining = [d for d in deps if d not in used_deps]
+if remaining:
+    output.append("# Other dependencies")
+    output.extend(remaining)
+    output.append("")
 
 # Write requirements.txt
 with open("requirements.txt.tmp", "w") as f:

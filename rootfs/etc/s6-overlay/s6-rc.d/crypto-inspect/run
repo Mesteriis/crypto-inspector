@@ -76,7 +76,7 @@ if bashio::config.has_value 'bybit_api_key'; then
 fi
 
 # === MCP Server ===
-export MCP_ENABLED=$(bashio::config 'mcp_enabled' 'true')
+export MCP_ENABLED=$(bashio::config 'mcp_enabled' 'false')
 export MCP_PORT=$(bashio::config 'mcp_port' '9998')
 
 # === Backfill ===

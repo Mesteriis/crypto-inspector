@@ -24,3 +24,15 @@ pydantic-settings>=2.6.0
 python-dotenv>=1.0.1
 httpx>=0.28.0
 apscheduler>=3.10.0
+
+# MCP Server
+fastmcp>=2.0.0
+
+# Crypto & Finance
+yfinance>=0.2.0
+
+# HTTP & Network
+websockets>=12.0
+
+# Other dependencies
+greenlet>=3.3.0
