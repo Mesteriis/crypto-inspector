@@ -182,10 +182,7 @@ class BaseExchange(ABC):
         client = await self.get_client()
 
         try:
-            logger.debug(
-                f"[{self.EXCHANGE_NAME}] Making {method} request to {endpoint} "
-                f"with params: {params}"
-            )
+            logger.debug(f"[{self.EXCHANGE_NAME}] Making {method} request to {endpoint} with params: {params}")
 
             response = await client.request(method, endpoint, params=params)
 

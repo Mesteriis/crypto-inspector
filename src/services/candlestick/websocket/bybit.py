@@ -112,9 +112,7 @@ class BybitWebSocketStream(BaseWebSocketStream):
                 low_price=self._safe_decimal(kline["low"]),
                 close_price=self._safe_decimal(kline["close"]),
                 volume=self._safe_decimal(kline["volume"]),
-                quote_volume=self._safe_decimal(kline["turnover"])
-                if kline.get("turnover")
-                else None,
+                quote_volume=self._safe_decimal(kline["turnover"]) if kline.get("turnover") else None,
             )
 
             # confirm=true means candle is closed

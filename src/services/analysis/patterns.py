@@ -232,59 +232,37 @@ class PatternDetector:
         # 1. Golden/Death Cross
         if sma_50 and sma_200 and prev_sma_50 and prev_sma_200:
             if prev_sma_50 <= prev_sma_200 and sma_50 > sma_200:
-                patterns.append(
-                    self._create_pattern(PatternType.GOLDEN_CROSS, current_price, current_ts, 80)
-                )
+                patterns.append(self._create_pattern(PatternType.GOLDEN_CROSS, current_price, current_ts, 80))
             elif prev_sma_50 >= prev_sma_200 and sma_50 < sma_200:
-                patterns.append(
-                    self._create_pattern(PatternType.DEATH_CROSS, current_price, current_ts, 80)
-                )
+                patterns.append(self._create_pattern(PatternType.DEATH_CROSS, current_price, current_ts, 80))
 
         # 2. RSI Extremes
         rsi = self.ta.calc_rsi(closes)
         if rsi:
             if rsi < 30:
                 strength = 100 - (rsi / 30 * 100)  # Lower RSI = stronger signal
-                patterns.append(
-                    self._create_pattern(
-                        PatternType.RSI_OVERSOLD, current_price, current_ts, strength
-                    )
-                )
+                patterns.append(self._create_pattern(PatternType.RSI_OVERSOLD, current_price, current_ts, strength))
             elif rsi > 70:
                 strength = ((rsi - 70) / 30) * 100  # Higher RSI = stronger signal
-                patterns.append(
-                    self._create_pattern(
-                        PatternType.RSI_OVERBOUGHT, current_price, current_ts, strength
-                    )
-                )
+                patterns.append(self._create_pattern(PatternType.RSI_OVERBOUGHT, current_price, current_ts, strength))
 
         # 3. Bollinger Breakouts
         bb_upper, bb_middle, bb_lower, bb_pos = self.ta.calc_bollinger_bands(closes)
         if bb_upper and bb_lower:
             if current_price > bb_upper:
-                patterns.append(
-                    self._create_pattern(PatternType.BB_BREAKOUT_UP, current_price, current_ts, 60)
-                )
+                patterns.append(self._create_pattern(PatternType.BB_BREAKOUT_UP, current_price, current_ts, 60))
             elif current_price < bb_lower:
-                patterns.append(
-                    self._create_pattern(
-                        PatternType.BB_BREAKOUT_DOWN, current_price, current_ts, 60
-                    )
-                )
+                patterns.append(self._create_pattern(PatternType.BB_BREAKOUT_DOWN, current_price, current_ts, 60))
 
         # 4. Trend Streaks (5+ consecutive days)
         streak = self._count_streak(closes[-10:])
         if streak >= 5:
             patterns.append(
-                self._create_pattern(
-                    PatternType.BULLISH_TREND, current_price, current_ts, min(100, streak * 15)
-                )
+                self._create_pattern(PatternType.BULLISH_TREND, current_price, current_ts, min(100, streak * 15))
             )
         elif streak <= -5:
             patterns.append(
-                self._create_pattern(
-                    PatternType.BEARISH_TREND, current_price, current_ts, min(100, abs(streak) * 15)
-                )
+                self._create_pattern(PatternType.BEARISH_TREND, current_price, current_ts, min(100, abs(streak) * 15))
             )
 
         # 5. Higher Highs / Lower Lows
@@ -296,15 +274,11 @@ class PatternDetector:
 
         if hh_count >= 3:
             patterns.append(
-                self._create_pattern(
-                    PatternType.HIGHER_HIGHS, current_price, current_ts, min(100, hh_count * 20)
-                )
+                self._create_pattern(PatternType.HIGHER_HIGHS, current_price, current_ts, min(100, hh_count * 20))
             )
         if ll_count >= 3:
             patterns.append(
-                self._create_pattern(
-                    PatternType.LOWER_LOWS, current_price, current_ts, min(100, ll_count * 20)
-                )
+                self._create_pattern(PatternType.LOWER_LOWS, current_price, current_ts, min(100, ll_count * 20))
             )
 
         # 6. Double Top / Double Bottom
@@ -414,12 +388,7 @@ class PatternDetector:
         # Find local minima for double bottom
         troughs = []
         for i in range(2, len(lows) - 2):
-            if (
-                lows[i] < lows[i - 1]
-                and lows[i] < lows[i - 2]
-                and lows[i] < lows[i + 1]
-                and lows[i] < lows[i + 2]
-            ):
+            if lows[i] < lows[i - 1] and lows[i] < lows[i - 2] and lows[i] < lows[i + 1] and lows[i] < lows[i + 2]:
                 troughs.append((i, lows[i]))
 
         # Check for double bottom

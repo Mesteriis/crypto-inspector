@@ -136,7 +136,7 @@ class WhaleData:
 
     def _get_summary(self) -> str:
         """Get English summary."""
-        return f"{self.transactions_24h} whale txs (24h), " f"Net flow: {self._format_usd(self.net_flow_usd)}"
+        return f"{self.transactions_24h} whale txs (24h), Net flow: {self._format_usd(self.net_flow_usd)}"
 
     def _get_summary_ru(self) -> str:
         """Get Russian summary."""

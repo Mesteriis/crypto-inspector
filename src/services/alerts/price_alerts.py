@@ -287,7 +287,7 @@ class PriceAlertManager:
                 alert.trigger(current_price)
                 triggered.append((alert, current_price))
                 logger.info(
-                    f"Alert triggered: {alert.id} - {alert.symbol} " f"{alert.alert_type.value} at ${current_price}"
+                    f"Alert triggered: {alert.id} - {alert.symbol} {alert.alert_type.value} at ${current_price}"
                 )
 
         # Update price cache

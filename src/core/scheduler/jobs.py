@@ -196,8 +196,7 @@ async def fetch_and_save_candlesticks(
         # Retry logic
         if retry_count < MAX_RETRIES:
             logger.info(
-                f"Retrying {symbol} {interval_str} in {RETRY_DELAY_SECONDS}s "
-                f"(attempt {retry_count + 1}/{MAX_RETRIES})"
+                f"Retrying {symbol} {interval_str} in {RETRY_DELAY_SECONDS}s (attempt {retry_count + 1}/{MAX_RETRIES})"
             )
             await asyncio.sleep(RETRY_DELAY_SECONDS)
             return await fetch_and_save_candlesticks(symbol, interval_str, retry_count + 1)
@@ -377,17 +376,13 @@ async def market_analysis_job() -> None:
                     "action": score.action,
                 }
 
-                logger.info(
-                    f"{symbol}: Score={score.total_score:.0f}, " f"Signal={score.signal}, Action={score.action}"
-                )
+                logger.info(f"{symbol}: Score={score.total_score:.0f}, Signal={score.signal}, Action={score.action}")
 
                 # Alert on strong signals
                 if score.action in ["strong_buy", "strong_sell"]:
                     await notify(
                         message=(
-                            f"{symbol} {score.signal_ru}\n"
-                            f"Score: {score.total_score:.0f}/100\n"
-                            f"{score.recommendation_ru}"
+                            f"{symbol} {score.signal_ru}\nScore: {score.total_score:.0f}/100\n{score.recommendation_ru}"
                         ),
                         title=f"Crypto Alert - {symbol}",
                         notification_id=f"crypto_alert_{symbol.lower()}",
@@ -403,7 +398,7 @@ async def market_analysis_job() -> None:
         await derivatives.close()
 
     duration = time.time() - start_time
-    logger.info(f"[{current_time}] Market analysis completed in {duration:.1f}s, " f"analyzed {len(results)} items")
+    logger.info(f"[{current_time}] Market analysis completed in {duration:.1f}s, analyzed {len(results)} items")
 
 
 async def investor_analysis_job() -> None:
@@ -553,7 +548,7 @@ async def investor_analysis_job() -> None:
         # Alert on phase transitions to extreme phases
         if status.phase.value in ["euphoria", "capitulation"]:
             try:
-                phase_msg = f"Рынок в фазе: {status._get_phase_name_ru()}\n" f"{status.phase_description_ru}"
+                phase_msg = f"Рынок в фазе: {status._get_phase_name_ru()}\n{status.phase_description_ru}"
                 await notify(
                     message=phase_msg,
                     title=f"📉 Crypto: {status._get_phase_name_ru()}",
@@ -618,7 +613,7 @@ async def stablecoin_job() -> None:
 
     try:
         data = await analyzer.analyze()
-        logger.info(f"Stablecoins: total={data.total_market_cap/1e9:.1f}B, " f"flow_24h={data.flow_24h_percent:.2f}%")
+        logger.info(f"Stablecoins: total={data.total_market_cap / 1e9:.1f}B, flow_24h={data.flow_24h_percent:.2f}%")
 
         # Update MQTT sensors
         await sensors.publish_sensor("stablecoin_total", round(data.total_market_cap / 1e9, 2))
@@ -649,9 +644,7 @@ async def gas_tracker_job() -> None:
 
     try:
         data = await tracker.get_gas_prices()
-        logger.info(
-            f"Gas prices: slow={data.slow}, standard={data.standard}, " f"fast={data.fast}, status={data.status}"
-        )
+        logger.info(f"Gas prices: slow={data.slow}, standard={data.standard}, fast={data.fast}, status={data.status}")
 
         # Update MQTT sensors
         await sensors.publish_sensor("eth_gas_slow", data.slow)
@@ -787,9 +780,7 @@ async def liquidation_job() -> None:
         if data.risk_level == "High":
             await notify(
                 message=(
-                    f"Высокий риск ликвидаций!\n"
-                    f"Long: ${data.long_nearest:,.0f}\n"
-                    f"Short: ${data.short_nearest:,.0f}"
+                    f"Высокий риск ликвидаций!\nLong: ${data.long_nearest:,.0f}\nShort: ${data.short_nearest:,.0f}"
                 ),
                 title="⚠️ Высокий риск ликвидаций",
                 notification_id="liquidation_high_risk",
@@ -1292,7 +1283,7 @@ async def profit_taking_job() -> None:
         if analysis.tp_levels:
             tp_data = {}
             for i, level in enumerate(analysis.tp_levels[:2]):
-                tp_data[f"level_{i+1}"] = round(level.price, 2)
+                tp_data[f"level_{i + 1}"] = round(level.price, 2)
             await sensors._publish_state("tp_levels", {"BTC": tp_data})
 
         await sensors.publish_sensor("profit_action", analysis.action.name_ru)

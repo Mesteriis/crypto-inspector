@@ -243,9 +243,7 @@ class DerivativesAnalyzer:
                 f"{BINANCE_FUTURES_URL}/ticker/price",
                 params={"symbol": binance_symbol},
             )
-            price = (
-                float(price_response.json()["price"]) if price_response.status_code == 200 else 0
-            )
+            price = float(price_response.json()["price"]) if price_response.status_code == 200 else 0
 
             oi = float(data["openInterest"])
             oi_value = oi * price

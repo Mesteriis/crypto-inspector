@@ -101,8 +101,7 @@ class CandlestickFetcher:
             elapsed_ms = (time.perf_counter() - start) * 1000
 
             logger.info(
-                f"[{exchange.name}] Successfully fetched {len(candlesticks)} candlesticks "
-                f"in {elapsed_ms:.2f}ms"
+                f"[{exchange.name}] Successfully fetched {len(candlesticks)} candlesticks in {elapsed_ms:.2f}ms"
             )
 
             return FetchResult(
@@ -293,8 +292,7 @@ class CandlestickFetcher:
                         # Check if result meets requirements
                         if len(result.candlesticks) >= min_count:
                             logger.info(
-                                f"Sufficient data from {result.exchange}: "
-                                f"{len(result.candlesticks)} candlesticks"
+                                f"Sufficient data from {result.exchange}: {len(result.candlesticks)} candlesticks"
                             )
 
                             # Cancel remaining tasks
@@ -304,13 +302,10 @@ class CandlestickFetcher:
                             return result
 
                         # Keep track of best result so far
-                        if best_result is None or len(result.candlesticks) > len(
-                            best_result.candlesticks
-                        ):
+                        if best_result is None or len(result.candlesticks) > len(best_result.candlesticks):
                             best_result = result
                             logger.info(
-                                f"Best result so far from {result.exchange}: "
-                                f"{len(result.candlesticks)} candlesticks"
+                                f"Best result so far from {result.exchange}: {len(result.candlesticks)} candlesticks"
                             )
 
                     except asyncio.CancelledError:

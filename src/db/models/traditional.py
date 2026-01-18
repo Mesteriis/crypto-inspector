@@ -87,10 +87,4 @@ class TraditionalAssetRecord(Base):
     )
 
     def __repr__(self) -> str:
-        return (
-            f"<TraditionalAssetRecord("
-            f"symbol={self.symbol!r}, "
-            f"timestamp={self.timestamp}, "
-            f"close={self.close_price}"
-            f")>"
-        )
+        return f"<TraditionalAssetRecord(symbol={self.symbol!r}, timestamp={self.timestamp}, close={self.close_price})>"

@@ -143,9 +143,7 @@ async def get_score(symbol: str) -> dict[str, Any]:
             deriv_result = await derivatives.analyze(symbol)
             deriv_data = {
                 "funding_rate": deriv_result.funding.rate if deriv_result.funding else None,
-                "long_short_ratio": deriv_result.long_short.long_short_ratio
-                if deriv_result.long_short
-                else None,
+                "long_short_ratio": deriv_result.long_short.long_short_ratio if deriv_result.long_short else None,
             }
         except Exception:
             pass
@@ -260,12 +258,8 @@ async def get_market_summary() -> dict[str, Any]:
                     deriv_data = await derivatives.analyze(sym)
                     result["derivatives"][sym] = {
                         "funding_rate": deriv_data.funding.rate if deriv_data.funding else None,
-                        "funding_rate_pct": deriv_data.funding.rate * 100
-                        if deriv_data.funding
-                        else None,
-                        "long_short_ratio": deriv_data.long_short.long_short_ratio
-                        if deriv_data.long_short
-                        else None,
+                        "funding_rate_pct": deriv_data.funding.rate * 100 if deriv_data.funding else None,
+                        "long_short_ratio": deriv_data.long_short.long_short_ratio if deriv_data.long_short else None,
                         "signal": deriv_data.signal,
                     }
         except Exception as e:

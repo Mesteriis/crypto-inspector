@@ -126,7 +126,7 @@ class CompositeScore:
 
         for c in self.components:
             c_mark = "+" if c.score >= 60 else "-" if c.score <= 40 else "o"
-            parts.append(f"  {c_mark} {c.name}: {c.score:.0f} (weight {c.weight*100:.0f}%)")
+            parts.append(f"  {c_mark} {c.name}: {c.score:.0f} (weight {c.weight * 100:.0f}%)")
 
         parts.extend(
             [
@@ -260,11 +260,7 @@ class ScoringEngine:
             weight=self.WEIGHTS["patterns"],
             weighted_score=score * self.WEIGHTS["patterns"],
             details=details,
-            signal="bullish"
-            if bullish > bearish
-            else "bearish"
-            if bearish > bullish
-            else "neutral",
+            signal="bullish" if bullish > bearish else "bearish" if bearish > bullish else "neutral",
         )
 
     def score_cycle(self, cycle_data: dict | None) -> ComponentScore:

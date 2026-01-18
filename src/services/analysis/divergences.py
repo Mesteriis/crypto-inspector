@@ -98,8 +98,7 @@ class Divergence:
     def _get_description(self) -> str:
         """Get English description."""
         return (
-            f"{self.div_type.value.replace('_', ' ').title()} {self.indicator.upper()} "
-            f"divergence on {self.timeframe}"
+            f"{self.div_type.value.replace('_', ' ').title()} {self.indicator.upper()} divergence on {self.timeframe}"
         )
 
     def _get_description_ru(self) -> str:

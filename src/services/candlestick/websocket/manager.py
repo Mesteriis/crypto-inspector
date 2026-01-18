@@ -114,9 +114,7 @@ class CandleStreamManager:
             except Exception as e:
                 logger.error(f"[Manager] Candle callback error: {e}")
 
-    async def _on_source_change(
-        self, symbol: str, old_source: StreamSource, new_source: StreamSource
-    ) -> None:
+    async def _on_source_change(self, symbol: str, old_source: StreamSource, new_source: StreamSource) -> None:
         """Handle source change."""
         logger.info(f"[Manager] {symbol}: Source changed {old_source.value} → {new_source.value}")
 
@@ -248,9 +246,7 @@ class CandleStreamManager:
             try:
                 # Get symbols in REST mode
                 rest_symbols = [
-                    sym
-                    for sym, state in self._streams.items()
-                    if state.current_source == StreamSource.REST
+                    sym for sym, state in self._streams.items() if state.current_source == StreamSource.REST
                 ]
 
                 if not rest_symbols:
@@ -307,14 +303,8 @@ class CandleStreamManager:
                     # Check if stream is dead (no data for too long)
                     time_since_data = current_time - state.last_candle_time
 
-                    if (
-                        state.last_candle_time > 0
-                        and time_since_data > self.config.fallback_timeout
-                    ):
-                        logger.warning(
-                            f"[Manager] {symbol}: No data for {time_since_data:.0f}s, "
-                            f"switching fallback"
-                        )
+                    if state.last_candle_time > 0 and time_since_data > self.config.fallback_timeout:
+                        logger.warning(f"[Manager] {symbol}: No data for {time_since_data:.0f}s, switching fallback")
                         if state.current_source == StreamSource.BYBIT:
                             await self._switch_to_fallback(symbol)
                         else:
@@ -412,9 +402,7 @@ class CandleStreamManager:
                 symbol: {
                     "source": state.current_source.value,
                     "connected": state.stream.is_connected if state.stream else False,
-                    "last_candle_price": float(state.last_candle.close_price)
-                    if state.last_candle
-                    else None,
+                    "last_candle_price": float(state.last_candle.close_price) if state.last_candle else None,
                     "error_count": state.error_count,
                 }
                 for symbol, state in self._streams.items()

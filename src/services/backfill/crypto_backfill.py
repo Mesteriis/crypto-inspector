@@ -166,7 +166,7 @@ class CryptoBackfill:
         # Check if we already have data
         earliest = await self.get_earliest_timestamp(symbol, interval)
         if earliest and earliest <= start_time:
-            logger.info(f"{symbol} {interval}: Data already exists from {datetime.fromtimestamp(earliest/1000)}")
+            logger.info(f"{symbol} {interval}: Data already exists from {datetime.fromtimestamp(earliest / 1000)}")
             # Just update recent candles
             return await self._update_recent(symbol, interval, interval_enum)
 
@@ -189,7 +189,7 @@ class CryptoBackfill:
                 )
 
                 if result.is_empty:
-                    logger.warning(f"No data for {symbol} starting from {datetime.fromtimestamp(current_start/1000)}")
+                    logger.warning(f"No data for {symbol} starting from {datetime.fromtimestamp(current_start / 1000)}")
                     # Move forward by batch size
                     current_start += interval_ms * MAX_CANDLES_PER_REQUEST
                     continue

@@ -104,8 +104,7 @@ class CandlestickRepository:
         await self.session.commit()
 
         logger.info(
-            f"Upserted {len(records)} candlesticks for "
-            f"{result.symbol} {result.interval.value} from {result.exchange}"
+            f"Upserted {len(records)} candlesticks for {result.symbol} {result.interval.value} from {result.exchange}"
         )
 
         return len(records)
