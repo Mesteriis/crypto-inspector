@@ -3,7 +3,7 @@
 
 name: "Crypto Inspect"
 description: "Cryptocurrency candlestick data collector and analyzer"
-version: "0.2.1"
+version: "0.2.2"
 slug: "crypto_inspect"
 url: "https://github.com/Mesteriis/crypto-inspector"
 arch:
