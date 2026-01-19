@@ -42,7 +42,7 @@ blueprint:
 
 trigger:
   - platform: state
-    entity_id: sensor.crypto_inspect_risk_status
+    entity_id: sensor.crypto_inspect_market_tension
     to: !input risk_level
 
   - platform: numeric_state
@@ -56,7 +56,7 @@ action:
     data:
       title: "⚠️ Portfolio Risk Alert"
       message: >-
-        {% set status = states('sensor.crypto_inspect_risk_status') %}
+        {% set status = states('sensor.crypto_inspect_market_tension') %}
         {% set dd = states('sensor.crypto_inspect_portfolio_current_drawdown') %}
         {% set max_dd = states('sensor.crypto_inspect_portfolio_max_drawdown') %}
         {% set var = states('sensor.crypto_inspect_portfolio_var_95') %}

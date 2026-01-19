@@ -71,8 +71,8 @@ action:
       btc_price: "{{ states('sensor.crypto_inspect_prices') }}"
       btc_change: "{{ state_attr('sensor.crypto_inspect_changes_24h', 'BTC/USDT') | default('N/A') }}"
       portfolio_pnl: "{{ states('sensor.crypto_inspect_portfolio_pnl_24h') | default('N/A') }}"
-      alerts_count: "{{ states('sensor.crypto_inspect_pending_alerts_count') | int(0) }}"
-      risk_status: "{{ states('sensor.crypto_inspect_risk_status') }}"
+      alerts_count: "{{ states.sensor | selectattr('entity_id', 'match', 'sensor\\.crypto_inspect_.*alert.*') | list | count }}"
+      risk_status: "{{ states('sensor.crypto_inspect_market_tension') }}"
 
   - choose:
       # Russian
@@ -93,7 +93,7 @@ action:
 
                 {% if include_weekly and is_friday %}
                 📅 Недельная сводка:
-                {{ states('sensor.crypto_inspect_weekly_outlook') }}
+                {{ states('sensor.crypto_inspect_weekly_insight') }}
                 {% endif %}
 
                 Хорошего вечера! 🌟
@@ -120,7 +120,7 @@ action:
 
                 {% if include_weekly and is_friday %}
                 📅 Weekly Summary:
-                {{ states('sensor.crypto_inspect_weekly_outlook') }}
+                {{ states('sensor.crypto_inspect_weekly_insight') }}
                 {% endif %}
 
                 Have a great evening! 🌟

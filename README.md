@@ -243,11 +243,12 @@ ollama_model: "llama3.2"
 
 | Сенсор | Описание |
 |--------|----------|
-| `sensor.crypto_inspect_dca_next_level` | Следующий уровень DCA (USDT) |
-| `sensor.crypto_inspect_dca_zone` | Зона DCA (Buy/Wait/Overbought) |
-| `sensor.crypto_inspect_btc_tp_level_1` | Take Profit уровень 1 |
-| `sensor.crypto_inspect_btc_tp_level_2` | Take Profit уровень 2 |
-| `sensor.crypto_inspect_profit_action` | Рекомендация (Hold/Scale Out/TP) |
+| `sensor.crypto_inspect_tp_levels` | Уровни фиксации (словарь) |
+| `sensor.crypto_inspect_profit_action` | Действие по прибыли |
+| `sensor.crypto_inspect_greed_level` | Уровень жадности (0-100) |
+| `sensor.crypto_inspect_dca_result` | Результат DCA (€) |
+| `sensor.crypto_inspect_dca_signal` | Сигнал DCA (buy/wait/hold) |
+| `sensor.crypto_inspect_dca_risk_score` | Риск-скор DCA (0-100) |
 
 ### Макро и события
 
@@ -742,20 +743,20 @@ chips:
 type: vertical-stack
 cards:
   - type: custom:mushroom-template-card
-    primary: DCA Zone
-    secondary: "{{ states('sensor.crypto_inspect_dca_zone') }}"
+    primary: DCA Signal
+    secondary: "{{ states('sensor.crypto_inspect_dca_signal') }}"
     icon: mdi:target
     icon_color: |
-      {% set zone = states('sensor.crypto_inspect_dca_zone') %}
-      {% if 'Buy' in zone %}green
-      {% elif 'Wait' in zone %}yellow
+      {% set signal = states('sensor.crypto_inspect_dca_signal') %}
+      {% if 'buy' in signal.lower() %}green
+      {% elif 'wait' in signal.lower() %}yellow
       {% else %}red{% endif %}
 
   - type: entities
-    title: 📈 DCA Levels
+    title: 📈 DCA Info
     entities:
-      - entity: sensor.crypto_inspect_dca_next_level
-        name: Следующий уровень
+      - entity: sensor.crypto_inspect_dca_result
+        name: Сумма DCA
       - entity: sensor.crypto_inspect_dca_risk_score
         name: Риск-скор
 ```
@@ -766,10 +767,12 @@ cards:
 type: glance
 title: 🎯 Take Profit
 entities:
-  - entity: sensor.crypto_inspect_btc_tp_level_1
+  - entity: sensor.crypto_inspect_tp_levels
     name: TP1
-  - entity: sensor.crypto_inspect_btc_tp_level_2
+    attribute: btc_tp_level_1
+  - entity: sensor.crypto_inspect_tp_levels
     name: TP2
+    attribute: btc_tp_level_2
   - entity: sensor.crypto_inspect_profit_action
     name: Действие
   - entity: sensor.crypto_inspect_greed_level
@@ -928,14 +931,14 @@ views:
           - type: entities
             title: DCA
             entities:
-              - sensor.crypto_inspect_dca_zone
-              - sensor.crypto_inspect_dca_next_level
+              - sensor.crypto_inspect_dca_signal
+              - sensor.crypto_inspect_dca_result
 
           - type: entities
             title: Take Profit
             entities:
               - sensor.crypto_inspect_profit_action
-              - sensor.crypto_inspect_btc_tp_level_1
+              - sensor.crypto_inspect_tp_levels
 
       # Row 4: Market Data
       - type: entities
@@ -1567,11 +1570,12 @@ automation:
         data:
           title: "💰 DCA Opportunity"
           message: >-
-            {% set level = states('sensor.crypto_inspect_dca_next_level') %}
+            {% set signal = states('sensor.crypto_inspect_dca_signal') %}
+            {% set amount = states('sensor.crypto_inspect_dca_result') %}
             {% if is_state('input_select.crypto_notification_language', 'Russian') %}
-            Рынок в зоне покупки! Уровень: ${{ level }}
+            Рынок в зоне покупки! Сигнал: {{ signal }}, Сумма: €{{ amount }}
             {% else %}
-            Market in buy zone! Level: ${{ level }}
+            Market in buy zone! Signal: {{ signal }}, Amount: €{{ amount }}
             {% endif %}
 ```
 
@@ -1791,7 +1795,7 @@ automation:
           message: >-
             {% set fg = states('sensor.crypto_inspect_fear_greed') %}
             {% set vol = states('sensor.crypto_inspect_volatility_status') %}
-            {% set dca = states('sensor.crypto_inspect_dca_zone') %}
+            {% set dca = states('sensor.crypto_inspect_dca_signal') %}
             {% set balance = states('sensor.crypto_inspect_bybit_balance') %}
             {% if is_state('input_select.crypto_notification_language', 'Russian') %}
             F&G: {{ fg }} | Волатильность: {{ vol }} | DCA: {{ dca }}
@@ -1819,14 +1823,14 @@ automation:
         data:
           title: "📅 Weekly DCA"
           message: >-
-            {% set zone = states('sensor.crypto_inspect_dca_zone') %}
+            {% set signal = states('sensor.crypto_inspect_dca_signal') %}
             {% set amount = states('sensor.crypto_inspect_dca_result') %}
             {% if is_state('input_select.crypto_notification_language', 'Russian') %}
             Понедельник - день DCA!
-            Зона: {{ zone }} | Сумма: €{{ amount }}
+            Сигнал: {{ signal }} | Сумма: €{{ amount }}
             {% else %}
             Monday - DCA day!
-            Zone: {{ zone }} | Amount: €{{ amount }}
+            Signal: {{ signal }} | Amount: €{{ amount }}
             {% endif %}
 ```
 

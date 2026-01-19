@@ -77,8 +77,8 @@ action:
       btc_price: "{{ states('sensor.crypto_inspect_prices') }}"
       btc_change: "{{ state_attr('sensor.crypto_inspect_changes_24h', 'BTC/USDT') | default('N/A') }}"
       fear_greed: "{{ states('sensor.crypto_inspect_fear_greed') }}"
-      market_pulse: "{{ states('sensor.crypto_inspect_market_pulse') }}"
-      today_action: "{{ states('sensor.crypto_inspect_today_action') }}"
+      market_pulse: "{{ states('sensor.crypto_inspect_investor_phase') }}"
+      today_action: "{{ states('sensor.crypto_inspect_dca_signal') }}"
 
   - choose:
       # Russian
@@ -94,11 +94,10 @@ action:
                 BTC: ${{ btc_price }} ({{ btc_change }}%)
                 Страх/Жадность: {{ fear_greed }}
 
-                📈 Рынок: {{ market_pulse }}
-                {{ state_attr('sensor.crypto_inspect_market_pulse', 'reason_ru') }}
+                📈 Фаза: {{ market_pulse }}
+                {{ state_attr('sensor.crypto_inspect_investor_phase', 'description') }}
 
-                🎯 Сегодня: {{ today_action }}
-                {{ state_attr('sensor.crypto_inspect_today_action', 'details_ru') }}
+                🎯 DCA: {{ today_action }}
 
                 💼 Портфель: {{ states('sensor.crypto_inspect_portfolio_health') }}
               data:
@@ -119,11 +118,10 @@ action:
                 BTC: ${{ btc_price }} ({{ btc_change }}%)
                 Fear/Greed: {{ fear_greed }}
 
-                📈 Market: {{ market_pulse }}
-                {{ state_attr('sensor.crypto_inspect_market_pulse', 'reason') }}
+                📈 Phase: {{ market_pulse }}
+                {{ state_attr('sensor.crypto_inspect_investor_phase', 'description') }}
 
-                🎯 Today: {{ today_action }}
-                {{ state_attr('sensor.crypto_inspect_today_action', 'details') }}
+                🎯 DCA: {{ today_action }}
 
                 💼 Portfolio: {{ states('sensor.crypto_inspect_portfolio_health') }}
               data:

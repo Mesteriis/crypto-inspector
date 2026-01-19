@@ -21,13 +21,13 @@ sections:
       # Market Pulse with details
       - type: custom:mushroom-template-card
         primary: >-
-          {{ states('sensor.crypto_inspect_market_pulse') }}
+          {{ states('sensor.crypto_inspect_investor_phase') }}
         secondary: >-
-          Уверенность: {{ states('sensor.crypto_inspect_market_pulse_confidence') }}%
-          {{ state_attr('sensor.crypto_inspect_market_pulse', 'reason_ru') }}
+          Уверенность: {{ states('sensor.crypto_inspect_calm_indicator') }}%
+          {{ state_attr('sensor.crypto_inspect_investor_phase', 'reason_ru') }}
         icon: mdi:pulse
         icon_color: >-
-          {% set sentiment = states('sensor.crypto_inspect_market_pulse') %}
+          {% set sentiment = states('sensor.crypto_inspect_investor_phase') %}
           {% if 'Бычий' in sentiment %}green{% elif 'Медвежий' in sentiment %}red{% else %}orange{% endif %}
         multiline_secondary: true
         tap_action:
@@ -36,13 +36,13 @@ sections:
       # Today's Action with details
       - type: custom:mushroom-template-card
         primary: >-
-          {{ states('sensor.crypto_inspect_today_action') }}
+          {{ states('sensor.crypto_inspect_dca_signal') }}
         secondary: >-
-          Приоритет: {{ states('sensor.crypto_inspect_today_action_priority') }}
-          {{ state_attr('sensor.crypto_inspect_today_action', 'details_ru') }}
+          Приоритет: {{ states('sensor.crypto_inspect_calm_indicator') }}
+          {{ states('sensor.crypto_inspect_dca_signal') }}
         icon: mdi:clipboard-check
         icon_color: >-
-          {% set priority = state_attr('sensor.crypto_inspect_today_action_priority', 'priority') %}
+          {% set priority = states('sensor.crypto_inspect_calm_indicator') %}
           {% if priority == 'high' %}red{% elif priority == 'medium' %}orange{% else %}green{% endif %}
         multiline_secondary: true
 
@@ -54,25 +54,25 @@ sections:
       # Portfolio Health
       - type: custom:mushroom-template-card
         primary: >-
-          Здоровье: {{ states('sensor.crypto_inspect_portfolio_health') }}
+          Здоровье: {{ states('sensor.crypto_inspect_dca_signal') }}
         secondary: >-
-          Score: {{ states('sensor.crypto_inspect_portfolio_health_score') }}%
-          {{ state_attr('sensor.crypto_inspect_portfolio_health', 'main_issue_ru') }}
+          Score: {{ states('sensor.crypto_inspect_calm_indicator') }}%
+          {{ states('sensor.crypto_inspect_dca_signal') }}
         icon: mdi:shield-check
         icon_color: >-
-          {% set score = states('sensor.crypto_inspect_portfolio_health_score') | int(50) %}
+          {% set score = states('sensor.crypto_inspect_calm_indicator') | int(50) %}
           {% if score > 70 %}green{% elif score > 40 %}orange{% else %}red{% endif %}
         multiline_secondary: true
 
       # Portfolio Value
       - type: custom:mushroom-template-card
         primary: >-
-          ${{ states('sensor.crypto_inspect_portfolio_value') | float | round(2) }}
+          ${{ states('sensor.crypto_inspect_bybit_total_portfolio') | float | round(2) }}
         secondary: >-
-          24h: {{ states('sensor.crypto_inspect_portfolio_pnl_24h') }}%
+          24h: {{ states('sensor.crypto_inspect_bybit_pnl_24h') }}%
         icon: mdi:wallet
         icon_color: >-
-          {% set pnl = states('sensor.crypto_inspect_portfolio_pnl_24h') | float(0) %}
+          {% set pnl = states('sensor.crypto_inspect_bybit_pnl_24h') | float(0) %}
           {% if pnl > 0 %}green{% elif pnl < 0 %}red{% else %}grey{% endif %}
 
   # === Goal Tracking Section ===
@@ -181,7 +181,7 @@ sections:
         icon: mdi:trending-up
 
       - type: custom:mushroom-entity-card
-        entity: sensor.crypto_inspect_risk_status
+        entity: sensor.crypto_inspect_market_tension
         name: Risk Status
         icon: mdi:shield-alert
 

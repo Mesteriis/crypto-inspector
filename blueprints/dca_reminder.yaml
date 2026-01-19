@@ -71,7 +71,6 @@ action:
     data:
       title: "📅 Weekly DCA"
       message: >-
-        {% set zone = states('sensor.crypto_inspect_dca_zone') %}
         {% set signal = states('sensor.crypto_inspect_dca_signal') %}
         {% set result = states('sensor.crypto_inspect_dca_result') %}
         {% set fg = states('sensor.crypto_inspect_fear_greed') | int(50) %}
@@ -95,8 +94,8 @@ action:
         🗓 Время для еженедельной покупки!
 
         📊 F&G: {{ fg }}
-        🎯 Зона: {{ zone }}
-        💡 Сигнал: {{ signal }}
+        🎯 Сигнал: {{ signal }}
+        💰 Сумма: €{{ result }}
 
         💰 Рекомендуемая сумма: €{{ amount }}
         (базовая €{{ base | int }} × {{ multiplier }})
@@ -104,8 +103,8 @@ action:
         🗓 Time for your weekly DCA!
 
         📊 F&G: {{ fg }}
-        🎯 Zone: {{ zone }}
-        💡 Signal: {{ signal }}
+        🎯 Signal: {{ signal }}
+        💰 Amount: €{{ result }}
 
         💰 Recommended amount: €{{ amount }}
         (base €{{ base | int }} × {{ multiplier }})

@@ -1,0 +1,169 @@
+# Crypto Inspect - Traditional Markets Dashboard
+# Monitoring traditional financial markets and correlations
+
+title: Traditional Markets
+path: traditional-markets
+icon: mdi:bank
+type: sections
+max_columns: 3
+sections:
+  # Precious Metals
+  - type: grid
+    title: "🥇 Precious Metals"
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_gold_price
+        name: Gold (XAU)
+        icon: mdi:gold
+        icon_color: amber
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_silver_price
+        name: Silver (XAG)
+        icon: mdi:circle-outline
+        icon_color: grey
+
+      - type: custom:mushroom-template-card
+        primary: "Gold/Silver Ratio"
+        secondary: |
+          {% set gold = states('sensor.crypto_inspect_gold_price') | float(0) %}
+          {% set silver = states('sensor.crypto_inspect_silver_price') | float(0.001) %}
+          {{ '{:.2f}'.format(gold / silver) }}
+        icon: mdi:scale-balance
+
+  # Major Indices
+  - type: grid
+    title: "📈 Stock Indices"
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_sp500_price
+        name: S&P 500
+        icon: mdi:chart-line
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_nasdaq_price
+        name: NASDAQ
+        icon: mdi:chart-line-variant
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_dxy_index
+        name: DXY (US Dollar)
+        icon: mdi:currency-usd
+        icon_color: |
+          {% set dxy = states('sensor.crypto_inspect_dxy_index') | float(100) %}
+          {% if dxy > 105 %}red{% elif dxy < 95 %}green{% else %}orange{% endif %}
+
+  # Commodities
+  - type: grid
+    title: "⛽ Commodities"
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_oil_brent
+        name: Oil (Brent)
+        icon: mdi:oil
+        icon_color: black
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_natural_gas
+        name: Natural Gas
+        icon: mdi:fire
+        icon_color: red
+
+      - type: custom:mushroom-template-card
+        primary: "Energy Sector"
+        secondary: |
+          Oil: ${{ states('sensor.crypto_inspect_oil_brent') }}
+          Gas: ${{ states('sensor.crypto_inspect_natural_gas') }}
+        icon: mdi:flash
+
+  # Forex Rates
+  - type: grid
+    title: "💱 Forex Rates"
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_eur_usd
+        name: EUR/USD
+        icon: mdi:currency-eur
+        icon_color: blue
+
+      - type: custom:mushroom-template-card
+        primary: "Major Pairs"
+        secondary: |
+          EUR/USD: {{ states('sensor.crypto_inspect_eur_usd') }}
+          GBP/USD: {{ states('sensor.crypto_inspect_gbp_usd') | default('N/A') }}
+        icon: mdi:cash-multiple
+
+  # Correlation Analysis
+  - type: grid
+    title: "🔗 Correlation Analysis"
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_btc_eth_correlation
+        name: BTC/ETH Correlation
+        icon: mdi:link-variant
+        icon_color: |
+          {% set corr = states('sensor.crypto_inspect_btc_eth_correlation') | float(0) %}
+          {% if corr > 0.8 %}green{% elif corr > 0.5 %}orange{% else %}red{% endif %}
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_btc_sp500_correlation
+        name: BTC/S&P500
+        icon: mdi:chart-line-variant
+        icon_color: |
+          {% set corr = states('sensor.crypto_inspect_btc_sp500_correlation') | float(0) %}
+          {% if corr > 0.5 %}red{% elif corr < -0.3 %}green{% else %}orange{% endif %}
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_correlation_status
+        name: Correlation Status
+        icon: mdi:connection
+
+  # Market Comparison
+  - type: grid
+    title: "⚖️ Market Comparison"
+    cards:
+      - type: custom:mushroom-template-card
+        primary: "Crypto vs Stocks"
+        secondary: |
+          BTC: ${{ '{:,.0f}'.format((states('sensor.crypto_inspect_prices') | from_json).get('BTC/USDT', 0) | float) }}
+          S&P500: {{ states('sensor.crypto_inspect_sp500_price') }}
+        icon: mdi:scale-balance
+
+      - type: custom:mushroom-template-card
+        primary: "Safe Haven Assets"
+        secondary: |
+          Gold: ${{ states('sensor.crypto_inspect_gold_price') }}
+          BTC: ${{ '{:,.0f}'.format((states('sensor.crypto_inspect_prices') | from_json).get('BTC/USDT', 0) | float) }}
+        icon: mdi:shield-home
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_altseason_status
+        name: Altseason Indicator
+        icon: mdi:rocket-launch
+
+  # Economic Indicators
+  - type: grid
+    title: "📊 Economic Indicators"
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_vix_index
+        name: VIX (Fear Index)
+        icon: mdi:emoticon-sad
+        icon_color: |
+          {% set vix = states('sensor.crypto_inspect_vix_index') | float(20) %}
+          {% if vix > 30 %}red{% elif vix > 20 %}orange{% else %}green{% endif %}
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_treasury_yield_10y
+        name: 10Y Treasury
+        icon: mdi:bank
+        icon_color: |
+          {% set yield = states('sensor.crypto_inspect_treasury_yield_10y') | float(3) %}
+          {% if yield > 4 %}red{% elif yield > 3 %}orange{% else %}green{% endif %}
+
+      - type: custom:mushroom-template-card
+        primary: "Yield Curve"
+        secondary: |
+          10Y: {{ states('sensor.crypto_inspect_treasury_yield_10y') }}%
+          2Y: {{ states('sensor.crypto_inspect_treasury_yield_2y') | default('N/A') }}%
+        icon: mdi:chart-bell-curve-cumulative

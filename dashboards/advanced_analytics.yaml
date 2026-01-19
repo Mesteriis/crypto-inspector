@@ -1,0 +1,183 @@
+# Crypto Inspect - Advanced Analytics Dashboard
+# Machine Learning predictions and advanced metrics
+
+title: Advanced Analytics
+path: advanced-analytics
+icon: mdi:brain
+type: sections
+max_columns: 3
+sections:
+  # ML Predictions
+  - type: grid
+    title: "🤖 Machine Learning Predictions"
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_ml_latest_predictions
+        name: Latest Predictions
+        icon: mdi:crystal-ball
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_ml_accuracy_rate
+        name: Accuracy Rate
+        icon: mdi:target
+        icon_color: |
+          {% set acc = states('sensor.crypto_inspect_ml_accuracy_rate') | float(50) %}
+          {% if acc > 80 %}green{% elif acc > 60 %}orange{% else %}red{% endif %}
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_ml_correct_predictions
+        name: Correct Predictions
+        icon: mdi:check-circle
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_ml_market_confidence
+        name: Market Confidence
+        icon: mdi:head-question
+        icon_color: |
+          {% set conf = states('sensor.crypto_inspect_ml_market_confidence') | float(50) %}
+          {% if conf > 70 %}green{% elif conf > 40 %}orange{% else %}red{% endif %}
+
+  # Portfolio Intelligence
+  - type: grid
+    title: "💼 Intelligent Portfolio"
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_ml_portfolio_health
+        name: Portfolio Health
+        icon: mdi:heart-pulse
+        icon_color: |
+          {% set health = states('sensor.crypto_inspect_ml_portfolio_health') %}
+          {% if 'Good' in health %}green{% elif 'Fair' in health %}orange{% else %}red{% endif %}
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_ml_investment_opportunity
+        name: Investment Opp
+        icon: mdi:cash-multiple
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_ml_risk_warning
+        name: Risk Warning
+        icon: mdi:alert-octagon
+        icon_color: |
+          {% set risk = states('sensor.crypto_inspect_ml_risk_warning') %}
+          {% if 'High' in risk %}red{% elif 'Medium' in risk %}orange{% else %}green{% endif %}
+
+  # System Status
+  - type: grid
+    title: "⚙️ System Monitoring"
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_ml_system_status
+        name: System Status
+        icon: mdi:server-network
+        icon_color: |
+          {% set status = states('sensor.crypto_inspect_ml_system_status') %}
+          {% if 'Online' in status %}green{% else %}red{% endif %}
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_sync_status
+        name: Data Sync
+        icon: mdi:sync
+        icon_color: |
+          {% set sync = states('sensor.crypto_inspect_sync_status') %}
+          {% if 'OK' in sync %}green{% else %}red{% endif %}
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_last_sync
+        name: Last Sync
+        icon: mdi:clock-check
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_candles_count
+        name: Total Candles
+        icon: mdi:database
+
+  # Gas Tracker
+  - type: grid
+    title: "⛽ Ethereum Gas Tracker"
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_eth_gas_slow
+        name: Slow Gas
+        icon: mdi:speedometer-slow
+        secondary_info: state
+        icon_color: green
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_eth_gas_standard
+        name: Standard Gas
+        icon: mdi:speedometer-medium
+        secondary_info: state
+        icon_color: orange
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_eth_gas_fast
+        name: Fast Gas
+        icon: mdi:speedometer
+        secondary_info: state
+        icon_color: red
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_eth_gas_status
+        name: Network Status
+        icon: mdi:gas-station
+        icon_color: |
+          {% set status = states('sensor.crypto_inspect_eth_gas_status') %}
+          {% if 'Low' in status %}green{% elif 'Medium' in status %}orange{% else %}red{% endif %}
+
+  # Whale Activity Extended
+  - type: grid
+    title: "🐋 Advanced Whale Monitoring"
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_whale_alerts_24h
+        name: Alerts 24h
+        icon: mdi:fish-alert
+        icon_color: |
+          {% set alerts = states('sensor.crypto_inspect_whale_alerts_24h') | int(0) %}
+          {% if alerts > 5 %}red{% elif alerts > 0 %}orange{% else %}green{% endif %}
+
+      - type: custom:mushroom-template-card
+        primary: "Net Flow Direction"
+        secondary: |
+          {% set flow = states('sensor.crypto_inspect_whale_net_flow') | float(0) %}
+          {% if flow > 0 %}Inflow (+{{ flow }})
+          {% elif flow < 0 %}Outflow ({{ flow }})
+          {% else %}Neutral{% endif %}
+        icon: mdi:arrow-decision
+        icon_color: |
+          {% set flow = states('sensor.crypto_inspect_whale_net_flow') | float(0) %}
+          {% if flow > 0 %}green{% elif flow < 0 %}red{% else %}orange{% endif %}
+
+  # Arbitrage Opportunities
+  - type: grid
+    title: "💱 Arbitrage Detection"
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_arb_opportunity
+        name: Best Arb Opp
+        icon: mdi:cash-plus
+        icon_color: |
+          {% set opp = states('sensor.crypto_inspect_arb_opportunity') %}
+          {% if opp != 'None' %}green{% else %}grey{% endif %}
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_arb_spreads
+        name: Spreads
+        icon: mdi:arrow-expand-horizontal
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_funding_arb_best
+        name: Funding Arb
+        icon: mdi:currency-usd
+
+      - type: custom:mushroom-template-card
+        primary: "Arbitrage Status"
+        secondary: |
+          {% set opp = states('sensor.crypto_inspect_arb_opportunity') %}
+          {% if opp != 'None' %}Opportunity Found!
+          {% else %}No opportunities{% endif %}
+        icon: mdi:alert-decagram
+        icon_color: |
+          {% set opp = states('sensor.crypto_inspect_arb_opportunity') %}
+          {% if opp != 'None' %}green{% else %}grey{% endif %}

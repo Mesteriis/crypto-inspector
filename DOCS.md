@@ -345,13 +345,13 @@ cards:
 type: custom:mushroom-template-card
 primary: DCA Zone
 secondary: |
-  {{ states('sensor.crypto_inspect_dca_zone') }}
-  Next: ${{ states('sensor.crypto_inspect_dca_next_level') }}
+  {{ states('sensor.crypto_inspect_dca_signal') }}
+  Next: {{ states('sensor.crypto_inspect_dca_result') }}
 icon: mdi:target
 icon_color: |
-  {% set zone = states('sensor.crypto_inspect_dca_zone') %}
-  {% if 'Buy' in zone %}green
-  {% elif 'Wait' in zone %}yellow
+  {% set signal = states('sensor.crypto_inspect_dca_signal') %}
+  {% if 'buy' in signal.lower() %}green
+  {% elif 'wait' in signal.lower() %}yellow
   {% else %}red{% endif %}
 ```
 
@@ -361,12 +361,16 @@ icon_color: |
 type: glance
 title: 🎯 Take Profit
 entities:
-  - entity: sensor.crypto_inspect_btc_tp_level_1
-    name: TP1
-  - entity: sensor.crypto_inspect_btc_tp_level_2
+  - entity: sensor.crypto_inspect_tp_levels
+    name: Levels
+    attribute: btc_tp_level_1
+  - entity: sensor.crypto_inspect_tp_levels
     name: TP2
+    attribute: btc_tp_level_2
   - entity: sensor.crypto_inspect_profit_action
     name: Action
+  - entity: sensor.crypto_inspect_greed_level
+    name: Greed
 ```
 
 ### Macro Events

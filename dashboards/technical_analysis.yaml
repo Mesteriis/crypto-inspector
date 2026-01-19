@@ -1,0 +1,187 @@
+# Crypto Inspect - Technical Analysis Dashboard
+# Comprehensive technical indicators and signals
+
+title: Technical Analysis
+path: technical-analysis
+icon: mdi:chart-bar
+type: sections
+max_columns: 3
+sections:
+  # RSI Indicators
+  - type: grid
+    title: "📊 RSI Analysis"
+    cards:
+      - type: custom:mushroom-template-card
+        primary: "BTC RSI"
+        secondary: |
+          {% set data = states('sensor.crypto_inspect_ta_rsi') | from_json %}
+          {{ data.BTC | default('N/A') }}
+        icon: mdi:chart-line
+        icon_color: |
+          {% set data = states('sensor.crypto_inspect_ta_rsi') | from_json %}
+          {% set rsi = data.BTC | default(50) | float %}
+          {% if rsi < 30 %}green{% elif rsi > 70 %}red{% else %}orange{% endif %}
+
+      - type: custom:mushroom-template-card
+        primary: "ETH RSI"
+        secondary: |
+          {% set data = states('sensor.crypto_inspect_ta_rsi') | from_json %}
+          {{ data.ETH | default('N/A') }}
+        icon: mdi:chart-line
+        icon_color: |
+          {% set data = states('sensor.crypto_inspect_ta_rsi') | from_json %}
+          {% set rsi = data.ETH | default(50) | float %}
+          {% if rsi < 30 %}green{% elif rsi > 70 %}red{% else %}orange{% endif %}
+
+      - type: custom:mushroom-template-card
+        primary: "SOL RSI"
+        secondary: |
+          {% set data = states('sensor.crypto_inspect_ta_rsi') | from_json %}
+          {{ data.SOL | default('N/A') }}
+        icon: mdi:chart-line
+        icon_color: |
+          {% set data = states('sensor.crypto_inspect_ta_rsi') | from_json %}
+          {% set rsi = data.SOL | default(50) | float %}
+          {% if rsi < 30 %}green{% elif rsi > 70 %}red{% else %}orange{% endif %}
+
+  # MACD Signals
+  - type: grid
+    title: "📶 MACD Analysis"
+    cards:
+      - type: custom:mushroom-template-card
+        primary: "BTC MACD"
+        secondary: |
+          {% set data = states('sensor.crypto_inspect_ta_macd_signal') | from_json %}
+          {{ data.BTC | default('N/A') }}
+        icon: mdi:signal
+
+      - type: custom:mushroom-template-card
+        primary: "ETH MACD"
+        secondary: |
+          {% set data = states('sensor.crypto_inspect_ta_macd_signal') | from_json %}
+          {{ data.ETH | default('N/A') }}
+        icon: mdi:signal
+
+      - type: custom:mushroom-template-card
+        primary: "SOL MACD"
+        secondary: |
+          {% set data = states('sensor.crypto_inspect_ta_macd_signal') | from_json %}
+          {{ data.SOL | default('N/A') }}
+        icon: mdi:signal
+
+  # Trend Analysis
+  - type: grid
+    title: "📈 Trend Direction"
+    cards:
+      - type: custom:mushroom-template-card
+        primary: "BTC Trend"
+        secondary: |
+          {% set data = states('sensor.crypto_inspect_ta_trend') | from_json %}
+          {{ data.BTC | default('N/A') }}
+        icon: mdi:trending-up
+        icon_color: |
+          {% set data = states('sensor.crypto_inspect_ta_trend') | from_json %}
+          {% set trend = data.BTC | default('Neutral') %}
+          {% if 'Up' in trend %}green{% elif 'Down' in trend %}red{% else %}orange{% endif %}
+
+      - type: custom:mushroom-template-card
+        primary: "ETH Trend"
+        secondary: |
+          {% set data = states('sensor.crypto_inspect_ta_trend') | from_json %}
+          {{ data.ETH | default('N/A') }}
+        icon: mdi:trending-up
+        icon_color: |
+          {% set data = states('sensor.crypto_inspect_ta_trend') | from_json %}
+          {% set trend = data.ETH | default('Neutral') %}
+          {% if 'Up' in trend %}green{% elif 'Down' in trend %}red{% else %}orange{% endif %}
+
+  # Support & Resistance
+  - type: grid
+    title: "📉 Support/Resistance"
+    cards:
+      - type: custom:mushroom-template-card
+        primary: "BTC Support"
+        secondary: |
+          {% set data = states('sensor.crypto_inspect_ta_support') | from_json %}
+          ${{ '{:,.0f}'.format(data.BTC | default(0)) }}
+        icon: mdi:arrow-down-bold
+
+      - type: custom:mushroom-template-card
+        primary: "BTC Resistance"
+        secondary: |
+          {% set data = states('sensor.crypto_inspect_ta_resistance') | from_json %}
+          ${{ '{:,.0f}'.format(data.BTC | default(0)) }}
+        icon: mdi:arrow-up-bold
+
+      - type: custom:mushroom-template-card
+        primary: "ETH Support"
+        secondary: |
+          {% set data = states('sensor.crypto_inspect_ta_support') | from_json %}
+          ${{ '{:,.0f}'.format(data.ETH | default(0)) }}
+        icon: mdi:arrow-down-bold
+
+  # Multi-Timeframe Analysis
+  - type: grid
+    title: "⏱️ Multi-Timeframe"
+    cards:
+      - type: custom:mushroom-template-card
+        primary: "BTC MTF"
+        secondary: |
+          {% set data = states('sensor.crypto_inspect_ta_trend_mtf') | from_json %}
+          {% set btc = data.BTC | default({}) %}
+          1H: {{ btc.get('1h', 'N/A') }} | 4H: {{ btc.get('4h', 'N/A') }}
+        icon: mdi:clock-outline
+        layout: vertical
+
+      - type: custom:mushroom-template-card
+        primary: "ETH MTF"
+        secondary: |
+          {% set data = states('sensor.crypto_inspect_ta_trend_mtf') | from_json %}
+          {% set eth = data.ETH | default({}) %}
+          1H: {{ eth.get('1h', 'N/A') }} | 4H: {{ eth.get('4h', 'N/A') }}
+        icon: mdi:clock-outline
+        layout: vertical
+
+  # Bollinger Bands & Confluence
+  - type: grid
+    title: "🎪 Technical Confluence"
+    cards:
+      - type: custom:mushroom-template-card
+        primary: "BTC BB %"
+        secondary: |
+          {% set data = states('sensor.crypto_inspect_ta_bb_position') | from_json %}
+          {{ data.BTC | default('N/A') }}%
+        icon: mdi:chart-bell-curve
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_ta_confluence
+        name: Confluence Score
+        icon: mdi:check-all
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_ta_signal
+        name: Overall Signal
+        icon: mdi:traffic-light
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_divergences_active
+        name: Active Divs
+        icon: mdi:call-merge
+
+  # Divergences
+  - type: grid
+    title: "🔀 Divergence Analysis"
+    cards:
+      - type: custom:mushroom-template-card
+        primary: "BTC Divergences"
+        secondary: |
+          {% set data = states('sensor.crypto_inspect_divergences') | from_json %}
+          {{ data.BTC | default('None') }}
+        icon: mdi:call-split
+
+      - type: custom:mushroom-template-card
+        primary: "ETH Divergences"
+        secondary: |
+          {% set data = states('sensor.crypto_inspect_divergences') | from_json %}
+          {{ data.ETH | default('None') }}
+        icon: mdi:call-split

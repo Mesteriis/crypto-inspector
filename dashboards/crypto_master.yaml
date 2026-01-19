@@ -27,32 +27,32 @@ sections:
       # Market Pulse
       - type: custom:mushroom-template-card
         primary: "Market Pulse"
-        secondary: "{{ states('sensor.crypto_inspect_market_pulse') }}"
+        secondary: "{{ states('sensor.crypto_inspect_investor_phase') }}"
         icon: mdi:pulse
         icon_color: >
-          {% set conf = states('sensor.crypto_inspect_market_pulse_confidence') | int(50) %}
+          {% set conf = states('sensor.crypto_inspect_calm_indicator') | int(50) %}
           {% if conf >= 70 %}green{% elif conf >= 40 %}orange{% else %}red{% endif %}
         tap_action:
           action: more-info
-          entity: sensor.crypto_inspect_market_pulse
+          entity: sensor.crypto_inspect_investor_phase
 
       # Portfolio Health
       - type: custom:mushroom-template-card
         primary: "Portfolio Health"
-        secondary: "{{ states('sensor.crypto_inspect_portfolio_health') }} ({{ states('sensor.crypto_inspect_portfolio_health_score') }}%)"
+        secondary: "{{ states('sensor.crypto_inspect_dca_signal') }} ({{ states('sensor.crypto_inspect_calm_indicator') }})"
         icon: mdi:shield-check
         icon_color: >
-          {% set score = states('sensor.crypto_inspect_portfolio_health_score') | int(50) %}
+          {% set score = states('sensor.crypto_inspect_calm_indicator') | int(50) %}
           {% if score >= 70 %}green{% elif score >= 40 %}orange{% else %}red{% endif %}
 
       # Today's Action
       - type: custom:mushroom-template-card
         primary: "Today's Action"
-        secondary: "{{ states('sensor.crypto_inspect_today_action') }}"
+        secondary: "{{ states('sensor.crypto_inspect_dca_signal') }}"
         icon: mdi:clipboard-check
         icon_color: >
-          {% set p = state_attr('sensor.crypto_inspect_today_action', 'priority_en') | default('Low') %}
-          {% if p == 'High' %}red{% elif p == 'Medium' %}orange{% else %}green{% endif %}
+          {% set p = states('sensor.crypto_inspect_dca_signal') %}
+          {% if 'buy' in p.lower() %}red{% elif 'wait' in p.lower() %}orange{% else %}green{% endif %}
 
       # Fear & Greed
       - type: custom:mushroom-template-card
@@ -97,13 +97,13 @@ sections:
 
       # Portfolio Value
       - type: custom:mushroom-entity-card
-        entity: sensor.crypto_inspect_portfolio_value
+        entity: sensor.crypto_inspect_bybit_total_portfolio
         name: Portfolio Value
         icon: mdi:wallet
 
       # Portfolio P&L
       - type: custom:mushroom-entity-card
-        entity: sensor.crypto_inspect_portfolio_pnl
+        entity: sensor.crypto_inspect_bybit_pnl_24h
         name: Total P&L
         icon: mdi:chart-line
 
@@ -290,7 +290,7 @@ sections:
         icon: mdi:alert
 
       - type: custom:mushroom-entity-card
-        entity: sensor.crypto_inspect_risk_status
+        entity: sensor.crypto_inspect_market_tension
         name: Risk Status
         icon: mdi:shield-alert
 
@@ -519,7 +519,7 @@ sections:
         icon: mdi:emoticon-devil
 
       - type: custom:mushroom-entity-card
-        entity: sensor.crypto_inspect_dca_zone
+        entity: sensor.crypto_inspect_dca_signal
         name: DCA Zone
         icon: mdi:map-marker-radius
 
@@ -563,22 +563,22 @@ sections:
     columns: 4
     cards:
       - type: custom:mushroom-entity-card
-        entity: sensor.crypto_inspect_ai_market_sentiment
+        entity: sensor.crypto_inspect_investor_phase
         name: AI Sentiment
         icon: mdi:brain
 
       - type: custom:mushroom-entity-card
-        entity: sensor.crypto_inspect_ai_recommendation
+        entity: sensor.crypto_inspect_dca_signal
         name: AI Recommendation
         icon: mdi:lightbulb
 
       - type: custom:mushroom-entity-card
-        entity: sensor.crypto_inspect_ai_last_analysis
+        entity: sensor.crypto_inspect_weekly_insight
         name: Last Analysis
         icon: mdi:clock-outline
 
       - type: custom:mushroom-entity-card
-        entity: sensor.crypto_inspect_ai_provider
+        entity: sensor.crypto_inspect_dca_signal
         name: Provider
         icon: mdi:cog
 

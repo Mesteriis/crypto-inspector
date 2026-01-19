@@ -115,7 +115,7 @@ sections:
         icon: mdi:alert
 
       - type: custom:mushroom-entity-card
-        entity: sensor.crypto_inspect_risk_status
+        entity: sensor.crypto_inspect_market_tension
         name: Risk Status
         icon: mdi:shield-alert
 

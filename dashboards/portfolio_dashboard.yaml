@@ -1,0 +1,130 @@
+# Crypto Inspect - Portfolio Dashboard
+# Portfolio monitoring and risk management
+
+title: Portfolio
+path: portfolio
+icon: mdi:wallet
+type: sections
+max_columns: 3
+sections:
+  # Portfolio Value & Performance
+  - type: grid
+    title: "💼 Portfolio Overview"
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_bybit_total_portfolio
+        name: Total Value
+        icon: mdi:wallet
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_bybit_pnl_24h
+        name: 24h P&L
+        icon: mdi:chart-line
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_bybit_pnl_7d
+        name: 7d P&L
+        icon: mdi:chart-areaspline
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_bybit_unrealized_pnl
+        name: Unrealized P&L
+        icon: mdi:cash-clock
+
+  # Risk Management
+  - type: grid
+    title: "⚠️ Risk Metrics"
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_portfolio_sharpe
+        name: Sharpe Ratio
+        icon: mdi:chart-areaspline
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_portfolio_sortino
+        name: Sortino Ratio
+        icon: mdi:chart-line-variant
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_portfolio_max_drawdown
+        name: Max Drawdown
+        icon: mdi:trending-down
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_portfolio_current_drawdown
+        name: Current DD
+        icon: mdi:arrow-down
+
+  # VaR & Risk Levels
+  - type: grid
+    title: "🛡️ Risk Assessment"
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_portfolio_var_95
+        name: VaR 95%
+        icon: mdi:alert
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_market_tension
+        name: Market Risk
+        icon: mdi:shield-alert
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_dca_risk_score
+        name: DCA Risk
+        icon: mdi:gauge
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_liq_risk_level
+        name: Liq Risk
+        icon: mdi:alert-decagram
+
+  # Exchange Positions
+  - type: grid
+    title: "💱 Bybit Positions"
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_bybit_balance
+        name: Balance
+        icon: mdi:account-cash
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_bybit_positions
+        name: Open Positions
+        icon: mdi:format-list-bulleted
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_bybit_earn_balance
+        name: Earn Balance
+        icon: mdi:piggy-bank
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_bybit_earn_apy
+        name: Earn APY
+        icon: mdi:percent
+
+  # Portfolio Allocation
+  - type: grid
+    title: "📊 Asset Allocation"
+    cards:
+      - type: custom:mushroom-template-card
+        primary: "Allocation"
+        secondary: |
+          {% set alloc = state_attr('sensor.crypto_inspect_bybit_balance', 'allocation') %}
+          BTC: {{ alloc.BTC | default('0') }}%
+        icon: mdi:chart-pie
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_stablecoin_dominance
+        name: Stablecoin %
+        icon: mdi:currency-usd
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_stablecoin_total
+        name: Stablecoins
+        icon: mdi:bank
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_stablecoin_flow
+        name: Stable Flow
+        icon: mdi:swap-horizontal

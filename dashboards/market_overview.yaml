@@ -1,0 +1,140 @@
+# Crypto Inspect - Market Overview Dashboard
+# Shows key market indicators and sentiment analysis
+
+title: Market Overview
+path: market-overview
+icon: mdi:chart-line
+type: sections
+max_columns: 3
+sections:
+  # Market Sentiment & Phases
+  - type: grid
+    title: "📊 Market Sentiment"
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_investor_phase
+        name: Market Phase
+        icon: mdi:chart-timeline-variant-shimmer
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_fear_greed
+        name: Fear & Greed
+        icon: mdi:emoticon-neutral
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_market_tension
+        name: Market Tension
+        icon: mdi:gauge
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_calm_indicator
+        name: Calm Score
+        icon: mdi:emoticon-cool
+
+  # Key Prices
+  - type: grid
+    title: "💰 Top Cryptocurrencies"
+    cards:
+      - type: custom:mushroom-template-card
+        primary: "Bitcoin"
+        secondary: |
+          {% set prices = states('sensor.crypto_inspect_prices') | from_json %}
+          ${{ '{:,.0f}'.format(prices.get('BTC/USDT', 0) | float) }}
+        icon: mdi:bitcoin
+        icon_color: orange
+
+      - type: custom:mushroom-template-card
+        primary: "Ethereum"
+        secondary: |
+          {% set prices = states('sensor.crypto_inspect_prices') | from_json %}
+          ${{ '{:,.0f}'.format(prices.get('ETH/USDT', 0) | float) }}
+        icon: mdi:ethereum
+        icon_color: blue
+
+      - type: custom:mushroom-template-card
+        primary: "24h Changes"
+        secondary: |
+          {% set changes = states('sensor.crypto_inspect_changes_24h') | from_json %}
+          BTC: {{ changes.get('BTC/USDT', '0') }}%
+        icon: mdi:percent
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_btc_dominance
+        name: BTC Dominance
+        icon: mdi:crown
+
+  # Technical Analysis Summary
+  - type: grid
+    title: "📈 Technical Analysis"
+    cards:
+      - type: custom:mushroom-template-card
+        primary: "RSI"
+        secondary: |
+          {% set data = states('sensor.crypto_inspect_ta_rsi') | from_json %}
+          BTC: {{ data.BTC | default('N/A') }}
+        icon: mdi:chart-line
+
+      - type: custom:mushroom-template-card
+        primary: "Trend"
+        secondary: |
+          {% set data = states('sensor.crypto_inspect_ta_trend') | from_json %}
+          BTC: {{ data.BTC | default('N/A') }}
+        icon: mdi:trending-up
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_ta_confluence
+        name: TA Confluence
+        icon: mdi:check-all
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_ta_signal
+        name: TA Signal
+        icon: mdi:traffic-light
+
+  # DCA & Investment Signals
+  - type: grid
+    title: "🎯 Investment Signals"
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_dca_signal
+        name: DCA Signal
+        icon: mdi:cash-plus
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_dca_result
+        name: DCA Result
+        icon: mdi:calculator
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_dca_risk_score
+        name: DCA Risk
+        icon: mdi:gauge
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_do_nothing_ok
+        name: Hold Signal
+        icon: mdi:meditation
+
+  # Market Breadth
+  - type: grid
+    title: "🌐 Market Breadth"
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_altseason_status
+        name: Altseason
+        icon: mdi:rocket-launch
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_altseason_index
+        name: Altseason Index
+        icon: mdi:rocket
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_volatility_status
+        name: Volatility
+        icon: mdi:chart-bell-curve
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_correlation_status
+        name: Correlation
+        icon: mdi:connection

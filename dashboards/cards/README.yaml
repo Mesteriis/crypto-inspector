@@ -123,10 +123,10 @@ risk_dashboard:
   cards:
     - type: custom:mushroom-template-card
       primary: "Risk Status"
-      secondary: "{{ states('sensor.crypto_inspect_risk_status') }}"
+      secondary: "{{ states('sensor.crypto_inspect_market_tension') }}"
       icon: mdi:shield-alert
       icon_color: |
-        {% set status = states('sensor.crypto_inspect_risk_status') %}
+        {% set status = states('sensor.crypto_inspect_market_tension') %}
         {% if status == 'Low' %}green
         {% elif status == 'Medium' %}orange
         {% elif status == 'High' %}red
@@ -153,21 +153,21 @@ ai_insights:
   cards:
     - type: custom:mushroom-template-card
       primary: "🤖 AI Analysis"
-      secondary: "{{ states('sensor.crypto_inspect_ai_market_sentiment') }}"
+      secondary: "{{ states('sensor.crypto_inspect_investor_phase') }}"
       icon: mdi:robot
       icon_color: |
-        {% set sentiment = states('sensor.crypto_inspect_ai_market_sentiment') %}
-        {% if sentiment == 'Bullish' %}green
-        {% elif sentiment == 'Bearish' %}red
+        {% set sentiment = states('sensor.crypto_inspect_investor_phase') %}
+        {% if sentiment == 'Accumulation' %}green
+        {% elif sentiment == 'Distribution' %}red
         {% else %}blue{% endif %}
 
     - type: markdown
       content: |
-        **Последний анализ:** {{ states('sensor.crypto_inspect_ai_last_analysis') }}
+        **Последний анализ:** {{ states('sensor.crypto_inspect_weekly_insight') }}
 
-        {{ states('sensor.crypto_inspect_ai_daily_summary') }}
+        {{ states('sensor.crypto_inspect_dca_signal') }}
 
-        **Рекомендация:** {{ states('sensor.crypto_inspect_ai_recommendation') }}
+        **Рекомендация:** {{ states('sensor.crypto_inspect_dca_signal') }}
 
 # ------------------------------------------------------------------------------
 # DCA PERFORMANCE
@@ -308,7 +308,7 @@ complete_dashboard:
         - type: entities
           title: "🎯 DCA Recommendation"
           entities:
-            - entity: sensor.crypto_inspect_dca_zone
-            - entity: sensor.crypto_inspect_dca_next_level
+            - entity: sensor.crypto_inspect_dca_signal
+            - entity: sensor.crypto_inspect_dca_result
             - entity: sensor.crypto_inspect_dca_signal
             - entity: sensor.crypto_inspect_dca_result

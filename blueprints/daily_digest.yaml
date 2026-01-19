@@ -65,17 +65,13 @@ trigger:
   - platform: time
     at: !input send_time
 
-condition:
-  - condition: numeric_state
-    entity_id: sensor.crypto_inspect_pending_alerts_count
-    above: !input min_alerts
+condition: []
 
 action:
   - variables:
       lang: !input language
-      pending: "{{ states('sensor.crypto_inspect_pending_alerts_count') | int(0) }}"
-      critical: "{{ states('sensor.crypto_inspect_pending_alerts_critical') | int(0) }}"
-      digest_ready: "{{ states('sensor.crypto_inspect_daily_digest_ready') }}"
+      active_alerts: "{{ states.sensor | selectattr('entity_id', 'match', 'sensor\\.crypto_inspect_.*alert.*') | list | count }}"
+      triggered_24h: "{{ states('sensor.crypto_inspect_triggered_alerts_24h') | default('0') }}"
 
   - choose:
       # Russian
@@ -87,13 +83,12 @@ action:
             data:
               title: "📊 Ежедневный крипто-дайджест"
               message: >-
-                {{ pending }} оповещений за сегодня
-                {% if critical > 0 %}⚠️ {{ critical }} критических{% endif %}
+                {{ active_alerts }} активных оповещений
+                {% set triggered = triggered_24h | int(0) %}
+                {% if triggered > 0 %}🔔 {{ triggered }} сработало за 24ч{% endif %}
 
-                {{ state_attr('sensor.crypto_inspect_market_pulse', 'reason_ru') }}
-
-                📈 Рынок: {{ states('sensor.crypto_inspect_market_pulse') }}
-                🎯 Действие: {{ states('sensor.crypto_inspect_today_action') }}
+                📈 Fear & Greed: {{ states('sensor.crypto_inspect_fear_greed') }}
+                🎯 Фаза: {{ states('sensor.crypto_inspect_investor_phase') }}
               data:
                 group: "crypto-digest"
                 tag: "daily-digest"
@@ -108,13 +103,12 @@ action:
             data:
               title: "📊 Daily Crypto Digest"
               message: >-
-                {{ pending }} alerts today
-                {% if critical > 0 %}⚠️ {{ critical }} critical{% endif %}
+                {{ active_alerts }} active alerts
+                {% set triggered = triggered_24h | int(0) %}
+                {% if triggered > 0 %}🔔 {{ triggered }} triggered in 24h{% endif %}
 
-                {{ state_attr('sensor.crypto_inspect_market_pulse', 'reason') }}
-
-                📈 Market: {{ states('sensor.crypto_inspect_market_pulse') }}
-                🎯 Action: {{ states('sensor.crypto_inspect_today_action') }}
+                📈 Fear & Greed: {{ states('sensor.crypto_inspect_fear_greed') }}
+                🎯 Phase: {{ states('sensor.crypto_inspect_investor_phase') }}
               data:
                 group: "crypto-digest"
                 tag: "daily-digest"
