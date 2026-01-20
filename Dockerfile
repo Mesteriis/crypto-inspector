@@ -63,6 +63,8 @@ LABEL maintainer="Crypto Inspect" \
 
 # Install only runtime dependencies (no build tools)
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-venv \
     postgresql-client \
     libopenblas0 \
     libgomp1 \

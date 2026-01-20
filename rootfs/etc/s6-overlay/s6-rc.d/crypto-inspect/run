@@ -127,7 +127,7 @@ cd /app
 bashio::log.info "Initializing database..."
 if [[ "${DB_TYPE}" == "sqlite" ]]; then
     python3 -c "
-from db.base import Base
+from models.base import Base
 from sqlalchemy import create_engine
 engine = create_engine('sqlite:////data/crypto_inspect.db')
 Base.metadata.create_all(engine)
