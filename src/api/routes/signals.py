@@ -12,9 +12,9 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
 
-from services.analysis.signal_history import (
+from schemas.api.signals import RecordSignalRequest
+from service.analysis.signal_history import (
     SignalSource,
     get_signal_manager,
 )
@@ -22,18 +22,6 @@ from services.analysis.signal_history import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/signals", tags=["signals"])
-
-
-class RecordSignalRequest(BaseModel):
-    """Request to record a signal."""
-
-    symbol: str
-    signal_type: str  # buy, sell, strong_buy, strong_sell, neutral
-    source: str  # divergence, pattern, indicator, composite, investor, alert
-    price: float
-    confidence: int = 50
-    description: str = ""
-    description_ru: str = ""
 
 
 @router.get("")

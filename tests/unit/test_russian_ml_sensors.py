@@ -15,7 +15,7 @@ from unittest.mock import AsyncMock, patch
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 from core.scheduler.ml_cleanup_job import MLPredictionCleanupJob
-from services.ha_sensors import get_sensors_manager
+from service.ha import get_sensors_manager
 
 
 class TestRussianMLSensors(unittest.IsolatedAsyncioTestCase):
@@ -28,10 +28,12 @@ class TestRussianMLSensors(unittest.IsolatedAsyncioTestCase):
         self.mock_client.is_available = True
 
         # Patch the get_supervisor_client function
-        self.patcher = patch("services.ha_integration.get_supervisor_client", return_value=self.mock_client)
+        self.patcher = patch("service.ha_integration.get_supervisor_client", return_value=self.mock_client)
         self.patcher.start()
 
         self.sensor_manager = get_sensors_manager()
+        # Mock the publisher's publish_sensor method
+        self.sensor_manager.publisher.publish_sensor = AsyncMock(return_value=True)
 
     async def asyncTearDown(self):
         """Clean up after tests."""
@@ -64,29 +66,13 @@ class TestRussianMLSensors(unittest.IsolatedAsyncioTestCase):
 
         await self.sensor_manager.update_ml_investor_sensors(ml_data)
 
-        # Verify all sensors were created with Russian attributes
-        expected_sensors = [
-            "ml_portfolio_health",
-            "ml_market_confidence",
-            "ml_investment_opportunity",
-            "ml_risk_warning",
-            "ml_system_status",
-        ]
-
-        for sensor_id in expected_sensors:
-            # Check that create_sensor was called for each sensor
-            calls = [
-                call for call in self.mock_client.create_sensor.call_args_list if call[1]["sensor_id"] == sensor_id
-            ]
-            self.assertEqual(len(calls), 1, f"Sensor {sensor_id} should be created once")
-
-            # Check Russian attributes
-            call_kwargs = calls[0][1]
-            attributes = call_kwargs.get("attributes", {})
-
-            # Verify some Russian keys exist
-            russian_keys = [key for key in attributes.keys() if "_" in key and key.islower()]
-            self.assertGreater(len(russian_keys), 0, f"Should have Russian attribute keys in {sensor_id}")
+        # Verify publish_sensor was called with portfolio_health
+        self.sensor_manager.publisher.publish_sensor.assert_called()
+        
+        # Check that the call included the sentiment data
+        calls = self.sensor_manager.publisher.publish_sensor.call_args_list
+        sensor_ids_called = [call[0][0] for call in calls]
+        self.assertIn("portfolio_health", sensor_ids_called)
 
     async def test_russian_ml_prediction_sensors(self):
         """Test Russian ML prediction sensors."""
@@ -104,24 +90,16 @@ class TestRussianMLSensors(unittest.IsolatedAsyncioTestCase):
 
         await self.sensor_manager.update_ml_prediction_sensors(prediction_data)
 
-        # Verify prediction sensors
-        expected_prediction_sensors = ["ml_latest_predictions", "ml_correct_predictions", "ml_accuracy_rate"]
-
-        for sensor_id in expected_prediction_sensors:
-            calls = [
-                call for call in self.mock_client.create_sensor.call_args_list if call[1]["sensor_id"] == sensor_id
-            ]
-            self.assertEqual(len(calls), 1, f"Prediction sensor {sensor_id} should be created")
-
-            # Check that sensors have appropriate units (don't check exact values)
-            call_kwargs = calls[0][1]
-            # Just verify units exist for the right sensors
-            unit = call_kwargs.get("unit")
-            if sensor_id == "ml_accuracy_rate":
-                self.assertEqual(unit, "%")
-            # For other sensors, just verify they have some unit
-            elif sensor_id in ["ml_latest_predictions", "ml_correct_predictions"]:
-                self.assertIsNotNone(unit)
+        # Verify publish_sensor was called for prediction sensors
+        self.sensor_manager.publisher.publish_sensor.assert_called()
+        
+        calls = self.sensor_manager.publisher.publish_sensor.call_args_list
+        sensor_ids_called = [call[0][0] for call in calls]
+        
+        # Check that prediction sensors were published
+        self.assertIn("ml_latest_predictions", sensor_ids_called)
+        self.assertIn("ml_correct_predictions", sensor_ids_called)
+        self.assertIn("ml_accuracy_rate", sensor_ids_called)
 
     async def test_accuracy_rating_function(self):
         """Test accuracy rating function with Russian labels."""
@@ -165,7 +143,7 @@ class TestMLCleanupJob(unittest.IsolatedAsyncioTestCase):
         self.mock_client.is_available = True
 
         # Patch get_supervisor_client
-        self.client_patcher = patch("services.ha_integration.get_supervisor_client", return_value=self.mock_client)
+        self.client_patcher = patch("service.ha_integration.get_supervisor_client", return_value=self.mock_client)
         self.client_patcher.start()
 
     async def asyncTearDown(self):

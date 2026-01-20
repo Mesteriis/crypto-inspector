@@ -169,7 +169,7 @@ class Settings(BaseSettings):
         """
         # Try to get from dynamic currency list first
         try:
-            from services.ha_sensors import get_currency_list
+            from service.ha import get_currency_list
 
             symbols = get_currency_list()
             if symbols:

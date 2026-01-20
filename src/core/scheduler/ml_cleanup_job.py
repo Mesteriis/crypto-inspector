@@ -8,7 +8,7 @@ import asyncio
 import logging
 from datetime import datetime, timedelta
 
-from services.ha_integration import get_supervisor_client
+from service.ha_integration import get_supervisor_client
 
 logger = logging.getLogger(__name__)
 

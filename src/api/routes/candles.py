@@ -13,7 +13,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import text
 
-from db.session import async_session_maker
+from models.session import async_session_maker
 
 logger = logging.getLogger(__name__)
 

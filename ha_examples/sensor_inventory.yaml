@@ -1,0 +1,1164 @@
+# =============================================================================
+# CRYPTO INSPECT - SENSOR INVENTORY / ИНВЕНТАРИЗАЦИЯ СЕНСОРОВ
+# =============================================================================
+# Полный список всех сенсоров системы с описанием и форматом данных
+# Complete list of all system sensors with description and data format
+#
+# Prefix: sensor.crypto_inspect_
+# =============================================================================
+
+# =============================================================================
+# CATEGORY: PRICE (Цены)
+# =============================================================================
+# Все ценовые сенсоры используют формат словаря: {"BTC": value, "ETH": value}
+# All price sensors use dictionary format
+
+price_sensors:
+  - sensor_id: prices
+    entity_id: sensor.crypto_inspect_prices
+    name: Crypto Prices / Крипто цены
+    icon: mdi:currency-usd
+    unit: USDT
+    format: '{"BTC": 95000, "ETH": 3200, "SOL": 150}'
+    type: dict
+
+  - sensor_id: changes_24h
+    entity_id: sensor.crypto_inspect_changes_24h
+    name: 24h Change / Изменение 24ч
+    icon: mdi:percent
+    unit: "%"
+    format: '{"BTC": 2.5, "ETH": -1.2}'
+    type: dict
+
+  - sensor_id: volumes_24h
+    entity_id: sensor.crypto_inspect_volumes_24h
+    name: 24h Volumes / Объёмы 24ч
+    icon: mdi:chart-bar
+    unit: USDT
+    format: '{"BTC": 50000000000}'
+    type: dict
+
+  - sensor_id: highs_24h
+    entity_id: sensor.crypto_inspect_highs_24h
+    name: 24h Highs / Максимумы 24ч
+    icon: mdi:arrow-up-bold
+    unit: USDT
+    format: '{"BTC": 96000}'
+    type: dict
+
+  - sensor_id: lows_24h
+    entity_id: sensor.crypto_inspect_lows_24h
+    name: 24h Lows / Минимумы 24ч
+    icon: mdi:arrow-down-bold
+    unit: USDT
+    format: '{"BTC": 94000}'
+    type: dict
+
+# =============================================================================
+# CATEGORY: MARKET (Рынок)
+# =============================================================================
+
+market_sensors:
+  - sensor_id: fear_greed
+    entity_id: sensor.crypto_inspect_fear_greed
+    name: Fear & Greed Index / Индекс страха и жадности
+    icon: mdi:emoticon-neutral
+    range: 0-100
+    type: scalar
+
+  - sensor_id: btc_dominance
+    entity_id: sensor.crypto_inspect_btc_dominance
+    name: BTC Dominance / Доминация BTC
+    icon: mdi:crown
+    unit: "%"
+    type: scalar
+
+  - sensor_id: derivatives
+    entity_id: sensor.crypto_inspect_derivatives
+    name: Derivatives / Деривативы
+    icon: mdi:chart-timeline-variant
+    type: composite
+
+  - sensor_id: altseason_index
+    entity_id: sensor.crypto_inspect_altseason_index
+    name: Altseason Index / Индекс альтсезона
+    icon: mdi:rocket-launch
+    range: 0-100
+    type: scalar
+
+  - sensor_id: altseason_status
+    entity_id: sensor.crypto_inspect_altseason_status
+    name: Altseason Status / Статус альтсезона
+    icon: mdi:weather-sunny
+    values: [Bitcoin Season, Neutral, Altseason]
+    type: status
+
+  - sensor_id: stablecoin_total
+    entity_id: sensor.crypto_inspect_stablecoin_total
+    name: Stablecoin Volume / Объём стейблкоинов
+    icon: mdi:currency-usd-circle
+    type: scalar
+
+  - sensor_id: stablecoin_flow
+    entity_id: sensor.crypto_inspect_stablecoin_flow
+    name: Stablecoin Flow / Поток стейблкоинов
+    icon: mdi:swap-horizontal
+    values: [Inflow, Outflow, Neutral]
+    type: status
+
+  - sensor_id: stablecoin_dominance
+    entity_id: sensor.crypto_inspect_stablecoin_dominance
+    name: Stablecoin Dominance / Доминация стейблкоинов
+    icon: mdi:chart-pie
+    unit: "%"
+    type: scalar
+
+# =============================================================================
+# CATEGORY: INVESTOR (Ленивый инвестор)
+# =============================================================================
+
+investor_sensors:
+  - sensor_id: do_nothing_ok
+    entity_id: sensor.crypto_inspect_do_nothing_ok
+    name: Do Nothing OK / Можно ничего не делать
+    icon: mdi:meditation
+    values: [Yes, No]
+    type: bool
+
+  - sensor_id: investor_phase
+    entity_id: sensor.crypto_inspect_investor_phase
+    name: Investor Phase / Фаза рынка
+    icon: mdi:chart-timeline-variant-shimmer
+    values: [Accumulation, Growth, Euphoria, Correction, Capitulation]
+    type: status
+
+  - sensor_id: calm_indicator
+    entity_id: sensor.crypto_inspect_calm_indicator
+    name: Calm Indicator / Индикатор спокойствия
+    icon: mdi:emoticon-cool
+    range: 0-100
+    type: scalar
+
+  - sensor_id: red_flags
+    entity_id: sensor.crypto_inspect_red_flags
+    name: Red Flags / Красные флаги
+    icon: mdi:flag-variant
+    type: count
+
+  - sensor_id: market_tension
+    entity_id: sensor.crypto_inspect_market_tension
+    name: Market Tension / Напряжённость рынка
+    icon: mdi:gauge
+    values: [Low, Medium, High, Extreme]
+    type: status
+
+  - sensor_id: price_context
+    entity_id: sensor.crypto_inspect_price_context
+    name: Price Context / Контекст цены
+    icon: mdi:chart-box
+    type: status
+
+  - sensor_id: dca_result
+    entity_id: sensor.crypto_inspect_dca_result
+    name: DCA Result / Результат DCA
+    icon: mdi:cash-check
+    unit: "€"
+    type: scalar
+
+  - sensor_id: dca_signal
+    entity_id: sensor.crypto_inspect_dca_signal
+    name: DCA Signal / Сигнал DCA
+    icon: mdi:cash-plus
+    values: [Buy, Wait, Do not buy]
+    type: status
+
+  - sensor_id: weekly_insight
+    entity_id: sensor.crypto_inspect_weekly_insight
+    name: Weekly Insight / Недельный обзор
+    icon: mdi:newspaper-variant
+    type: status
+
+  - sensor_id: next_action_timer
+    entity_id: sensor.crypto_inspect_next_action_timer
+    name: Next Action Timer / Таймер действия
+    icon: mdi:timer-outline
+    type: status
+
+# =============================================================================
+# CATEGORY: DIAGNOSTIC (Диагностика)
+# =============================================================================
+
+diagnostic_sensors:
+  - sensor_id: sync_status
+    entity_id: sensor.crypto_inspect_sync_status
+    name: Sync Status / Статус синхронизации
+    icon: mdi:sync
+    entity_category: diagnostic
+    values: [idle, running, completed, error]
+    type: status
+
+  - sensor_id: last_sync
+    entity_id: sensor.crypto_inspect_last_sync
+    name: Last Sync / Последняя синхронизация
+    icon: mdi:clock-outline
+    device_class: timestamp
+    entity_category: diagnostic
+    type: scalar
+
+  - sensor_id: candles_count
+    entity_id: sensor.crypto_inspect_candles_count
+    name: Total Candles / Всего свечей
+    icon: mdi:database
+    unit: candles
+    entity_category: diagnostic
+    type: count
+
+  - sensor_id: database_size
+    entity_id: sensor.crypto_inspect_database_size
+    name: Database Size / Размер базы данных
+    icon: mdi:database-settings
+    unit: MB
+    entity_category: diagnostic
+    type: scalar
+
+# =============================================================================
+# CATEGORY: PORTFOLIO (Портфель)
+# =============================================================================
+
+portfolio_sensors:
+  - sensor_id: portfolio_value
+    entity_id: sensor.crypto_inspect_portfolio_value
+    name: Portfolio Value / Стоимость портфеля
+    icon: mdi:wallet
+    unit: USDT
+    type: scalar
+
+  - sensor_id: portfolio_pnl
+    entity_id: sensor.crypto_inspect_portfolio_pnl
+    name: Portfolio P&L / Прибыль/Убыток
+    icon: mdi:chart-line
+    unit: "%"
+    type: scalar
+
+  - sensor_id: portfolio_pnl_24h
+    entity_id: sensor.crypto_inspect_portfolio_pnl_24h
+    name: Portfolio 24h Change / Портфель изм. 24ч
+    icon: mdi:chart-areaspline
+    unit: "%"
+    type: scalar
+
+  - sensor_id: portfolio_allocation
+    entity_id: sensor.crypto_inspect_portfolio_allocation
+    name: Portfolio Allocation / Распределение
+    icon: mdi:chart-donut
+    type: composite
+
+# =============================================================================
+# CATEGORY: GAS (Gas трекер)
+# =============================================================================
+
+gas_sensors:
+  - sensor_id: eth_gas_slow
+    entity_id: sensor.crypto_inspect_eth_gas_slow
+    name: ETH Gas Slow / ETH Gas медленный
+    icon: mdi:speedometer-slow
+    unit: Gwei
+    type: scalar
+
+  - sensor_id: eth_gas_standard
+    entity_id: sensor.crypto_inspect_eth_gas_standard
+    name: ETH Gas Standard / ETH Gas стандартный
+    icon: mdi:speedometer-medium
+    unit: Gwei
+    type: scalar
+
+  - sensor_id: eth_gas_fast
+    entity_id: sensor.crypto_inspect_eth_gas_fast
+    name: ETH Gas Fast / ETH Gas быстрый
+    icon: mdi:speedometer
+    unit: Gwei
+    type: scalar
+
+  - sensor_id: eth_gas_status
+    entity_id: sensor.crypto_inspect_eth_gas_status
+    name: ETH Gas Status / Статус ETH Gas
+    icon: mdi:gas-station
+    values: [low, medium, high]
+    type: status
+
+# =============================================================================
+# CATEGORY: TECHNICAL (Технический анализ)
+# =============================================================================
+
+technical_sensors:
+  - sensor_id: ta_rsi
+    entity_id: sensor.crypto_inspect_ta_rsi
+    name: RSI Indicator / RSI индикатор
+    icon: mdi:chart-line
+    format: '{"BTC": 65, "ETH": 48}'
+    type: dict
+
+  - sensor_id: ta_macd_signal
+    entity_id: sensor.crypto_inspect_ta_macd_signal
+    name: MACD Signals / MACD сигналы
+    icon: mdi:signal
+    format: '{"BTC": "bullish", "ETH": "neutral"}'
+    type: dict
+
+  - sensor_id: ta_bb_position
+    entity_id: sensor.crypto_inspect_ta_bb_position
+    name: BB Position / Позиция BB
+    icon: mdi:chart-bell-curve
+    format: '{"BTC": 0.7}'
+    type: dict
+
+  - sensor_id: ta_trend
+    entity_id: sensor.crypto_inspect_ta_trend
+    name: Trends / Тренды
+    icon: mdi:trending-up
+    format: '{"BTC": "uptrend", "ETH": "sideways"}'
+    type: dict
+
+  - sensor_id: ta_support
+    entity_id: sensor.crypto_inspect_ta_support
+    name: Support Levels / Уровни поддержки
+    icon: mdi:arrow-down-bold
+    format: '{"BTC": 90000}'
+    type: dict
+
+  - sensor_id: ta_resistance
+    entity_id: sensor.crypto_inspect_ta_resistance
+    name: Resistance Levels / Уровни сопротивления
+    icon: mdi:arrow-up-bold
+    format: '{"BTC": 100000}'
+    type: dict
+
+  - sensor_id: ta_trend_mtf
+    entity_id: sensor.crypto_inspect_ta_trend_mtf
+    name: MTF Trends / MTF тренды
+    icon: mdi:clock-outline
+    type: status
+
+  - sensor_id: ta_confluence
+    entity_id: sensor.crypto_inspect_ta_confluence
+    name: TA Confluence / Конфлюенс TA
+    icon: mdi:check-all
+    range: 0-100
+    type: scalar
+
+  - sensor_id: ta_signal
+    entity_id: sensor.crypto_inspect_ta_signal
+    name: TA Signal / TA сигнал
+    icon: mdi:traffic-light
+    values: [buy, sell, hold]
+    type: status
+
+# =============================================================================
+# CATEGORY: AI (AI Аналитика)
+# =============================================================================
+
+ai_sensors:
+  - sensor_id: ai_daily_summary
+    entity_id: sensor.crypto_inspect_ai_daily_summary
+    name: AI Daily Summary / AI дневная сводка
+    icon: mdi:robot
+    type: status
+
+  - sensor_id: ai_market_sentiment
+    entity_id: sensor.crypto_inspect_ai_market_sentiment
+    name: AI Market Sentiment / AI настроение
+    icon: mdi:brain
+    type: status
+
+  - sensor_id: ai_recommendation
+    entity_id: sensor.crypto_inspect_ai_recommendation
+    name: AI Recommendation / AI рекомендация
+    icon: mdi:lightbulb
+    type: status
+
+  - sensor_id: ai_last_analysis
+    entity_id: sensor.crypto_inspect_ai_last_analysis
+    name: AI Last Analysis / AI последний анализ
+    icon: mdi:clock-outline
+    type: scalar
+
+  - sensor_id: ai_provider
+    entity_id: sensor.crypto_inspect_ai_provider
+    name: AI Provider / AI провайдер
+    icon: mdi:cog
+    entity_category: diagnostic
+    type: status
+
+  - sensor_id: ai_trends
+    entity_id: sensor.crypto_inspect_ai_trends
+    name: AI Trends / AI Тренды
+    icon: mdi:brain
+    format: '{"BTC": "Bullish", "ETH": "Neutral"}'
+    type: dict
+
+  - sensor_id: ai_confidences
+    entity_id: sensor.crypto_inspect_ai_confidences
+    name: AI Confidences / AI Уверенности
+    icon: mdi:percent
+    unit: "%"
+    format: '{"BTC": 85, "ETH": 78}'
+    type: dict
+
+  - sensor_id: ai_price_forecasts_24h
+    entity_id: sensor.crypto_inspect_ai_price_forecasts_24h
+    name: AI 24h Price Forecasts / AI Прогнозы цен 24ч
+    icon: mdi:chart-line
+    unit: USDT
+    format: '{"BTC": 95000, "ETH": 3200}'
+    type: dict
+
+# =============================================================================
+# CATEGORY: RISK (Управление рисками)
+# =============================================================================
+
+risk_sensors:
+  - sensor_id: portfolio_sharpe
+    entity_id: sensor.crypto_inspect_portfolio_sharpe
+    name: Sharpe Ratio / Коэффициент Шарпа
+    icon: mdi:chart-areaspline
+    type: scalar
+
+  - sensor_id: portfolio_sortino
+    entity_id: sensor.crypto_inspect_portfolio_sortino
+    name: Sortino Ratio / Коэффициент Сортино
+    icon: mdi:chart-line-variant
+    type: scalar
+
+  - sensor_id: portfolio_max_drawdown
+    entity_id: sensor.crypto_inspect_portfolio_max_drawdown
+    name: Max Drawdown / Макс. просадка
+    icon: mdi:trending-down
+    unit: "%"
+    type: scalar
+
+  - sensor_id: portfolio_current_drawdown
+    entity_id: sensor.crypto_inspect_portfolio_current_drawdown
+    name: Current Drawdown / Текущая просадка
+    icon: mdi:arrow-down
+    unit: "%"
+    type: scalar
+
+  - sensor_id: portfolio_var_95
+    entity_id: sensor.crypto_inspect_portfolio_var_95
+    name: VaR 95%
+    icon: mdi:alert
+    unit: "%"
+    type: scalar
+
+  - sensor_id: risk_status
+    entity_id: sensor.crypto_inspect_risk_status
+    name: Risk Status / Статус риска
+    icon: mdi:shield-alert
+    values: [low, medium, high]
+    type: status
+
+# =============================================================================
+# CATEGORY: VOLATILITY (Волатильность)
+# =============================================================================
+
+volatility_sensors:
+  - sensor_id: volatility_30d
+    entity_id: sensor.crypto_inspect_volatility_30d
+    name: 30d Volatility / Волатильность 30д
+    icon: mdi:chart-bell-curve
+    format: '{"BTC": 45}'
+    type: dict
+
+  - sensor_id: volatility_percentile
+    entity_id: sensor.crypto_inspect_volatility_percentile
+    name: Volatility Percentile / Перцентиль волатильности
+    icon: mdi:percent-box
+    type: scalar
+
+  - sensor_id: volatility_status
+    entity_id: sensor.crypto_inspect_volatility_status
+    name: Volatility Status / Статус волатильности
+    icon: mdi:pulse
+    values: [Low, Medium, High]
+    type: status
+
+# =============================================================================
+# CATEGORY: CORRELATION (Корреляции)
+# =============================================================================
+
+correlation_sensors:
+  - sensor_id: btc_eth_correlation
+    entity_id: sensor.crypto_inspect_btc_eth_correlation
+    name: BTC/ETH Correlation / Корреляция BTC/ETH
+    icon: mdi:link-variant
+    range: -1 to 1
+    type: scalar
+
+  - sensor_id: btc_sp500_correlation
+    entity_id: sensor.crypto_inspect_btc_sp500_correlation
+    name: BTC/S&P500 Correlation / Корреляция BTC/S&P500
+    icon: mdi:chart-line-variant
+    range: -1 to 1
+    type: scalar
+
+  - sensor_id: correlation_status
+    entity_id: sensor.crypto_inspect_correlation_status
+    name: Correlation Status / Статус корреляции
+    icon: mdi:connection
+    type: status
+
+  - sensor_id: correlation_analysis_status
+    entity_id: sensor.crypto_inspect_correlation_analysis_status
+    name: Correlation Analysis / Анализ корреляций
+    icon: mdi:chart-scatter-plot
+    entity_category: diagnostic
+    type: status
+
+  - sensor_id: correlation_significant_count
+    entity_id: sensor.crypto_inspect_correlation_significant_count
+    name: Significant Correlations / Значимые корреляции
+    icon: mdi:counter
+    entity_category: diagnostic
+    type: count
+
+  - sensor_id: correlation_strongest_positive
+    entity_id: sensor.crypto_inspect_correlation_strongest_positive
+    name: Strongest Positive / Сильнейшая положительная
+    icon: mdi:trending-up
+    entity_category: diagnostic
+    type: status
+
+  - sensor_id: correlation_strongest_negative
+    entity_id: sensor.crypto_inspect_correlation_strongest_negative
+    name: Strongest Negative / Сильнейшая отрицательная
+    icon: mdi:trending-down
+    entity_category: diagnostic
+    type: status
+
+  - sensor_id: correlation_dominant_patterns
+    entity_id: sensor.crypto_inspect_correlation_dominant_patterns
+    name: Dominant Patterns / Доминирующие паттерны
+    icon: mdi:chart-bell-curve-cumulative
+    entity_category: diagnostic
+    type: status
+
+# =============================================================================
+# CATEGORY: WHALES (Киты)
+# =============================================================================
+
+whales_sensors:
+  - sensor_id: whale_alerts_24h
+    entity_id: sensor.crypto_inspect_whale_alerts_24h
+    name: Whale Alerts 24h / Алерты китов 24ч
+    icon: mdi:fish
+    type: count
+
+  - sensor_id: whale_net_flow
+    entity_id: sensor.crypto_inspect_whale_net_flow
+    name: Whale Net Flow / Нетто-поток китов
+    icon: mdi:arrow-decision
+    values: [Inflow, Outflow, Neutral]
+    type: status
+
+  - sensor_id: whale_last_alert
+    entity_id: sensor.crypto_inspect_whale_last_alert
+    name: Last Whale Alert / Последний алерт кита
+    icon: mdi:bell-ring
+    type: status
+
+# =============================================================================
+# CATEGORY: EXCHANGE (Биржи)
+# =============================================================================
+
+exchange_sensors:
+  - sensor_id: exchange_netflows
+    entity_id: sensor.crypto_inspect_exchange_netflows
+    name: Exchange Netflows / Потоки на биржи
+    icon: mdi:bank-transfer
+    format: '{"BTC": -500, "ETH": 200}'
+    type: dict
+
+  - sensor_id: exchange_flow_signal
+    entity_id: sensor.crypto_inspect_exchange_flow_signal
+    name: Flow Signal / Сигнал потоков
+    icon: mdi:trending-up
+    values: [accumulation, distribution, neutral]
+    type: status
+
+# =============================================================================
+# CATEGORY: BYBIT
+# =============================================================================
+
+bybit_sensors:
+  - sensor_id: bybit_balance
+    entity_id: sensor.crypto_inspect_bybit_balance
+    name: Bybit Balance / Баланс Bybit
+    icon: mdi:wallet
+    unit: USDT
+    type: scalar
+
+  - sensor_id: bybit_pnl_24h
+    entity_id: sensor.crypto_inspect_bybit_pnl_24h
+    name: Bybit P&L 24h
+    icon: mdi:chart-line
+    unit: "%"
+    type: scalar
+
+  - sensor_id: bybit_pnl_7d
+    entity_id: sensor.crypto_inspect_bybit_pnl_7d
+    name: Bybit P&L 7d
+    icon: mdi:chart-areaspline
+    unit: "%"
+    type: scalar
+
+  - sensor_id: bybit_positions
+    entity_id: sensor.crypto_inspect_bybit_positions
+    name: Bybit Positions / Позиции Bybit
+    icon: mdi:format-list-bulleted
+    type: composite
+
+  - sensor_id: bybit_unrealized_pnl
+    entity_id: sensor.crypto_inspect_bybit_unrealized_pnl
+    name: Unrealized P&L / Нереализованный P&L
+    icon: mdi:cash-clock
+    unit: USDT
+    type: scalar
+
+  - sensor_id: bybit_earn_balance
+    entity_id: sensor.crypto_inspect_bybit_earn_balance
+    name: Bybit Earn Balance / Баланс Bybit Earn
+    icon: mdi:piggy-bank
+    unit: USDT
+    type: scalar
+
+  - sensor_id: bybit_earn_positions
+    entity_id: sensor.crypto_inspect_bybit_earn_positions
+    name: Earn Positions / Позиции Earn
+    icon: mdi:format-list-bulleted
+    type: composite
+
+  - sensor_id: bybit_earn_apy
+    entity_id: sensor.crypto_inspect_bybit_earn_apy
+    name: Earn APY / APY Earn
+    icon: mdi:percent
+    unit: "%"
+    type: scalar
+
+  - sensor_id: bybit_total_portfolio
+    entity_id: sensor.crypto_inspect_bybit_total_portfolio
+    name: Bybit Portfolio / Портфель Bybit
+    icon: mdi:bank
+    unit: USDT
+    type: scalar
+
+# =============================================================================
+# CATEGORY: DCA
+# =============================================================================
+
+dca_sensors:
+  - sensor_id: dca_next_level
+    entity_id: sensor.crypto_inspect_dca_next_level
+    name: DCA Next Level / Следующий уровень DCA
+    icon: mdi:target
+    unit: USDT
+    type: scalar
+
+  - sensor_id: dca_zone
+    entity_id: sensor.crypto_inspect_dca_zone
+    name: DCA Zone / Зона DCA
+    icon: mdi:map-marker-radius
+    values: [buy, accumulate, wait]
+    type: status
+
+  - sensor_id: dca_risk_score
+    entity_id: sensor.crypto_inspect_dca_risk_score
+    name: DCA Risk Score / Риск-скор DCA
+    icon: mdi:gauge
+    range: 0-100
+    type: scalar
+
+# =============================================================================
+# CATEGORY: BACKTEST
+# =============================================================================
+
+backtest_sensors:
+  - sensor_id: backtest_dca_roi
+    entity_id: sensor.crypto_inspect_backtest_dca_roi
+    name: Backtest DCA ROI
+    icon: mdi:percent
+    unit: "%"
+    type: scalar
+
+  - sensor_id: backtest_smart_dca_roi
+    entity_id: sensor.crypto_inspect_backtest_smart_dca_roi
+    name: Backtest Smart DCA ROI
+    icon: mdi:brain
+    unit: "%"
+    type: scalar
+
+  - sensor_id: backtest_lump_sum_roi
+    entity_id: sensor.crypto_inspect_backtest_lump_sum_roi
+    name: Backtest Lump Sum ROI
+    icon: mdi:cash
+    unit: "%"
+    type: scalar
+
+  - sensor_id: backtest_best_strategy
+    entity_id: sensor.crypto_inspect_backtest_best_strategy
+    name: Best Backtest Strategy / Лучшая стратегия
+    icon: mdi:trophy
+    type: status
+
+# =============================================================================
+# CATEGORY: TRADITIONAL (Традиционные рынки)
+# =============================================================================
+
+traditional_sensors:
+  - sensor_id: gold_price
+    entity_id: sensor.crypto_inspect_gold_price
+    name: Gold Price / Золото
+    icon: mdi:gold
+    unit: USD
+    type: scalar
+
+  - sensor_id: silver_price
+    entity_id: sensor.crypto_inspect_silver_price
+    name: Silver Price / Серебро
+    icon: mdi:circle-outline
+    unit: USD
+    type: scalar
+
+  - sensor_id: platinum_price
+    entity_id: sensor.crypto_inspect_platinum_price
+    name: Platinum Price / Платина
+    icon: mdi:diamond-stone
+    unit: USD
+    type: scalar
+
+  - sensor_id: sp500_price
+    entity_id: sensor.crypto_inspect_sp500_price
+    name: S&P 500 Index / Индекс S&P 500
+    icon: mdi:chart-line
+    unit: USD
+    type: scalar
+
+  - sensor_id: nasdaq_price
+    entity_id: sensor.crypto_inspect_nasdaq_price
+    name: NASDAQ Index / Индекс NASDAQ
+    icon: mdi:chart-areaspline
+    unit: USD
+    type: scalar
+
+  - sensor_id: dji_price
+    entity_id: sensor.crypto_inspect_dji_price
+    name: Dow Jones Index / Индекс Dow Jones
+    icon: mdi:chart-bar
+    unit: USD
+    type: scalar
+
+  - sensor_id: dax_price
+    entity_id: sensor.crypto_inspect_dax_price
+    name: DAX Index / Индекс DAX
+    icon: mdi:chart-timeline-variant
+    unit: EUR
+    type: scalar
+
+  - sensor_id: eur_usd
+    entity_id: sensor.crypto_inspect_eur_usd
+    name: EUR/USD Rate / Курс EUR/USD
+    icon: mdi:currency-eur
+    type: scalar
+
+  - sensor_id: gbp_usd
+    entity_id: sensor.crypto_inspect_gbp_usd
+    name: GBP/USD Rate / Курс GBP/USD
+    icon: mdi:currency-gbp
+    type: scalar
+
+  - sensor_id: dxy_index
+    entity_id: sensor.crypto_inspect_dxy_index
+    name: Dollar Index / Индекс доллара
+    icon: mdi:currency-usd
+    type: scalar
+
+  - sensor_id: oil_brent
+    entity_id: sensor.crypto_inspect_oil_brent
+    name: Brent Oil / Нефть Brent
+    icon: mdi:barrel
+    unit: USD
+    type: scalar
+
+  - sensor_id: oil_wti
+    entity_id: sensor.crypto_inspect_oil_wti
+    name: WTI Oil / Нефть WTI
+    icon: mdi:barrel
+    unit: USD
+    type: scalar
+
+  - sensor_id: natural_gas
+    entity_id: sensor.crypto_inspect_natural_gas
+    name: Natural Gas / Природный газ
+    icon: mdi:fire
+    unit: USD
+    type: scalar
+
+# =============================================================================
+# CATEGORY: ECONOMIC (Экономический календарь)
+# =============================================================================
+
+economic_sensors:
+  - sensor_id: economic_calendar_status
+    entity_id: sensor.crypto_inspect_economic_calendar_status
+    name: Economic Calendar / Экономический календарь
+    icon: mdi:calendar-clock
+    entity_category: diagnostic
+    type: status
+
+  - sensor_id: economic_upcoming_events_24h
+    entity_id: sensor.crypto_inspect_economic_upcoming_events_24h
+    name: Events 24h / События 24ч
+    icon: mdi:calendar-today
+    entity_category: diagnostic
+    type: count
+
+  - sensor_id: economic_important_events
+    entity_id: sensor.crypto_inspect_economic_important_events
+    name: Important Events / Важные события
+    icon: mdi:star
+    entity_category: diagnostic
+    type: count
+
+  - sensor_id: economic_breaking_news
+    entity_id: sensor.crypto_inspect_economic_breaking_news
+    name: Breaking News / Срочные новости
+    icon: mdi:newspaper-variant-outline
+    entity_category: diagnostic
+    type: status
+
+  - sensor_id: economic_sentiment_score
+    entity_id: sensor.crypto_inspect_economic_sentiment_score
+    name: Economic Sentiment / Экономические настроения
+    icon: mdi:emoticon-outline
+    range: -100 to 100
+    entity_category: diagnostic
+    type: scalar
+
+  - sensor_id: next_macro_event
+    entity_id: sensor.crypto_inspect_next_macro_event
+    name: Next Macro Event / Следующее макрособытие
+    icon: mdi:calendar-star
+    type: status
+
+  - sensor_id: days_to_fomc
+    entity_id: sensor.crypto_inspect_days_to_fomc
+    name: Days to FOMC / Дней до FOMC
+    icon: mdi:calendar-clock
+    type: count
+
+  - sensor_id: macro_risk_week
+    entity_id: sensor.crypto_inspect_macro_risk_week
+    name: Macro Risk Week / Макрориск недели
+    icon: mdi:calendar-alert
+    values: [low, medium, high]
+    type: status
+
+# =============================================================================
+# CATEGORY: ALERTS (Алерты)
+# =============================================================================
+
+alerts_sensors:
+  - sensor_id: active_alerts_count
+    entity_id: sensor.crypto_inspect_active_alerts_count
+    name: Active Alerts Count / Активные алерты
+    icon: mdi:bell-badge
+    type: count
+
+  - sensor_id: triggered_alerts_24h
+    entity_id: sensor.crypto_inspect_triggered_alerts_24h
+    name: Triggered Alerts 24h / Сработавшие алерты 24ч
+    icon: mdi:bell-check
+    type: count
+
+  - sensor_id: pending_alerts_count
+    entity_id: sensor.crypto_inspect_pending_alerts_count
+    name: Pending Alerts Count / Ожидающие алерты
+    icon: mdi:bell-badge
+    type: count
+
+  - sensor_id: pending_alerts_critical
+    entity_id: sensor.crypto_inspect_pending_alerts_critical
+    name: Critical Alerts Count / Критические алерты
+    icon: mdi:bell-alert
+    type: count
+
+  - sensor_id: daily_digest_ready
+    entity_id: sensor.crypto_inspect_daily_digest_ready
+    name: Daily Digest Ready / Дневной дайджест
+    icon: mdi:newspaper
+    values: [Ready, Not Ready]
+    type: bool
+
+  - sensor_id: notification_mode
+    entity_id: sensor.crypto_inspect_notification_mode
+    name: Notification Mode / Режим уведомлений
+    icon: mdi:bell-cog
+    values: [all, important, quiet]
+    type: status
+
+  - sensor_id: adaptive_notifications_status
+    entity_id: sensor.crypto_inspect_adaptive_notifications_status
+    name: Adaptive Notifications / Адаптивные уведомления
+    icon: mdi:bell-ring
+    entity_category: diagnostic
+    type: status
+
+  - sensor_id: adaptive_volatilities
+    entity_id: sensor.crypto_inspect_adaptive_volatilities
+    name: Adaptive Volatilities / Адаптивные уровни волатильности
+    icon: mdi:wave
+    format: '{"BTC": "High", "ETH": "Medium"}'
+    entity_category: diagnostic
+    type: dict
+
+  - sensor_id: adaptive_notification_count_24h
+    entity_id: sensor.crypto_inspect_adaptive_notification_count_24h
+    name: Notifications 24h / Уведомлений за 24ч
+    icon: mdi:counter
+    unit: alerts
+    entity_category: diagnostic
+    type: count
+
+  - sensor_id: adaptive_adaptation_factors
+    entity_id: sensor.crypto_inspect_adaptive_adaptation_factors
+    name: Adaptation Factors / Факторы адаптации
+    icon: mdi:tune
+    format: '{"BTC": 1.2, "ETH": 0.8}'
+    entity_category: diagnostic
+    type: dict
+
+# =============================================================================
+# CATEGORY: SMART_SUMMARY (Умные сводки)
+# =============================================================================
+
+smart_summary_sensors:
+  - sensor_id: market_pulse
+    entity_id: sensor.crypto_inspect_market_pulse
+    name: Market Pulse / Пульс рынка
+    icon: mdi:pulse
+    type: status
+
+  - sensor_id: market_pulse_confidence
+    entity_id: sensor.crypto_inspect_market_pulse_confidence
+    name: Market Pulse Confidence / Уверенность пульса
+    icon: mdi:percent
+    unit: "%"
+    type: scalar
+
+  - sensor_id: portfolio_health
+    entity_id: sensor.crypto_inspect_portfolio_health
+    name: Portfolio Health / Здоровье портфеля
+    icon: mdi:shield-check
+    type: status
+
+  - sensor_id: portfolio_health_score
+    entity_id: sensor.crypto_inspect_portfolio_health_score
+    name: Portfolio Health Score / Скор здоровья
+    icon: mdi:counter
+    unit: "%"
+    type: scalar
+
+  - sensor_id: today_action
+    entity_id: sensor.crypto_inspect_today_action
+    name: Today's Action / Действие сегодня
+    icon: mdi:clipboard-check
+    type: status
+
+  - sensor_id: today_action_priority
+    entity_id: sensor.crypto_inspect_today_action_priority
+    name: Action Priority / Приоритет действия
+    icon: mdi:alert-circle
+    values: [low, medium, high]
+    type: status
+
+  - sensor_id: weekly_outlook
+    entity_id: sensor.crypto_inspect_weekly_outlook
+    name: Weekly Outlook / Прогноз на неделю
+    icon: mdi:calendar-week
+    type: status
+
+  - sensor_id: morning_briefing
+    entity_id: sensor.crypto_inspect_morning_briefing
+    name: Morning Briefing / Утренний брифинг
+    icon: mdi:weather-sunny
+    type: status
+
+  - sensor_id: evening_briefing
+    entity_id: sensor.crypto_inspect_evening_briefing
+    name: Evening Briefing / Вечерний брифинг
+    icon: mdi:weather-night
+    type: status
+
+  - sensor_id: briefing_last_sent
+    entity_id: sensor.crypto_inspect_briefing_last_sent
+    name: Last Briefing Sent / Последний брифинг
+    icon: mdi:clock-check
+    device_class: timestamp
+    type: scalar
+
+# =============================================================================
+# CATEGORY: MISC (Разное)
+# =============================================================================
+
+misc_sensors:
+  # Liquidations
+  - sensor_id: liq_levels
+    entity_id: sensor.crypto_inspect_liq_levels
+    name: Liquidation Levels / Уровни ликвидаций
+    icon: mdi:arrow-expand-vertical
+    type: dict
+
+  - sensor_id: liq_risk_level
+    entity_id: sensor.crypto_inspect_liq_risk_level
+    name: Liquidation Risk / Риск ликвидаций
+    icon: mdi:alert-decagram
+    values: [low, medium, high]
+    type: status
+
+  # Divergences
+  - sensor_id: divergences
+    entity_id: sensor.crypto_inspect_divergences
+    name: Divergences / Дивергенции
+    icon: mdi:call-split
+    type: dict
+
+  - sensor_id: divergences_active
+    entity_id: sensor.crypto_inspect_divergences_active
+    name: Active Divergences / Активные дивергенции
+    icon: mdi:call-merge
+    type: count
+
+  # Signals
+  - sensor_id: signals_win_rate
+    entity_id: sensor.crypto_inspect_signals_win_rate
+    name: Signals Win Rate / Винрейт сигналов
+    icon: mdi:trophy
+    unit: "%"
+    type: scalar
+
+  - sensor_id: signals_today
+    entity_id: sensor.crypto_inspect_signals_today
+    name: Today's Signals / Сигналы сегодня
+    icon: mdi:signal
+    type: count
+
+  - sensor_id: signals_last
+    entity_id: sensor.crypto_inspect_signals_last
+    name: Last Signal / Последний сигнал
+    icon: mdi:traffic-light
+    type: status
+
+  # Arbitrage
+  - sensor_id: arb_spreads
+    entity_id: sensor.crypto_inspect_arb_spreads
+    name: Arbitrage Spreads / Спреды арбитража
+    icon: mdi:swap-horizontal-bold
+    type: dict
+
+  - sensor_id: funding_arb_best
+    entity_id: sensor.crypto_inspect_funding_arb_best
+    name: Best Funding Arbitrage / Лучший фандинг-арб
+    icon: mdi:cash-multiple
+    type: status
+
+  - sensor_id: arb_opportunity
+    entity_id: sensor.crypto_inspect_arb_opportunity
+    name: Arbitrage Opportunity / Возможность арбитража
+    icon: mdi:lightning-bolt
+    type: status
+
+  # Take Profit
+  - sensor_id: tp_levels
+    entity_id: sensor.crypto_inspect_tp_levels
+    name: Take Profit Levels / Уровни фиксации
+    icon: mdi:target-variant
+    type: dict
+
+  - sensor_id: profit_action
+    entity_id: sensor.crypto_inspect_profit_action
+    name: Profit Action / Действие по прибыли
+    icon: mdi:cash-check
+    values: [hold, take_profit]
+    type: status
+
+  - sensor_id: greed_level
+    entity_id: sensor.crypto_inspect_greed_level
+    name: Greed Level / Уровень жадности
+    icon: mdi:emoticon-devil
+    range: 0-100
+    type: scalar
+
+  # Token Unlocks
+  - sensor_id: unlocks_next_7d
+    entity_id: sensor.crypto_inspect_unlocks_next_7d
+    name: Unlocks Next 7d / Разблокировки 7д
+    icon: mdi:lock-open-variant
+    type: count
+
+  - sensor_id: unlock_next_event
+    entity_id: sensor.crypto_inspect_unlock_next_event
+    name: Next Unlock Event / Следующий анлок
+    icon: mdi:calendar-lock
+    type: status
+
+  - sensor_id: unlock_risk_level
+    entity_id: sensor.crypto_inspect_unlock_risk_level
+    name: Unlock Risk Level / Риск анлоков
+    icon: mdi:alert-circle
+    values: [low, medium, high]
+    type: status
+
+  # Goals
+  - sensor_id: goal_target
+    entity_id: sensor.crypto_inspect_goal_target
+    name: Goal Target / Цель
+    icon: mdi:flag-checkered
+    unit: USDT
+    type: scalar
+
+  - sensor_id: goal_progress
+    entity_id: sensor.crypto_inspect_goal_progress
+    name: Goal Progress / Прогресс цели
+    icon: mdi:progress-check
+    unit: "%"
+    type: scalar
+
+  - sensor_id: goal_remaining
+    entity_id: sensor.crypto_inspect_goal_remaining
+    name: Goal Remaining / Осталось до цели
+    icon: mdi:cash-minus
+    unit: USDT
+    type: scalar
+
+  - sensor_id: goal_days_estimate
+    entity_id: sensor.crypto_inspect_goal_days_estimate
+    name: Days to Goal / Дней до цели
+    icon: mdi:calendar-clock
+    type: count
+
+  - sensor_id: goal_status
+    entity_id: sensor.crypto_inspect_goal_status
+    name: Goal Status / Статус цели
+    icon: mdi:trophy
+    values: [in_progress, reached, postponed]
+    type: status
+
+# =============================================================================
+# SUMMARY
+# =============================================================================
+# Total sensors: 120+
+# Categories: 21
+# Types: scalar, dict, status, count, bool, composite
+#
+# Dictionary sensors return JSON: {"BTC": value, "ETH": value}
+# Use Jinja templates to extract values: {{ states('sensor.xxx') | from_json }}
+# =============================================================================

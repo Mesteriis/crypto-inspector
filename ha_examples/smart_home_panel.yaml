@@ -1,0 +1,575 @@
+# =============================================================================
+# SMART HOME PANEL WITH CRYPTO INTEGRATION / ПАНЕЛЬ УМНОГО ДОМА
+# =============================================================================
+# Умный дом - основной фокус, криптовалюта доступна когда нужна
+# Smart home is the primary focus, crypto available when needed
+#
+# HACS Requirements:
+# - custom:mushroom-template-card
+# - custom:mini-graph-card
+# - custom:apexcharts-card
+# - custom:browser-mod (для попапов)
+# - custom:button-card
+# =============================================================================
+
+title: "Умный дом"
+icon: mdi:home
+path: smart-home
+type: sections
+max_columns: 3
+
+sections:
+  # ===========================================================================
+  # SECTION 1: QUICK GLANCE / БЫСТРЫЙ ОБЗОР
+  # ===========================================================================
+  - type: grid
+    title: null
+    columns: 4
+    cards:
+      # Weather chip
+      - type: custom:mushroom-chips-card
+        chips:
+          - type: weather
+            entity: weather.forecast_home
+            show_conditions: true
+            show_temperature: true
+
+      # People at home
+      - type: custom:mushroom-chips-card
+        chips:
+          - type: template
+            icon: mdi:home-account
+            content: "{{ states.person | selectattr('state', 'eq', 'home') | list | count }}"
+            tap_action:
+              action: navigate
+              navigation_path: /lovelace/family
+
+      # Alert badge (including crypto critical)
+      - type: custom:mushroom-chips-card
+        chips:
+          - type: template
+            icon: mdi:bell
+            icon_color: >
+              {% set critical = states('sensor.crypto_inspect_pending_alerts_critical') | int(0) %}
+              {{ 'red' if critical > 0 else 'grey' }}
+            content: >
+              {% set critical = states('sensor.crypto_inspect_pending_alerts_critical') | int(0) %}
+              {{ critical if critical > 0 else '' }}
+            tap_action:
+              action: navigate
+              navigation_path: /lovelace/alerts
+
+      # Market mood chip (subtle)
+      - type: custom:mushroom-chips-card
+        chips:
+          - type: template
+            icon: mdi:chart-line
+            icon_color: >
+              {% set fg = states('sensor.crypto_inspect_fear_greed') | int(50) %}
+              {% if fg <= 25 %}red{% elif fg <= 45 %}orange{% elif fg <= 55 %}grey{% elif fg <= 75 %}light-green{% else %}green{% endif %}
+            content: ""
+            tap_action:
+              action: fire-dom-event
+              browser_mod:
+                service: browser_mod.popup
+                data:
+                  title: "Рынок"
+                  content:
+                    type: vertical-stack
+                    cards:
+                      - type: custom:mushroom-entity-card
+                        entity: sensor.crypto_inspect_fear_greed
+                        name: "Fear & Greed"
+                      - type: custom:mushroom-entity-card
+                        entity: sensor.crypto_inspect_investor_phase
+                        name: "Фаза рынка"
+                      - type: custom:mushroom-entity-card
+                        entity: sensor.crypto_inspect_dca_signal
+                        name: "DCA сигнал"
+
+  # ===========================================================================
+  # SECTION 2: HOME STATUS / СТАТУС ДОМА
+  # ===========================================================================
+  - type: grid
+    title: "Дом"
+    columns: 3
+    cards:
+      # Temperature
+      - type: custom:mushroom-entity-card
+        entity: sensor.temperature
+        name: "Температура"
+        icon: mdi:thermometer
+        icon_color: orange
+        layout: vertical
+        primary_info: state
+        secondary_info: name
+
+      # Humidity
+      - type: custom:mushroom-entity-card
+        entity: sensor.humidity
+        name: "Влажность"
+        icon: mdi:water-percent
+        icon_color: blue
+        layout: vertical
+
+      # Energy usage (if available)
+      - type: custom:mushroom-entity-card
+        entity: sensor.energy_usage
+        name: "Энергия"
+        icon: mdi:flash
+        icon_color: yellow
+        layout: vertical
+
+  # ===========================================================================
+  # SECTION 3: FAMILY / СЕМЬЯ
+  # ===========================================================================
+  - type: grid
+    title: "Семья"
+    columns: 2
+    cards:
+      - type: custom:mushroom-person-card
+        entity: person.user1
+        layout: horizontal
+        icon_type: entity-picture
+        primary_info: state
+        secondary_info: last-changed
+
+      - type: custom:mushroom-person-card
+        entity: person.user2
+        layout: horizontal
+        icon_type: entity-picture
+        primary_info: state
+        secondary_info: last-changed
+
+  # ===========================================================================
+  # SECTION 4: CONTROLS / УПРАВЛЕНИЕ
+  # ===========================================================================
+  - type: grid
+    title: "Управление"
+    columns: 4
+    cards:
+      - type: custom:mushroom-light-card
+        entity: light.living_room
+        name: "Гостиная"
+        icon: mdi:sofa
+        use_light_color: true
+        show_brightness_control: true
+        collapsible_controls: true
+
+      - type: custom:mushroom-light-card
+        entity: light.bedroom
+        name: "Спальня"
+        icon: mdi:bed
+        use_light_color: true
+
+      - type: custom:mushroom-climate-card
+        entity: climate.thermostat
+        name: "Климат"
+        show_temperature_control: true
+
+      - type: custom:mushroom-media-player-card
+        entity: media_player.living_room
+        name: "Медиа"
+        use_media_info: true
+
+  # ===========================================================================
+  # SECTION 5: SECURITY / БЕЗОПАСНОСТЬ
+  # ===========================================================================
+  - type: grid
+    title: "Безопасность"
+    columns: 3
+    cards:
+      - type: custom:mushroom-alarm-control-panel-card
+        entity: alarm_control_panel.home
+        name: "Сигнализация"
+
+      - type: custom:mushroom-lock-card
+        entity: lock.front_door
+        name: "Входная дверь"
+
+      - type: custom:mushroom-entity-card
+        entity: binary_sensor.motion_sensor
+        name: "Движение"
+        icon: mdi:motion-sensor
+
+  # ===========================================================================
+  # SECTION 6: FINANCES WIDGET (Subtle) / ВИДЖЕТ ФИНАНСОВ
+  # ===========================================================================
+  # Компактный виджет финансов - не доминирует на странице
+  - type: grid
+    title: "Финансы"
+    columns: 1
+    cards:
+      - type: custom:mushroom-template-card
+        primary: "Портфель"
+        secondary: >
+          {% set portfolio = states('sensor.crypto_inspect_bybit_total_portfolio') | float(0) %}
+          {% set pnl_24h = states('sensor.crypto_inspect_bybit_pnl_24h') | float(0) %}
+          {% set fg = states('sensor.crypto_inspect_fear_greed') | int(50) %}
+          ${{ '{:,.0f}'.format(portfolio) }} ({{ '+' if pnl_24h > 0 else '' }}{{ pnl_24h | round(1) }}%) | F&G: {{ fg }}
+        icon: mdi:wallet-outline
+        icon_color: >
+          {% set pnl = states('sensor.crypto_inspect_bybit_pnl_24h') | float(0) %}
+          {% if pnl > 0 %}green{% elif pnl < 0 %}red{% else %}grey{% endif %}
+        tap_action:
+          action: navigate
+          navigation_path: /lovelace/crypto
+        hold_action:
+          action: fire-dom-event
+          browser_mod:
+            service: browser_mod.popup
+            data:
+              title: "Крипто обзор"
+              content:
+                type: vertical-stack
+                cards:
+                  - type: custom:mushroom-template-card
+                    primary: "BTC"
+                    secondary: >
+                      {% set prices = states('sensor.crypto_inspect_prices') | from_json | default({}) %}
+                      {% set changes = states('sensor.crypto_inspect_changes_24h') | from_json | default({}) %}
+                      ${{ '{:,.0f}'.format(prices.get('BTC/USDT', prices.get('BTC', 0)) | float) }} ({{ changes.get('BTC/USDT', changes.get('BTC', 0)) | round(1) }}%)
+                    icon: mdi:bitcoin
+                    icon_color: orange
+
+                  - type: custom:mushroom-template-card
+                    primary: "ETH"
+                    secondary: >
+                      {% set prices = states('sensor.crypto_inspect_prices') | from_json | default({}) %}
+                      {% set changes = states('sensor.crypto_inspect_changes_24h') | from_json | default({}) %}
+                      ${{ '{:,.0f}'.format(prices.get('ETH/USDT', prices.get('ETH', 0)) | float) }} ({{ changes.get('ETH/USDT', changes.get('ETH', 0)) | round(1) }}%)
+                    icon: mdi:ethereum
+                    icon_color: blue
+
+                  - type: custom:mushroom-entity-card
+                    entity: sensor.crypto_inspect_fear_greed
+                    name: "Fear & Greed"
+
+                  - type: custom:mushroom-entity-card
+                    entity: sensor.crypto_inspect_dca_signal
+                    name: "DCA сигнал"
+
+                  - type: custom:mushroom-entity-card
+                    entity: sensor.crypto_inspect_investor_phase
+                    name: "Фаза рынка"
+
+                  - type: button
+                    tap_action:
+                      action: navigate
+                      navigation_path: /lovelace/crypto
+                    name: "Открыть полный дашборд"
+                    icon: mdi:arrow-right
+
+  # ===========================================================================
+  # SECTION 7: TODAY'S SCHEDULE / РАСПИСАНИЕ ДНЯ
+  # ===========================================================================
+  - type: grid
+    title: "Сегодня"
+    columns: 1
+    cards:
+      - type: calendar
+        entities:
+          - calendar.personal
+        initial_view: listWeek
+
+  # ===========================================================================
+  # SECTION 8: WEATHER FORECAST / ПРОГНОЗ ПОГОДЫ
+  # ===========================================================================
+  - type: grid
+    title: "Погода"
+    columns: 1
+    cards:
+      - type: weather-forecast
+        entity: weather.forecast_home
+        forecast_type: daily
+        show_current: true
+
+  # ===========================================================================
+  # SECTION 9: QUICK ACTIONS / БЫСТРЫЕ ДЕЙСТВИЯ
+  # ===========================================================================
+  - type: grid
+    title: "Сценарии"
+    columns: 4
+    cards:
+      - type: custom:mushroom-template-card
+        primary: "Ушёл"
+        icon: mdi:home-export-outline
+        icon_color: blue
+        tap_action:
+          action: call-service
+          service: script.leaving_home
+        layout: vertical
+
+      - type: custom:mushroom-template-card
+        primary: "Пришёл"
+        icon: mdi:home-import-outline
+        icon_color: green
+        tap_action:
+          action: call-service
+          service: script.arriving_home
+        layout: vertical
+
+      - type: custom:mushroom-template-card
+        primary: "Ночь"
+        icon: mdi:weather-night
+        icon_color: deep-purple
+        tap_action:
+          action: call-service
+          service: script.good_night
+        layout: vertical
+
+      - type: custom:mushroom-template-card
+        primary: "Кино"
+        icon: mdi:movie
+        icon_color: red
+        tap_action:
+          action: call-service
+          service: script.movie_mode
+        layout: vertical
+
+# =============================================================================
+# ADDITIONAL VIEW: CRYPTO FULL DASHBOARD (отдельная вкладка)
+# =============================================================================
+# Добавить как отдельный view в основной dashboard
+
+crypto_full_view:
+  title: "Крипто"
+  path: crypto
+  icon: mdi:chart-line
+  type: sections
+  sections:
+    # Quick overview
+    - type: grid
+      title: "Обзор"
+      columns: 4
+      cards:
+        - type: custom:mushroom-entity-card
+          entity: sensor.crypto_inspect_fear_greed
+          name: "Fear & Greed"
+          icon_color: >
+            {% set val = states('sensor.crypto_inspect_fear_greed') | int(50) %}
+            {% if val <= 25 %}red{% elif val <= 45 %}orange{% elif val <= 55 %}grey{% elif val <= 75 %}light-green{% else %}green{% endif %}
+
+        - type: custom:mushroom-entity-card
+          entity: sensor.crypto_inspect_investor_phase
+          name: "Фаза"
+
+        - type: custom:mushroom-entity-card
+          entity: sensor.crypto_inspect_dca_signal
+          name: "DCA"
+
+        - type: custom:mushroom-entity-card
+          entity: sensor.crypto_inspect_calm_indicator
+          name: "Спокойствие"
+
+    # Prices
+    - type: grid
+      title: "Цены"
+      columns: 3
+      cards:
+        - type: custom:mushroom-template-card
+          primary: "BTC"
+          secondary: >
+            {% set prices = states('sensor.crypto_inspect_prices') | from_json | default({}) %}
+            {% set changes = states('sensor.crypto_inspect_changes_24h') | from_json | default({}) %}
+            ${{ '{:,.0f}'.format(prices.get('BTC/USDT', prices.get('BTC', 0)) | float) }}
+            ({{ changes.get('BTC/USDT', changes.get('BTC', '0')) | round(1) }}%)
+          icon: mdi:bitcoin
+          icon_color: orange
+
+        - type: custom:mushroom-template-card
+          primary: "ETH"
+          secondary: >
+            {% set prices = states('sensor.crypto_inspect_prices') | from_json | default({}) %}
+            {% set changes = states('sensor.crypto_inspect_changes_24h') | from_json | default({}) %}
+            ${{ '{:,.0f}'.format(prices.get('ETH/USDT', prices.get('ETH', 0)) | float) }}
+            ({{ changes.get('ETH/USDT', changes.get('ETH', '0')) | round(1) }}%)
+          icon: mdi:ethereum
+          icon_color: blue
+
+        - type: custom:mushroom-template-card
+          primary: "SOL"
+          secondary: >
+            {% set prices = states('sensor.crypto_inspect_prices') | from_json | default({}) %}
+            {% set changes = states('sensor.crypto_inspect_changes_24h') | from_json | default({}) %}
+            ${{ '{:,.0f}'.format(prices.get('SOL/USDT', prices.get('SOL', 0)) | float) }}
+            ({{ changes.get('SOL/USDT', changes.get('SOL', '0')) | round(1) }}%)
+          icon: mdi:star-circle
+          icon_color: purple
+
+    # Portfolio
+    - type: grid
+      title: "Портфель"
+      columns: 4
+      cards:
+        - type: custom:mushroom-entity-card
+          entity: sensor.crypto_inspect_bybit_total_portfolio
+          name: "Всего"
+          icon: mdi:wallet
+
+        - type: custom:mushroom-entity-card
+          entity: sensor.crypto_inspect_bybit_pnl_24h
+          name: "24ч P&L"
+
+        - type: custom:mushroom-entity-card
+          entity: sensor.crypto_inspect_goal_progress
+          name: "Цель"
+
+        - type: custom:mushroom-entity-card
+          entity: sensor.crypto_inspect_portfolio_health
+          name: "Здоровье"
+
+    # Technical
+    - type: grid
+      title: "Технический анализ"
+      columns: 4
+      cards:
+        - type: custom:mushroom-template-card
+          primary: "RSI"
+          secondary: >
+            {% set data = states('sensor.crypto_inspect_ta_rsi') | from_json | default({}) %}
+            BTC: {{ data.BTC | default('N/A') }}
+          icon: mdi:chart-line
+
+        - type: custom:mushroom-entity-card
+          entity: sensor.crypto_inspect_ta_signal
+          name: "Сигнал"
+
+        - type: custom:mushroom-entity-card
+          entity: sensor.crypto_inspect_volatility_status
+          name: "Волатильность"
+
+        - type: custom:mushroom-entity-card
+          entity: sensor.crypto_inspect_market_tension
+          name: "Напряжение"
+
+    # Gas & Network
+    - type: grid
+      title: "ETH Gas"
+      columns: 4
+      cards:
+        - type: custom:mushroom-entity-card
+          entity: sensor.crypto_inspect_eth_gas_slow
+          name: "Медленный"
+          icon: mdi:speedometer-slow
+
+        - type: custom:mushroom-entity-card
+          entity: sensor.crypto_inspect_eth_gas_standard
+          name: "Стандарт"
+          icon: mdi:speedometer-medium
+
+        - type: custom:mushroom-entity-card
+          entity: sensor.crypto_inspect_eth_gas_fast
+          name: "Быстрый"
+          icon: mdi:speedometer
+
+        - type: custom:mushroom-entity-card
+          entity: sensor.crypto_inspect_eth_gas_status
+          name: "Статус"
+
+# =============================================================================
+# POPUP CARDS (для browser_mod)
+# =============================================================================
+
+popup_cards:
+  # ---------------------------------------------------------------------------
+  # Quick Crypto Check Popup
+  # ---------------------------------------------------------------------------
+  quick_crypto_popup:
+    type: vertical-stack
+    cards:
+      - type: markdown
+        content: |
+          ## Быстрый обзор рынка
+
+          **Fear & Greed:** {{ states('sensor.crypto_inspect_fear_greed') }}
+          **Фаза:** {{ states('sensor.crypto_inspect_investor_phase') }}
+          **DCA:** {{ states('sensor.crypto_inspect_dca_signal') }}
+
+      - type: custom:mini-graph-card
+        entities:
+          - entity: sensor.crypto_inspect_fear_greed
+            name: Fear & Greed
+        hours_to_show: 168
+        points_per_hour: 0.5
+        line_width: 2
+        color_thresholds:
+          - value: 25
+            color: "#dc3545"
+          - value: 45
+            color: "#fd7e14"
+          - value: 55
+            color: "#ffc107"
+          - value: 75
+            color: "#28a745"
+
+      - type: button
+        name: "Полный дашборд"
+        tap_action:
+          action: navigate
+          navigation_path: /lovelace/crypto
+
+  # ---------------------------------------------------------------------------
+  # DCA Reminder Popup
+  # ---------------------------------------------------------------------------
+  dca_reminder_popup:
+    type: vertical-stack
+    cards:
+      - type: markdown
+        content: |
+          ## DCA напоминание
+
+          **Сигнал:** {{ states('sensor.crypto_inspect_dca_signal') }}
+          **Зона:** {{ states('sensor.crypto_inspect_dca_zone') }}
+          **Рекомендуемая сумма:** {{ states('sensor.crypto_inspect_dca_result') }} €
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_calm_indicator
+        name: "Спокойствие рынка"
+
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_red_flags
+        name: "Красные флаги"
+
+# =============================================================================
+# NOTIFICATION BADGE SENSOR (template)
+# =============================================================================
+# Add to configuration.yaml under 'template:'
+
+notification_badge_template:
+  - sensor:
+      - name: "Smart Home Alerts Badge"
+        unique_id: smart_home_alerts_badge
+        state: >
+          {% set ha_alerts = states('sensor.home_alerts_count') | int(0) %}
+          {% set crypto_critical = states('sensor.crypto_inspect_pending_alerts_critical') | int(0) %}
+          {{ ha_alerts + crypto_critical }}
+        attributes:
+          ha_alerts: "{{ states('sensor.home_alerts_count') | int(0) }}"
+          crypto_critical: "{{ states('sensor.crypto_inspect_pending_alerts_critical') | int(0) }}"
+          has_critical: "{{ states('sensor.crypto_inspect_pending_alerts_critical') | int(0) > 0 }}"
+
+# =============================================================================
+# USAGE NOTES / ПРИМЕЧАНИЯ
+# =============================================================================
+#
+# 1. Этот дашборд фокусируется на умном доме, криптовалюта доступна:
+#    - Через компактный виджет финансов
+#    - Через попап по долгому нажатию
+#    - Через отдельную вкладку "Крипто"
+#
+# 2. Для попапов требуется browser_mod:
+#    - Установить через HACS
+#    - Настроить в configuration.yaml
+#
+# 3. Замените entity_id на свои реальные сущности:
+#    - person.user1, person.user2
+#    - sensor.temperature, sensor.humidity
+#    - light.living_room, light.bedroom
+#    - weather.forecast_home
+#    - и т.д.
+#
+# 4. Для графиков используется mini-graph-card:
+#    - Установить через HACS
+#
+# =============================================================================

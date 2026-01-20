@@ -29,8 +29,8 @@ class TestScoringEngine:
 
     def test_scoring_engine_basic(self, sample_candles):
         """Test basic scoring engine functionality."""
-        from services.analysis.scoring import ScoringEngine
-        from services.analysis.technical import TechnicalAnalyzer, TechnicalIndicators
+        from service.analysis.scoring import ScoringEngine
+        from service.analysis.technical import TechnicalAnalyzer, TechnicalIndicators
 
         ta = TechnicalAnalyzer()
         closes = [c["close"] for c in sample_candles]
@@ -86,8 +86,8 @@ class TestScoringEngine:
 
     def test_scoring_bullish_market(self, bullish_candles):
         """Test scoring in bullish market conditions."""
-        from services.analysis.scoring import ScoringEngine
-        from services.analysis.technical import TechnicalAnalyzer, TechnicalIndicators
+        from service.analysis.scoring import ScoringEngine
+        from service.analysis.technical import TechnicalAnalyzer, TechnicalIndicators
 
         ta = TechnicalAnalyzer()
         closes = [c["close"] for c in bullish_candles]
@@ -115,8 +115,8 @@ class TestScoringEngine:
 
     def test_scoring_bearish_market(self, bearish_candles):
         """Test scoring in bearish market conditions."""
-        from services.analysis.scoring import ScoringEngine
-        from services.analysis.technical import TechnicalAnalyzer, TechnicalIndicators
+        from service.analysis.scoring import ScoringEngine
+        from service.analysis.technical import TechnicalAnalyzer, TechnicalIndicators
 
         ta = TechnicalAnalyzer()
         closes = [c["close"] for c in bearish_candles]
@@ -157,8 +157,8 @@ class TestScoringAccuracy:
     def test_scoring_accuracy_bullish_periods(self, bullish_candles, data_loader, signal_validator):
         """Test scoring accuracy during bullish periods."""
         candles = data_loader.load_from_list(bullish_candles)
-        from services.analysis.scoring import ScoringEngine
-        from services.analysis.technical import TechnicalAnalyzer, TechnicalIndicators
+        from service.analysis.scoring import ScoringEngine
+        from service.analysis.technical import TechnicalAnalyzer, TechnicalIndicators
 
         ta = TechnicalAnalyzer()
         scoring = ScoringEngine()
@@ -211,8 +211,8 @@ class TestScoringAccuracy:
     def test_scoring_accuracy_bearish_periods(self, bearish_candles, data_loader, signal_validator):
         """Test scoring accuracy during bearish periods."""
         candles = data_loader.load_from_list(bearish_candles)
-        from services.analysis.scoring import ScoringEngine
-        from services.analysis.technical import TechnicalAnalyzer, TechnicalIndicators
+        from service.analysis.scoring import ScoringEngine
+        from service.analysis.technical import TechnicalAnalyzer, TechnicalIndicators
 
         ta = TechnicalAnalyzer()
         scoring = ScoringEngine()

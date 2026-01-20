@@ -21,7 +21,7 @@ class TestRiskMetrics:
 
     def test_default_values(self):
         """Should have sensible defaults."""
-        from services.analysis.risk import RiskMetrics
+        from service.analysis.risk import RiskMetrics
 
         metrics = RiskMetrics()
         assert metrics.sharpe_ratio == 0.0
@@ -30,7 +30,7 @@ class TestRiskMetrics:
 
     def test_to_dict(self):
         """Should convert to dict with rounded values."""
-        from services.analysis.risk import RiskMetrics
+        from service.analysis.risk import RiskMetrics
 
         metrics = RiskMetrics(
             sharpe_ratio=1.5678,
@@ -62,14 +62,14 @@ class TestRiskAnalyzer:
 
     def test_init(self):
         """Should initialize with empty state."""
-        from services.analysis.risk import RiskAnalyzer
+        from service.analysis.risk import RiskAnalyzer
 
         analyzer = RiskAnalyzer()
         assert analyzer.last_metrics is None
 
     def test_add_portfolio_snapshot(self):
         """Should track portfolio history."""
-        from services.analysis.risk import RiskAnalyzer
+        from service.analysis.risk import RiskAnalyzer
 
         analyzer = RiskAnalyzer()
         analyzer.add_portfolio_snapshot(50000)
@@ -80,7 +80,7 @@ class TestRiskAnalyzer:
 
     def test_set_btc_returns(self):
         """Should store BTC returns for beta calc."""
-        from services.analysis.risk import RiskAnalyzer
+        from service.analysis.risk import RiskAnalyzer
 
         analyzer = RiskAnalyzer()
         returns = [0.01, -0.02, 0.015, -0.005]
@@ -91,7 +91,7 @@ class TestRiskAnalyzer:
     @pytest.mark.asyncio
     async def test_calculate_risk_metrics_insufficient_data(self):
         """Should return unknown risk with insufficient data."""
-        from services.analysis.risk import RiskAnalyzer
+        from service.analysis.risk import RiskAnalyzer
 
         analyzer = RiskAnalyzer()
         # Only 5 values, need at least 7
@@ -102,7 +102,7 @@ class TestRiskAnalyzer:
     @pytest.mark.asyncio
     async def test_calculate_risk_metrics_with_data(self):
         """Should calculate metrics with sufficient data."""
-        from services.analysis.risk import RiskAnalyzer
+        from service.analysis.risk import RiskAnalyzer
 
         analyzer = RiskAnalyzer()
         # Provide 30 days of data
@@ -117,7 +117,7 @@ class TestRiskAnalyzer:
 
     def test_calculate_returns(self):
         """Should calculate daily returns correctly."""
-        from services.analysis.risk import RiskAnalyzer
+        from service.analysis.risk import RiskAnalyzer
 
         analyzer = RiskAnalyzer()
         values = [100, 110, 105, 115]
@@ -140,13 +140,13 @@ class TestBacktestService:
 
     def test_import(self):
         """Should be importable."""
-        from services.analysis.backtest import DCABacktester
+        from service.analysis.backtest import DCABacktester
 
         assert DCABacktester is not None
 
     def test_backtest_result_dataclass(self):
         """Should have backtest result dataclass."""
-        from services.analysis.backtest import BacktestResult
+        from service.analysis.backtest import BacktestResult
 
         # BacktestResult is a dataclass with many fields
         assert BacktestResult is not None
@@ -162,13 +162,13 @@ class TestCorrelationAnalyzer:
 
     def test_import(self):
         """Should be importable."""
-        from services.analysis.correlation import CorrelationTracker
+        from service.analysis.correlation import CorrelationTracker
 
         assert CorrelationTracker is not None
 
     def test_correlation_result(self):
         """Should have correlation pair."""
-        from services.analysis.correlation import CorrelationPair
+        from service.analysis.correlation import CorrelationPair
 
         assert CorrelationPair is not None
 
@@ -183,13 +183,13 @@ class TestAltseasonAnalyzer:
 
     def test_import(self):
         """Should be importable."""
-        from services.analysis.altseason import AltseasonAnalyzer
+        from service.analysis.altseason import AltseasonAnalyzer
 
         assert AltseasonAnalyzer is not None
 
     def test_altseason_data(self):
         """Should have altseason data class."""
-        from services.analysis.altseason import AltseasonData
+        from service.analysis.altseason import AltseasonData
 
         # AltseasonData is a dataclass
         assert AltseasonData is not None
@@ -205,13 +205,13 @@ class TestStablecoinAnalyzer:
 
     def test_import(self):
         """Should be importable."""
-        from services.analysis.stablecoins import StablecoinAnalyzer
+        from service.analysis.stablecoins import StablecoinAnalyzer
 
         assert StablecoinAnalyzer is not None
 
     def test_stablecoin_data(self):
         """Should have stablecoin data class."""
-        from services.analysis.stablecoins import StablecoinData
+        from service.analysis.stablecoins import StablecoinData
 
         assert StablecoinData is not None
 
@@ -226,13 +226,13 @@ class TestGasTracker:
 
     def test_import(self):
         """Should be importable."""
-        from services.analysis.gas import GasTracker
+        from service.analysis.gas import GasTracker
 
         assert GasTracker is not None
 
     def test_gas_prices_data(self):
         """Should have gas data class."""
-        from services.analysis.gas import GasData
+        from service.analysis.gas import GasData
 
         assert GasData is not None
 
@@ -247,7 +247,7 @@ class TestWhaleTracker:
 
     def test_import(self):
         """Should be importable."""
-        from services.analysis.whales import WhaleTracker
+        from service.analysis.whales import WhaleTracker
 
         assert WhaleTracker is not None
 
@@ -262,7 +262,7 @@ class TestLiquidationTracker:
 
     def test_import(self):
         """Should be importable."""
-        from services.analysis.liquidations import LiquidationTracker
+        from service.analysis.liquidations import LiquidationTracker
 
         assert LiquidationTracker is not None
 
@@ -277,7 +277,7 @@ class TestDivergenceDetector:
 
     def test_import(self):
         """Should be importable."""
-        from services.analysis.divergences import DivergenceDetector
+        from service.analysis.divergences import DivergenceDetector
 
         assert DivergenceDetector is not None
 
@@ -292,7 +292,7 @@ class TestDCAAnalyzer:
 
     def test_import(self):
         """Should be importable."""
-        from services.analysis.dca import DCACalculator
+        from service.analysis.dca import DCACalculator
 
         assert DCACalculator is not None
 
@@ -307,7 +307,7 @@ class TestVolatilityAnalyzer:
 
     def test_import(self):
         """Should be importable."""
-        from services.analysis.volatility import VolatilityTracker
+        from service.analysis.volatility import VolatilityTracker
 
         assert VolatilityTracker is not None
 
@@ -322,7 +322,7 @@ class TestMacroAnalyzer:
 
     def test_import(self):
         """Should be importable."""
-        from services.analysis.traditional import TraditionalFinanceTracker
+        from service.analysis.traditional import TraditionalFinanceTracker
 
         assert TraditionalFinanceTracker is not None
 
@@ -337,7 +337,7 @@ class TestProfitTakingAnalyzer:
 
     def test_import(self):
         """Should be importable."""
-        from services.analysis.profit_taking import ProfitTakingAdvisor
+        from service.analysis.profit_taking import ProfitTakingAdvisor
 
         assert ProfitTakingAdvisor is not None
 
@@ -352,7 +352,7 @@ class TestArbitrageAnalyzer:
 
     def test_import(self):
         """Should be importable."""
-        from services.analysis.arbitrage import ArbitrageScanner
+        from service.analysis.arbitrage import ArbitrageScanner
 
         assert ArbitrageScanner is not None
 
@@ -367,7 +367,7 @@ class TestTraditionalAnalyzer:
 
     def test_import(self):
         """Should be importable."""
-        from services.analysis.traditional import TraditionalFinanceStatus
+        from service.analysis.traditional import TraditionalFinanceStatus
 
         assert TraditionalFinanceStatus is not None
 
@@ -382,7 +382,7 @@ class TestUnlocksTracker:
 
     def test_import(self):
         """Should be importable."""
-        from services.analysis.unlocks import UnlockTracker
+        from service.analysis.unlocks import UnlockTracker
 
         assert UnlockTracker is not None
 
@@ -397,7 +397,7 @@ class TestTAPublisher:
 
     def test_import(self):
         """Should be importable."""
-        from services.analysis.ta_publisher import TAPublisher
+        from service.analysis.ta_publisher import TAPublisher
 
         assert TAPublisher is not None
 
@@ -412,6 +412,6 @@ class TestExchangeFlowTracker:
 
     def test_import(self):
         """Should be importable."""
-        from services.analysis.exchange_flow import ExchangeFlowAnalyzer
+        from service.analysis.exchange_flow import ExchangeFlowAnalyzer
 
         assert ExchangeFlowAnalyzer is not None

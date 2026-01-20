@@ -11,24 +11,13 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
 
-from services.backfill import get_backfill_manager
+from schemas.api.backfill import TriggerBackfillRequest
+from service.backfill import get_backfill_manager
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/backfill", tags=["backfill"])
-
-
-class TriggerBackfillRequest(BaseModel):
-    """Request to trigger backfill."""
-
-    crypto_symbols: list[str] | None = None
-    crypto_intervals: list[str] | None = None
-    crypto_years: int | None = None
-    traditional_symbols: list[str] | None = None
-    traditional_years: int | None = None
-    force: bool = False
 
 
 @router.get("/status")
@@ -183,7 +172,7 @@ async def get_data_gaps(
     try:
         if symbol:
             # Check specific symbol
-            from services.backfill.crypto_backfill import get_crypto_backfill
+            from service.backfill.crypto_backfill import get_crypto_backfill
 
             crypto = get_crypto_backfill()
             intervals = manager.crypto_intervals
@@ -255,7 +244,7 @@ async def get_data_stats() -> dict[str, Any]:
     """
     from sqlalchemy import text
 
-    from db.session import async_session_maker
+    from models.session import async_session_maker
 
     try:
         async with async_session_maker() as session:

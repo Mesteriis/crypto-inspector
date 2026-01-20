@@ -17,7 +17,7 @@ class TestRSISignalAccuracy:
 
     def test_rsi_calculation_correct(self, sample_candles):
         """Test RSI calculation produces valid values."""
-        from services.analysis.technical import TechnicalAnalyzer
+        from service.analysis.technical import TechnicalAnalyzer
 
         ta = TechnicalAnalyzer()
         closes = [c["close"] for c in sample_candles]
@@ -31,7 +31,7 @@ class TestRSISignalAccuracy:
     def test_rsi_oversold_signals_accuracy(self, rsi_oversold_candles, data_loader, signal_validator):
         """Test accuracy of RSI oversold signals (< 30)."""
         candles = data_loader.load_from_list(rsi_oversold_candles)
-        from services.analysis.technical import TechnicalAnalyzer
+        from service.analysis.technical import TechnicalAnalyzer
 
         ta = TechnicalAnalyzer()
 
@@ -72,7 +72,7 @@ class TestRSISignalAccuracy:
     def test_rsi_overbought_signals_accuracy(self, bullish_candles, data_loader, signal_validator):
         """Test accuracy of RSI overbought signals (> 70)."""
         candles = data_loader.load_from_list(bullish_candles)
-        from services.analysis.technical import TechnicalAnalyzer
+        from service.analysis.technical import TechnicalAnalyzer
 
         ta = TechnicalAnalyzer()
 
@@ -116,7 +116,7 @@ class TestMACDSignalAccuracy:
 
     def test_macd_calculation_correct(self, sample_candles):
         """Test MACD calculation produces valid values."""
-        from services.analysis.technical import TechnicalAnalyzer
+        from service.analysis.technical import TechnicalAnalyzer
 
         ta = TechnicalAnalyzer()
         closes = [c["close"] for c in sample_candles]
@@ -132,7 +132,7 @@ class TestMACDSignalAccuracy:
     def test_macd_bullish_crossover_accuracy(self, bullish_candles, data_loader, signal_validator):
         """Test accuracy of MACD bullish crossover signals."""
         candles = data_loader.load_from_list(bullish_candles)
-        from services.analysis.technical import TechnicalAnalyzer
+        from service.analysis.technical import TechnicalAnalyzer
 
         ta = TechnicalAnalyzer()
         crossover_count = 0
@@ -183,7 +183,7 @@ class TestMACDSignalAccuracy:
     def test_macd_bearish_crossover_accuracy(self, bearish_candles, data_loader, signal_validator):
         """Test accuracy of MACD bearish crossover signals."""
         candles = data_loader.load_from_list(bearish_candles)
-        from services.analysis.technical import TechnicalAnalyzer
+        from service.analysis.technical import TechnicalAnalyzer
 
         ta = TechnicalAnalyzer()
         crossover_count = 0
@@ -237,7 +237,7 @@ class TestBollingerBandSignalAccuracy:
     def test_bb_lower_band_touch_accuracy(self, bearish_candles, data_loader, signal_validator):
         """Test accuracy when price touches lower BB."""
         candles = data_loader.load_from_list(bearish_candles)
-        from services.analysis.technical import TechnicalAnalyzer
+        from service.analysis.technical import TechnicalAnalyzer
 
         ta = TechnicalAnalyzer()
         touch_count = 0
@@ -278,7 +278,7 @@ class TestBollingerBandSignalAccuracy:
     def test_bb_upper_band_touch_accuracy(self, bullish_candles, data_loader, signal_validator):
         """Test accuracy when price touches upper BB."""
         candles = data_loader.load_from_list(bullish_candles)
-        from services.analysis.technical import TechnicalAnalyzer
+        from service.analysis.technical import TechnicalAnalyzer
 
         ta = TechnicalAnalyzer()
         touch_count = 0
@@ -323,7 +323,7 @@ class TestCombinedSignalAccuracy:
     def test_confluence_signal_accuracy(self, bullish_candles, data_loader, signal_validator):
         """Test accuracy when multiple indicators agree."""
         candles = data_loader.load_from_list(bullish_candles)
-        from services.analysis.technical import TechnicalAnalyzer
+        from service.analysis.technical import TechnicalAnalyzer
 
         ta = TechnicalAnalyzer()
         confluence_count = 0
@@ -389,7 +389,7 @@ class TestSignalAccuracyReport:
     def test_generate_comprehensive_report(self, sample_candles, data_loader, signal_validator):
         """Generate a comprehensive report across all indicators."""
         candles = data_loader.load_from_list(sample_candles)
-        from services.analysis.technical import TechnicalAnalyzer
+        from service.analysis.technical import TechnicalAnalyzer
 
         ta = TechnicalAnalyzer()
 

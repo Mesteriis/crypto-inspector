@@ -11,8 +11,8 @@ Tests cover:
 
 import pytest
 
-from services.analysis.scoring import ComponentScore, CompositeScore, ScoringEngine
-from services.analysis.technical import TechnicalIndicators
+from service.analysis.scoring import ComponentScore, CompositeScore, ScoringEngine
+from service.analysis.technical import TechnicalIndicators
 
 
 class TestComponentScores:

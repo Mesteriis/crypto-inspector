@@ -26,13 +26,13 @@ class TestDatabaseSession:
 
     def test_import_session(self):
         """Should import session maker."""
-        from db.session import async_session_maker
+        from models.session import async_session_maker
 
         assert async_session_maker is not None
 
     def test_import_engine(self):
         """Should import engine."""
-        from db.session import engine
+        from models.session import engine
 
         assert engine is not None
 
@@ -47,7 +47,7 @@ class TestBaseModel:
 
     def test_import_base(self):
         """Should import base."""
-        from db.base import Base
+        from models.base import Base
 
         assert Base is not None
 

@@ -20,7 +20,7 @@ class TestRiskAnalyzerCalculations:
 
     def test_calculate_returns_with_two_values(self):
         """Should calculate returns with two values."""
-        from services.analysis.risk import RiskAnalyzer
+        from service.analysis.risk import RiskAnalyzer
 
         analyzer = RiskAnalyzer()
         returns = analyzer._calculate_returns([100, 110])
@@ -29,7 +29,7 @@ class TestRiskAnalyzerCalculations:
 
     def test_calculate_returns_empty(self):
         """Should handle single value."""
-        from services.analysis.risk import RiskAnalyzer
+        from service.analysis.risk import RiskAnalyzer
 
         analyzer = RiskAnalyzer()
         returns = analyzer._calculate_returns([100])
@@ -37,7 +37,7 @@ class TestRiskAnalyzerCalculations:
 
     def test_calculate_sharpe_ratio(self):
         """Should calculate Sharpe ratio."""
-        from services.analysis.risk import RiskAnalyzer
+        from service.analysis.risk import RiskAnalyzer
 
         analyzer = RiskAnalyzer()
         returns = [0.01, 0.02, -0.01, 0.015, 0.008, -0.005, 0.012]
@@ -46,7 +46,7 @@ class TestRiskAnalyzerCalculations:
 
     def test_calculate_sortino_ratio(self):
         """Should calculate Sortino ratio."""
-        from services.analysis.risk import RiskAnalyzer
+        from service.analysis.risk import RiskAnalyzer
 
         analyzer = RiskAnalyzer()
         returns = [0.01, 0.02, -0.01, 0.015, 0.008, -0.005, 0.012]
@@ -55,7 +55,7 @@ class TestRiskAnalyzerCalculations:
 
     def test_calculate_drawdown(self):
         """Should calculate drawdown metrics."""
-        from services.analysis.risk import RiskAnalyzer
+        from service.analysis.risk import RiskAnalyzer
 
         analyzer = RiskAnalyzer()
         values = [100, 110, 105, 115, 100, 120]
@@ -65,7 +65,7 @@ class TestRiskAnalyzerCalculations:
 
     def test_calculate_var(self):
         """Should calculate Value at Risk."""
-        from services.analysis.risk import RiskAnalyzer
+        from service.analysis.risk import RiskAnalyzer
 
         analyzer = RiskAnalyzer()
         returns = [0.01, 0.02, -0.01, 0.015, 0.008, -0.005, 0.012, -0.02, 0.003]
@@ -75,7 +75,7 @@ class TestRiskAnalyzerCalculations:
 
     def test_calculate_volatility(self):
         """Should calculate volatility."""
-        from services.analysis.risk import RiskAnalyzer
+        from service.analysis.risk import RiskAnalyzer
 
         analyzer = RiskAnalyzer()
         returns = [0.01, 0.02, -0.01, 0.015]
@@ -84,7 +84,7 @@ class TestRiskAnalyzerCalculations:
 
     def test_calculate_beta(self):
         """Should calculate beta."""
-        from services.analysis.risk import RiskAnalyzer
+        from service.analysis.risk import RiskAnalyzer
 
         analyzer = RiskAnalyzer()
         analyzer.set_btc_returns([0.01, 0.02, -0.01, 0.015, 0.008])
@@ -94,7 +94,7 @@ class TestRiskAnalyzerCalculations:
 
     def test_determine_risk_status(self):
         """Should determine risk status."""
-        from services.analysis.risk import RiskAnalyzer
+        from service.analysis.risk import RiskAnalyzer
 
         analyzer = RiskAnalyzer()
         # Method signature may vary - just test it exists
@@ -111,7 +111,7 @@ class TestCycleDetectorDeep:
 
     def test_detect_cycle(self):
         """Should detect market cycle."""
-        from services.analysis.cycles import CycleDetector
+        from service.analysis.cycles import CycleDetector
 
         detector = CycleDetector()
         cycle_info = detector.detect_cycle(100000)
@@ -122,7 +122,7 @@ class TestCycleDetectorDeep:
 
     def test_cycle_phases(self):
         """Should have all cycle phases."""
-        from services.analysis.cycles import CyclePhase
+        from service.analysis.cycles import CyclePhase
 
         phases = list(CyclePhase)
         assert len(phases) > 0
@@ -138,7 +138,7 @@ class TestDerivativesAnalyzerDeep:
 
     def test_init(self):
         """Should initialize analyzer."""
-        from services.analysis.derivatives import DerivativesAnalyzer
+        from service.analysis.derivatives import DerivativesAnalyzer
 
         analyzer = DerivativesAnalyzer()
         assert analyzer is not None
@@ -146,7 +146,7 @@ class TestDerivativesAnalyzerDeep:
     @pytest.mark.asyncio
     async def test_analyze_returns_metrics(self):
         """Should return derivatives metrics."""
-        from services.analysis.derivatives import DerivativesAnalyzer
+        from service.analysis.derivatives import DerivativesAnalyzer
 
         analyzer = DerivativesAnalyzer()
 
@@ -175,7 +175,7 @@ class TestOnChainAnalyzerDeep:
 
     def test_init(self):
         """Should initialize analyzer."""
-        from services.analysis.onchain import OnChainAnalyzer
+        from service.analysis.onchain import OnChainAnalyzer
 
         analyzer = OnChainAnalyzer()
         assert analyzer is not None
@@ -191,14 +191,14 @@ class TestScoringEngineDeep:
 
     def test_init(self):
         """Should initialize engine."""
-        from services.analysis.scoring import ScoringEngine
+        from service.analysis.scoring import ScoringEngine
 
         engine = ScoringEngine()
         assert engine is not None
 
     def test_calculate_basic_score(self):
         """Should calculate basic score."""
-        from services.analysis.scoring import ScoringEngine
+        from service.analysis.scoring import ScoringEngine
 
         engine = ScoringEngine()
         score = engine.calculate(
@@ -221,7 +221,7 @@ class TestTechnicalAnalyzerDeep:
 
     def test_init(self):
         """Should initialize analyzer."""
-        from services.analysis.technical import TechnicalAnalyzer
+        from service.analysis.technical import TechnicalAnalyzer
 
         analyzer = TechnicalAnalyzer()
         assert analyzer is not None
@@ -237,7 +237,7 @@ class TestPatternDetectorDeep:
 
     def test_init(self):
         """Should initialize detector."""
-        from services.analysis.patterns import PatternDetector
+        from service.analysis.patterns import PatternDetector
 
         detector = PatternDetector()
         assert detector is not None
@@ -253,7 +253,7 @@ class TestSmartSummaryDeep:
 
     def test_init(self):
         """Should initialize service."""
-        from services.analysis.smart_summary import SmartSummaryService
+        from service.analysis.smart_summary import SmartSummaryService
 
         service = SmartSummaryService()
         assert service is not None
@@ -269,7 +269,7 @@ class TestBriefingServiceDeep:
 
     def test_init(self):
         """Should initialize service."""
-        from services.analysis.briefing import BriefingService
+        from service.analysis.briefing import BriefingService
 
         service = BriefingService()
         assert service is not None
@@ -285,14 +285,14 @@ class TestInvestorModule:
 
     def test_get_investor_analyzer(self):
         """Should get investor analyzer."""
-        from services.analysis.investor import get_investor_analyzer
+        from service.analysis.investor import get_investor_analyzer
 
         analyzer = get_investor_analyzer()
         assert analyzer is not None
 
     def test_investor_status_class(self):
         """Should have investor status class."""
-        from services.analysis.investor import InvestorStatus
+        from service.analysis.investor import InvestorStatus
 
         assert InvestorStatus is not None
 
@@ -307,7 +307,7 @@ class TestDCACalculatorDeep:
 
     def test_init(self):
         """Should initialize calculator."""
-        from services.analysis.dca import DCACalculator
+        from service.analysis.dca import DCACalculator
 
         calc = DCACalculator()
         assert calc is not None
@@ -323,7 +323,7 @@ class TestVolatilityTrackerDeep:
 
     def test_init(self):
         """Should initialize tracker."""
-        from services.analysis.volatility import VolatilityTracker
+        from service.analysis.volatility import VolatilityTracker
 
         tracker = VolatilityTracker()
         assert tracker is not None
@@ -339,7 +339,7 @@ class TestWhaleTrackerDeep:
 
     def test_init(self):
         """Should initialize tracker."""
-        from services.analysis.whales import WhaleTracker
+        from service.analysis.whales import WhaleTracker
 
         tracker = WhaleTracker()
         assert tracker is not None
@@ -355,7 +355,7 @@ class TestGasTrackerDeep:
 
     def test_init(self):
         """Should initialize tracker."""
-        from services.analysis.gas import GasTracker
+        from service.analysis.gas import GasTracker
 
         tracker = GasTracker()
         assert tracker is not None
@@ -371,7 +371,7 @@ class TestLiquidationTrackerDeep:
 
     def test_init(self):
         """Should initialize tracker."""
-        from services.analysis.liquidations import LiquidationTracker
+        from service.analysis.liquidations import LiquidationTracker
 
         tracker = LiquidationTracker()
         assert tracker is not None
@@ -387,7 +387,7 @@ class TestDivergenceDetectorDeep:
 
     def test_init(self):
         """Should initialize detector."""
-        from services.analysis.divergences import DivergenceDetector
+        from service.analysis.divergences import DivergenceDetector
 
         detector = DivergenceDetector()
         assert detector is not None
@@ -403,7 +403,7 @@ class TestAltseasonAnalyzerDeep:
 
     def test_init(self):
         """Should initialize analyzer."""
-        from services.analysis.altseason import AltseasonAnalyzer
+        from service.analysis.altseason import AltseasonAnalyzer
 
         analyzer = AltseasonAnalyzer()
         assert analyzer is not None
@@ -419,7 +419,7 @@ class TestStablecoinAnalyzerDeep:
 
     def test_init(self):
         """Should initialize analyzer."""
-        from services.analysis.stablecoins import StablecoinAnalyzer
+        from service.analysis.stablecoins import StablecoinAnalyzer
 
         analyzer = StablecoinAnalyzer()
         assert analyzer is not None
@@ -435,7 +435,7 @@ class TestCorrelationTrackerDeep:
 
     def test_init(self):
         """Should initialize tracker."""
-        from services.analysis.correlation import CorrelationTracker
+        from service.analysis.correlation import CorrelationTracker
 
         tracker = CorrelationTracker()
         assert tracker is not None
@@ -451,7 +451,7 @@ class TestBacktestServiceDeep:
 
     def test_init(self):
         """Should initialize backtester."""
-        from services.analysis.backtest import DCABacktester
+        from service.analysis.backtest import DCABacktester
 
         backtester = DCABacktester()
         assert backtester is not None
@@ -467,6 +467,6 @@ class TestSignalHistoryModule:
 
     def test_module_exists(self):
         """Module should exist."""
-        import services.analysis.signal_history
+        import service.analysis.signal_history
 
-        assert services.analysis.signal_history is not None
+        assert service.analysis.signal_history is not None

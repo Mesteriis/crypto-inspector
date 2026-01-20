@@ -21,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from enhanced_accuracy_system import EnhancedAccuracyForecaster
 
 from core.constants import DEFAULT_SYMBOLS
-from services.candlestick import CandleInterval, fetch_candlesticks
+from service.candlestick import CandleInterval, fetch_candlesticks
 
 # Configure logging
 logging.basicConfig(

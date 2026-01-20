@@ -18,9 +18,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 
 from core.constants import MLDefaults
-from services.candlestick import CandleInterval, fetch_candlesticks
-from services.ml.forecaster import PriceForecaster
-from services.ml.models import ForecastResult
+from service.candlestick import CandleInterval, fetch_candlesticks
+from service.ml.forecaster import PriceForecaster
+from service.ml.models import ForecastResult
 
 # Configure logging
 logging.basicConfig(

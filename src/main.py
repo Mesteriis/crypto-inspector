@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from api.middleware import setup_exception_handlers
 from api.router import api_router
 from core.config import settings
 from core.scheduler import scheduler_lifespan
@@ -30,9 +31,9 @@ async def start_websocket_streaming() -> None:
         logger.warning("No streaming symbols configured")
         return
 
-    from services.candlestick.buffer import get_candle_buffer, init_candle_buffer
-    from services.candlestick.models import CandleInterval
-    from services.candlestick.websocket import init_stream_manager
+    from service.candlestick.buffer import get_candle_buffer, init_candle_buffer
+    from service.candlestick.models import CandleInterval
+    from service.candlestick.websocket import init_stream_manager
 
     # Initialize candle buffer for DB writes
     await init_candle_buffer()
@@ -76,8 +77,8 @@ async def start_websocket_streaming() -> None:
 
 async def stop_websocket_streaming() -> None:
     """Stop WebSocket streaming."""
-    from services.candlestick.buffer import stop_candle_buffer
-    from services.candlestick.websocket import stop_stream_manager
+    from service.candlestick.buffer import stop_candle_buffer
+    from service.candlestick.websocket import stop_stream_manager
 
     await stop_stream_manager()
     await stop_candle_buffer()
@@ -91,7 +92,7 @@ async def start_mcp_server() -> None:
         return
 
     try:
-        from services.mcp import start_mcp_server as _start_mcp_server
+        from service.mcp import start_mcp_server as _start_mcp_server
 
         success = await _start_mcp_server()
         if success:
@@ -105,7 +106,7 @@ async def start_mcp_server() -> None:
 async def stop_mcp_server() -> None:
     """Stop MCP server."""
     try:
-        from services.mcp import stop_mcp_server as _stop_mcp_server
+        from service.mcp import stop_mcp_server as _stop_mcp_server
 
         await _stop_mcp_server()
     except ImportError:
@@ -118,7 +119,7 @@ async def run_initial_backfill() -> None:
         logger.info("Data backfill disabled")
         return
 
-    from services.backfill import get_backfill_manager
+    from service.backfill import get_backfill_manager
 
     logger.info("Checking for initial data backfill...")
     manager = get_backfill_manager()
@@ -158,7 +159,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
     # Initialize HA entities (cleanup old sensors, create input helpers)
     try:
-        from services.ha_init import initialize_ha_entities
+        from service.ha_init import initialize_ha_entities
 
         await initialize_ha_entities()
     except ImportError:
@@ -167,7 +168,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         logger.error(f"Error initializing HA entities: {e}")
 
     # Register HA sensors
-    from services.ha_integration import register_sensors
+    from service.ha_integration import register_sensors
 
     await register_sensors()
 
@@ -200,6 +201,9 @@ app = FastAPI(
     debug=settings.DEBUG,
     lifespan=lifespan,
 )
+
+# Setup global exception handlers with HA notifications
+setup_exception_handlers(app)
 
 # Include API router only if API is enabled
 if settings.API_ENABLED:

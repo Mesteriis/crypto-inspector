@@ -24,8 +24,8 @@ async def get_stream_status() -> dict[str, Any]:
     Returns:
         Stream status including active sources and connection states
     """
-    from services.candlestick.buffer import get_candle_buffer
-    from services.candlestick.websocket import get_stream_manager
+    from service.candlestick.buffer import get_candle_buffer
+    from service.candlestick.websocket import get_stream_manager
 
     manager = get_stream_manager()
     buffer = get_candle_buffer()
@@ -58,7 +58,7 @@ async def retry_primary(symbol: str | None = None) -> dict[str, Any]:
     Returns:
         Confirmation message
     """
-    from services.candlestick.websocket import get_stream_manager
+    from service.candlestick.websocket import get_stream_manager
 
     manager = get_stream_manager()
     if not manager:
@@ -81,8 +81,8 @@ async def start_streaming() -> dict[str, Any]:
         Confirmation message
     """
     from core.config import settings
-    from services.candlestick.models import CandleInterval
-    from services.candlestick.websocket import get_stream_manager, init_stream_manager
+    from service.candlestick.models import CandleInterval
+    from service.candlestick.websocket import get_stream_manager, init_stream_manager
 
     manager = get_stream_manager()
     if manager:
@@ -115,7 +115,7 @@ async def stop_streaming() -> dict[str, Any]:
     Returns:
         Confirmation message
     """
-    from services.candlestick.websocket import get_stream_manager, stop_stream_manager
+    from service.candlestick.websocket import get_stream_manager, stop_stream_manager
 
     manager = get_stream_manager()
     if not manager:

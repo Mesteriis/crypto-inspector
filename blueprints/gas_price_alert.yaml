@@ -1,0 +1,146 @@
+# =============================================================================
+# Gas Price Alert Blueprint / Алерт цены газа
+# =============================================================================
+# Sends notification when ETH gas price is optimal for transactions
+# Отправляет уведомление когда цена газа оптимальна для транзакций
+# =============================================================================
+
+blueprint:
+  name: "ETH Gas Price Alert / Алерт цены газа"
+  description: >-
+    Get notified when ETH gas price drops to your target level.
+    Уведомление когда цена газа ETH падает до целевого уровня.
+  domain: automation
+  author: "Crypto Inspect Add-on"
+  source_url: "https://github.com/Mesteriis/crypto-inspector"
+
+  input:
+    gas_threshold:
+      name: "Gas Threshold / Порог газа"
+      description: >-
+        Notify when gas drops below this level (Gwei).
+        Уведомить когда газ упадёт ниже этого уровня (Gwei).
+      selector:
+        number:
+          min: 1
+          max: 200
+          step: 1
+          unit_of_measurement: "Gwei"
+      default: 25
+
+    gas_sensor:
+      name: "Gas Sensor / Сенсор газа"
+      description: >-
+        Which gas speed to monitor.
+        Какую скорость газа мониторить.
+      selector:
+        select:
+          options:
+            - label: "Slow / Медленный"
+              value: "sensor.crypto_inspect_eth_gas_slow"
+            - label: "Standard / Стандартный"
+              value: "sensor.crypto_inspect_eth_gas_standard"
+            - label: "Fast / Быстрый"
+              value: "sensor.crypto_inspect_eth_gas_fast"
+      default: "sensor.crypto_inspect_eth_gas_standard"
+
+    notify_service:
+      name: "Notification Service / Сервис уведомлений"
+      description: >-
+        The notification service to use.
+        Сервис для отправки уведомлений.
+      selector:
+        text:
+      default: "notify.mobile_app"
+
+    language:
+      name: "Language / Язык"
+      description: "Notification language / Язык уведомлений"
+      selector:
+        select:
+          options:
+            - label: "English"
+              value: "en"
+            - label: "Русский"
+              value: "ru"
+      default: "ru"
+
+    cooldown_minutes:
+      name: "Cooldown / Задержка"
+      description: >-
+        Minimum time between alerts (minutes).
+        Минимальное время между алертами (минуты).
+      selector:
+        number:
+          min: 5
+          max: 1440
+          step: 5
+          unit_of_measurement: "min"
+      default: 60
+
+trigger:
+  - platform: numeric_state
+    entity_id: !input gas_sensor
+    below: !input gas_threshold
+    for:
+      minutes: 2
+
+condition:
+  - condition: template
+    value_template: >
+      {% set last_triggered = state_attr('automation.eth_gas_price_alert', 'last_triggered') %}
+      {% if last_triggered is none %}
+        true
+      {% else %}
+        {% set cooldown = !input cooldown_minutes | int(60) %}
+        {{ (now() - last_triggered).total_seconds() > (cooldown * 60) }}
+      {% endif %}
+
+action:
+  - variables:
+      lang: !input language
+      current_gas: "{{ states(!input gas_sensor) }}"
+      slow: "{{ states('sensor.crypto_inspect_eth_gas_slow') }}"
+      standard: "{{ states('sensor.crypto_inspect_eth_gas_standard') }}"
+      fast: "{{ states('sensor.crypto_inspect_eth_gas_fast') }}"
+
+  - choose:
+      # Russian
+      - conditions:
+          - condition: template
+            value_template: "{{ lang == 'ru' }}"
+        sequence:
+          - service: !input notify_service
+            data:
+              title: "⛽ Gas низкий!"
+              message: >-
+                Сейчас отличное время для транзакций!
+
+                Медленный: {{ slow }} Gwei
+                Стандарт: {{ standard }} Gwei
+                Быстрый: {{ fast }} Gwei
+              data:
+                group: "crypto-gas"
+                tag: "gas-alert"
+                importance: high
+
+      # English (default)
+      - conditions:
+          - condition: template
+            value_template: "{{ lang == 'en' }}"
+        sequence:
+          - service: !input notify_service
+            data:
+              title: "⛽ Gas is Low!"
+              message: >-
+                Great time for transactions!
+
+                Slow: {{ slow }} Gwei
+                Standard: {{ standard }} Gwei
+                Fast: {{ fast }} Gwei
+              data:
+                group: "crypto-gas"
+                tag: "gas-alert"
+                importance: high
+
+mode: single

@@ -13,7 +13,7 @@ Tests cover:
 
 import pytest
 
-from services.analysis.technical import TechnicalAnalyzer, TechnicalIndicators
+from service.analysis.technical import TechnicalAnalyzer, TechnicalIndicators
 
 
 class TestSMACalculation:

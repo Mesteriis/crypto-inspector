@@ -226,11 +226,11 @@ class TestCandlestickSyncJob:
         from core.scheduler.jobs import candlestick_sync_job
 
         with (
-            patch("core.scheduler.jobs.get_symbols", return_value=["BTC/USDT"]),
+            patch("core.scheduler.jobs.get_currency_list", return_value=["BTC/USDT"]),
             patch("core.scheduler.jobs.get_intervals_to_fetch", return_value=["1m"]),
             patch("core.scheduler.jobs.fetch_and_save_candlesticks", new_callable=AsyncMock) as mock_fetch,
-            patch("services.ha_integration.notify_error", new_callable=AsyncMock),
-            patch("services.ha_integration.notify_sync_complete", new_callable=AsyncMock),
+            patch("service.ha_integration.notify_error", new_callable=AsyncMock),
+            patch("service.ha_integration.notify_sync_complete", new_callable=AsyncMock),
         ):
             mock_fetch.return_value = True
             await candlestick_sync_job()
@@ -245,8 +245,8 @@ class TestCandlestickSyncJob:
             patch("core.scheduler.jobs.get_symbols", return_value=["BTC/USDT"]),
             patch("core.scheduler.jobs.get_intervals_to_fetch", return_value=["1m"]),
             patch("core.scheduler.jobs.fetch_and_save_candlesticks", new_callable=AsyncMock) as mock_fetch,
-            patch("services.ha_integration.notify_error", new_callable=AsyncMock) as mock_notify,
-            patch("services.ha_integration.notify_sync_complete", new_callable=AsyncMock),
+            patch("service.ha_integration.notify_error", new_callable=AsyncMock) as mock_notify,
+            patch("service.ha_integration.notify_sync_complete", new_callable=AsyncMock),
         ):
             mock_fetch.return_value = False
             await candlestick_sync_job()
@@ -284,11 +284,11 @@ class TestMarketAnalysisJob:
 
         with (
             patch("core.scheduler.jobs.get_symbols", return_value=["BTC/USDT"]),
-            patch("services.analysis.OnChainAnalyzer", return_value=mock_onchain),
-            patch("services.analysis.DerivativesAnalyzer", return_value=mock_deriv),
-            patch("services.analysis.ScoringEngine", return_value=mock_score),
-            patch("services.analysis.CycleDetector"),
-            patch("services.ha_integration.notify", new_callable=AsyncMock),
+            patch("service.analysis.OnChainAnalyzer", return_value=mock_onchain),
+            patch("service.analysis.DerivativesAnalyzer", return_value=mock_deriv),
+            patch("service.analysis.ScoringEngine", return_value=mock_score),
+            patch("service.analysis.CycleDetector"),
+            patch("service.ha_integration.notify", new_callable=AsyncMock),
         ):
             await market_analysis_job()
             mock_score.calculate.assert_called()
@@ -326,12 +326,12 @@ class TestInvestorAnalysisJob:
         mock_sensors.update_market_data = AsyncMock()
 
         with (
-            patch("services.analysis.get_investor_analyzer", return_value=mock_analyzer),
-            patch("services.analysis.OnChainAnalyzer", return_value=mock_onchain),
-            patch("services.analysis.DerivativesAnalyzer", return_value=mock_deriv),
-            patch("services.analysis.CycleDetector"),
-            patch("services.ha_sensors.get_sensors_manager", return_value=mock_sensors),
-            patch("services.ha_integration.notify", new_callable=AsyncMock),
+            patch("service.analysis.get_investor_analyzer", return_value=mock_analyzer),
+            patch("service.analysis.OnChainAnalyzer", return_value=mock_onchain),
+            patch("service.analysis.DerivativesAnalyzer", return_value=mock_deriv),
+            patch("service.analysis.CycleDetector"),
+            patch("service.ha.get_sensors_manager", return_value=mock_sensors),
+            patch("service.ha_integration.notify", new_callable=AsyncMock),
         ):
             await investor_analysis_job()
             mock_sensors.update_investor_status.assert_called_once()
@@ -353,8 +353,8 @@ class TestAltseasonJob:
         mock_sensors.publish_sensor = AsyncMock()
 
         with (
-            patch("services.analysis.altseason.AltseasonAnalyzer", return_value=mock_analyzer),
-            patch("services.ha_sensors.get_sensors_manager", return_value=mock_sensors),
+            patch("service.analysis.altseason.AltseasonAnalyzer", return_value=mock_analyzer),
+            patch("service.ha.get_sensors_manager", return_value=mock_sensors),
         ):
             await altseason_job()
             assert mock_sensors.publish_sensor.call_count == 2
@@ -382,8 +382,8 @@ class TestStablecoinJob:
         mock_sensors.publish_sensor = AsyncMock()
 
         with (
-            patch("services.analysis.stablecoins.StablecoinAnalyzer", return_value=mock_analyzer),
-            patch("services.ha_sensors.get_sensors_manager", return_value=mock_sensors),
+            patch("service.analysis.stablecoins.StablecoinAnalyzer", return_value=mock_analyzer),
+            patch("service.ha.get_sensors_manager", return_value=mock_sensors),
         ):
             await stablecoin_job()
             assert mock_sensors.publish_sensor.call_count == 3
@@ -412,8 +412,8 @@ class TestGasTrackerJob:
         mock_sensors.publish_sensor = AsyncMock()
 
         with (
-            patch("services.analysis.gas.GasTracker", return_value=mock_tracker),
-            patch("services.ha_sensors.get_sensors_manager", return_value=mock_sensors),
+            patch("service.analysis.gas.GasTracker", return_value=mock_tracker),
+            patch("service.ha.get_sensors_manager", return_value=mock_sensors),
         ):
             await gas_tracker_job()
             assert mock_sensors.publish_sensor.call_count == 4
@@ -441,9 +441,9 @@ class TestWhaleMonitorJob:
         mock_sensors.publish_sensor = AsyncMock()
 
         with (
-            patch("services.analysis.whales.WhaleTracker", return_value=mock_tracker),
-            patch("services.ha_sensors.get_sensors_manager", return_value=mock_sensors),
-            patch("services.ha_integration.notify", new_callable=AsyncMock),
+            patch("service.analysis.whales.WhaleTracker", return_value=mock_tracker),
+            patch("service.ha.get_sensors_manager", return_value=mock_sensors),
+            patch("service.ha_integration.notify", new_callable=AsyncMock),
         ):
             await whale_monitor_job()
             assert mock_sensors.publish_sensor.call_count == 3
@@ -485,9 +485,9 @@ class TestLiquidationJob:
         mock_sensors.publish_sensor = AsyncMock()
 
         with (
-            patch("services.analysis.liquidations.LiquidationTracker", return_value=mock_tracker),
-            patch("services.ha_sensors.get_sensors_manager", return_value=mock_sensors),
-            patch("services.ha_integration.notify", new_callable=AsyncMock),
+            patch("service.analysis.liquidations.LiquidationTracker", return_value=mock_tracker),
+            patch("service.ha.get_sensors_manager", return_value=mock_sensors),
+            patch("service.ha_integration.notify", new_callable=AsyncMock),
         ):
             await liquidation_job()
             mock_sensors._publish_state.assert_called_once()
@@ -509,8 +509,8 @@ class TestPortfolioJob:
         mock_sensors.publish_sensor = AsyncMock()
 
         with (
-            patch("services.portfolio.get_portfolio_manager", return_value=mock_portfolio),
-            patch("services.ha_sensors.get_sensors_manager", return_value=mock_sensors),
+            patch("service.portfolio.get_portfolio_manager", return_value=mock_portfolio),
+            patch("service.ha.get_sensors_manager", return_value=mock_sensors),
         ):
             await portfolio_job()
             mock_sensors.publish_sensor.assert_not_called()
@@ -536,8 +536,8 @@ class TestPortfolioJob:
         mock_sensors.publish_sensor = AsyncMock()
 
         with (
-            patch("services.portfolio.get_portfolio_manager", return_value=mock_portfolio),
-            patch("services.ha_sensors.get_sensors_manager", return_value=mock_sensors),
+            patch("service.portfolio.get_portfolio_manager", return_value=mock_portfolio),
+            patch("service.ha.get_sensors_manager", return_value=mock_sensors),
         ):
             await portfolio_job()
             assert mock_sensors.publish_sensor.call_count == 5
@@ -567,8 +567,8 @@ class TestPriceAlertsJob:
         mock_sensors._cache.get = MagicMock(return_value=None)
 
         with (
-            patch("services.alerts.get_alert_manager"),
-            patch("services.ha_sensors.get_sensors_manager", return_value=mock_sensors),
+            patch("service.alerts.get_alert_manager"),
+            patch("service.ha.get_sensors_manager", return_value=mock_sensors),
         ):
             await price_alerts_job()
 
@@ -594,9 +594,9 @@ class TestPriceAlertsJob:
         mock_sensors.publish_sensor = AsyncMock()
 
         with (
-            patch("services.alerts.get_alert_manager", return_value=mock_alerts_manager),
-            patch("services.ha_sensors.get_sensors_manager", return_value=mock_sensors),
-            patch("services.ha_integration.notify", new_callable=AsyncMock) as mock_notify,
+            patch("service.alerts.get_alert_manager", return_value=mock_alerts_manager),
+            patch("service.ha.get_sensors_manager", return_value=mock_sensors),
+            patch("service.ha_integration.notify", new_callable=AsyncMock) as mock_notify,
         ):
             await price_alerts_job()
             mock_notify.assert_called_once()

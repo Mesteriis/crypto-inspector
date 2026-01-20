@@ -7,38 +7,16 @@ Endpoints for passive investors who want market awareness without active trading
 from datetime import datetime
 
 from fastapi import APIRouter, Query
-from pydantic import BaseModel
 
 from core.constants import DEFAULT_SYMBOLS
-from services.investor.lazy_investor_ml import LazyInvestorMLAdvisor
+from schemas.api.lazy_investor import (
+    DailyBriefingResponse,
+    InvestmentSignalResponse,
+    PortfolioHealthResponse,
+)
+from service.investor.lazy_investor_ml import LazyInvestorMLAdvisor
 
 router = APIRouter(prefix="/lazy-investor", tags=["Lazy Investor"])
-
-
-class InvestmentSignalResponse(BaseModel):
-    symbol: str
-    signal_type: str
-    confidence_level: str
-    rationale: str
-    suggested_action: str
-    timeframe: str
-    timestamp: str
-
-
-class PortfolioHealthResponse(BaseModel):
-    portfolio_sentiment: str
-    opportunity_signals: int
-    risk_signals: int
-    hold_signals: int
-    total_analyzed: int
-    recommendation: str
-    timestamp: str
-
-
-class DailyBriefingResponse(BaseModel):
-    briefing_text: str
-    portfolio_health: PortfolioHealthResponse
-    signals: list[InvestmentSignalResponse]
 
 
 @router.get("/signals", response_model=list[InvestmentSignalResponse])

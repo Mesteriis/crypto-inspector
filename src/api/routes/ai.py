@@ -12,7 +12,8 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
+
+from schemas.api.ai import AIStatusResponse, AnalysisResponse, AnalyzeRequest
 
 logger = logging.getLogger(__name__)
 
@@ -28,38 +29,6 @@ def set_ai_services(ai_service, ai_analyzer):
     global _ai_service, _ai_analyzer
     _ai_service = ai_service
     _ai_analyzer = ai_analyzer
-
-
-class AnalyzeRequest(BaseModel):
-    """Request for AI analysis."""
-
-    analysis_type: str = "daily_summary"  # daily_summary, weekly_report, opportunity, dca, risk, sentiment
-    symbol: str | None = None  # For opportunity analysis
-    language: str = "en"  # en or ru
-
-
-class AnalysisResponse(BaseModel):
-    """AI analysis response."""
-
-    type: str
-    content: str
-    sentiment: str | None = None
-    recommendation: str | None = None
-    provider: str | None = None
-    model: str | None = None
-    timestamp: str | None = None
-    language: str = "en"
-
-
-class AIStatusResponse(BaseModel):
-    """AI service status."""
-
-    enabled: bool
-    available: bool
-    provider: str | None = None
-    model: str | None = None
-    last_analysis: str | None = None
-    analysis_count: int = 0
 
 
 @router.get("/status")
@@ -165,7 +134,7 @@ async def trigger_analysis(request: AnalyzeRequest) -> AnalysisResponse:
         )
 
     # Collect market data (simplified - in production, get from actual services)
-    from src.services.ai.prompts import MarketData
+    from service.ai.prompts import MarketData
 
     # Create mock market data for demo - in production, collect from services
     market_data = MarketData(

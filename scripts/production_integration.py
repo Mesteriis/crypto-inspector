@@ -17,7 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.services.analysis import get_investor_analyzer
-from src.services.ha_sensors import get_sensors_manager
+from src.services.ha import get_sensors_manager
 from src.services.investor.lazy_investor_ml import LazyInvestorMLAdvisor
 
 # Configure logging

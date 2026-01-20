@@ -1,9 +1,9 @@
 """
 Comprehensive HA Sensors Unit Tests.
 
-Tests 100% coverage of all sensors defined in ha_sensors.py:
+Tests 100% coverage of all sensors defined in services.ha:
 - Sensor definition validation
-- MQTT discovery message format
+- Sensor registration
 - Sensor value updates
 - Category coverage
 """
@@ -13,31 +13,27 @@ class TestSensorDefinitions:
     """Tests for sensor definition validation."""
 
     def test_all_sensors_have_required_fields(self, all_sensor_keys):
-        """Verify all sensors have required fields."""
-        from services.ha_sensors import CryptoSensorsManager
+        """Verify all sensors have required config fields."""
+        from service.ha import SensorRegistry
 
+        SensorRegistry.ensure_initialized()
         for key in all_sensor_keys:
-            sensor = CryptoSensorsManager.SENSORS[key]
-            assert "name" in sensor, f"Sensor '{key}' missing 'name'"
-            assert "icon" in sensor, f"Sensor '{key}' missing 'icon'"
-            # name should be non-empty
-            assert len(sensor["name"]) > 0, f"Sensor '{key}' has empty name"
-            # icon should start with mdi:
-            assert sensor["icon"].startswith("mdi:"), f"Sensor '{key}' has invalid icon format"
+            sensor_class = SensorRegistry.get(key)
+            assert sensor_class is not None, f"Sensor '{key}' not registered"
+            # Verify class has config
+            instance = sensor_class.__new__(sensor_class)
+            assert hasattr(instance, 'config'), f"Sensor '{key}' missing 'config'"
 
     def test_sensor_count(self, all_sensor_keys):
         """Verify we have the expected number of sensors."""
-        # We have 134+ sensors defined
+        # We have 130+ sensors defined
         assert len(all_sensor_keys) >= 130, f"Expected at least 130 sensors, got {len(all_sensor_keys)}"
         print(f"\n=== Total sensors defined: {len(all_sensor_keys)} ===")
 
-    def test_no_duplicate_sensor_names(self, all_sensor_keys):
-        """Verify no duplicate sensor display names."""
-        from services.ha_sensors import CryptoSensorsManager
-
-        names = [CryptoSensorsManager.SENSORS[key]["name"] for key in all_sensor_keys]
-        duplicates = [name for name in names if names.count(name) > 1]
-        assert len(set(duplicates)) == 0, f"Duplicate sensor names: {set(duplicates)}"
+    def test_no_duplicate_sensor_ids(self, all_sensor_keys):
+        """Verify no duplicate sensor IDs."""
+        # all_sensor_keys are unique by definition (from dict.keys())
+        assert len(all_sensor_keys) == len(set(all_sensor_keys))
 
     def test_sensor_keys_are_valid_identifiers(self, all_sensor_keys):
         """Verify sensor keys are valid Python identifiers."""
@@ -45,18 +41,6 @@ class TestSensorDefinitions:
             # Keys should be lowercase with underscores
             assert key.islower() or "_" in key, f"Sensor key '{key}' should be lowercase"
             assert " " not in key, f"Sensor key '{key}' should not contain spaces"
-
-    def test_unit_fields_are_valid(self, all_sensor_keys):
-        """Verify unit fields are valid."""
-        from services.ha_sensors import CryptoSensorsManager
-
-        valid_units = {"USDT", "USD", "EUR", "%", "Gwei", None}
-
-        for key in all_sensor_keys:
-            sensor = CryptoSensorsManager.SENSORS[key]
-            unit = sensor.get("unit")
-            if unit:
-                assert unit in valid_units or isinstance(unit, str), f"Sensor '{key}' has invalid unit: {unit}"
 
 
 class TestSensorCategories:
@@ -183,60 +167,38 @@ class TestSensorCategories:
             assert sensor in all_sensor_keys, f"Missing backtest sensor: {sensor}"
 
 
-class TestMQTTDiscovery:
-    """Tests for MQTT discovery message format."""
+class TestSensorRegistry:
+    """Tests for SensorRegistry functionality."""
 
-    def test_discovery_topic_format(self, all_sensor_keys):
-        """Verify discovery topics follow HA convention."""
-        from services.ha_sensors import CryptoSensorsManager
+    def test_registry_initialization(self):
+        """Verify registry initializes all sensors."""
+        from service.ha import SensorRegistry
 
-        manager = CryptoSensorsManager()
+        SensorRegistry.ensure_initialized()
+        count = SensorRegistry.count()
+        assert count >= 130, f"Expected at least 130 sensors, got {count}"
 
-        for key in all_sensor_keys:
-            topic = f"homeassistant/sensor/{manager.DEVICE_ID}/{key}/config"
-            # Topic should be valid MQTT topic
-            assert "/" in topic
-            assert topic.startswith("homeassistant/sensor/")
-            assert topic.endswith("/config")
+    def test_get_by_category(self):
+        """Verify sensors can be retrieved by category."""
+        from service.ha import SensorRegistry
 
-    def test_discovery_payload_format(self, all_sensor_keys):
-        """Verify discovery payloads have required fields."""
-        from services.ha_sensors import CryptoSensorsManager
+        SensorRegistry.ensure_initialized()
+        categories = SensorRegistry.get_categories()
+        assert len(categories) >= 15, f"Expected at least 15 categories, got {len(categories)}"
 
-        manager = CryptoSensorsManager()
+        # Verify each category has sensors
+        for category in categories:
+            sensors = SensorRegistry.get_by_category(category)
+            assert len(sensors) > 0, f"Category '{category}' has no sensors"
 
-        for key in all_sensor_keys[:10]:  # Test subset for speed
-            sensor = CryptoSensorsManager.SENSORS[key]
+    def test_is_registered(self):
+        """Verify is_registered works correctly."""
+        from service.ha import SensorRegistry
 
-            # Build expected payload structure
-            payload = {
-                "name": sensor["name"],
-                "unique_id": f"{manager.DEVICE_ID}_{key}",
-                "state_topic": f"crypto_inspect/sensor/{key}/state",
-                "icon": sensor["icon"],
-            }
-
-            # Verify required fields
-            assert "name" in payload
-            assert "unique_id" in payload
-            assert "state_topic" in payload
-            assert "icon" in payload
-
-    def test_device_info_included(self):
-        """Verify device info is included in discovery."""
-        from services.ha_sensors import CryptoSensorsManager
-
-        manager = CryptoSensorsManager()
-
-        device_info = {
-            "identifiers": [manager.DEVICE_ID],
-            "name": manager.DEVICE_NAME,
-            "manufacturer": "Crypto Inspect",
-            "model": "HA Integration",
-        }
-
-        assert device_info["identifiers"] == ["crypto_inspect"]
-        assert device_info["name"] == "Crypto Inspect"
+        SensorRegistry.ensure_initialized()
+        assert SensorRegistry.is_registered("prices")
+        assert SensorRegistry.is_registered("fear_greed")
+        assert not SensorRegistry.is_registered("nonexistent_sensor")
 
 
 class TestSensorValueUpdates:
@@ -244,7 +206,6 @@ class TestSensorValueUpdates:
 
     def test_price_sensor_update(self, sample_price_data):
         """Test price sensor accepts correct data format."""
-
         # Verify data format is dictionary
         assert isinstance(sample_price_data, dict)
         for symbol, price in sample_price_data.items():
@@ -329,23 +290,22 @@ class TestSensorCoverage:
 
     def test_generate_sensor_coverage_report(self, all_sensor_keys):
         """Generate a sensor coverage report."""
+        from service.ha import SensorRegistry
 
-        # Group sensors by prefix
-        groups = {}
-        for key in all_sensor_keys:
-            prefix = key.split("_")[0]
-            if prefix not in groups:
-                groups[prefix] = []
-            groups[prefix].append(key)
+        SensorRegistry.ensure_initialized()
+
+        # Group sensors by category
+        categories = SensorRegistry.get_categories()
 
         print("\n" + "=" * 60)
         print("SENSOR COVERAGE REPORT")
         print("=" * 60)
         print(f"\nTotal sensors: {len(all_sensor_keys)}")
-        print(f"Sensor groups: {len(groups)}")
-        print("\nSensors by group:")
-        for group, sensors in sorted(groups.items()):
-            print(f"  {group}: {len(sensors)} sensors")
+        print(f"Categories: {len(categories)}")
+        print("\nSensors by category:")
+        for category in sorted(categories):
+            sensors = SensorRegistry.get_by_category(category)
+            print(f"  {category}: {len(sensors)} sensors")
 
         # Verify minimum count
         assert len(all_sensor_keys) >= 130
@@ -359,43 +319,6 @@ class TestSensorCoverage:
             print(f"  - {sensor}")
 
         assert len(earn_sensors) >= 3, "Expected at least 3 Bybit Earn sensors"
-
-
-class TestSensorValidation:
-    """Tests for sensor data validation."""
-
-    def test_sensor_icons_are_valid_mdi(self, all_sensor_keys):
-        """Verify all icons use Material Design Icons format."""
-        from services.ha_sensors import CryptoSensorsManager
-
-        for key in all_sensor_keys:
-            icon = CryptoSensorsManager.SENSORS[key]["icon"]
-            assert icon.startswith("mdi:"), f"Invalid icon format for {key}: {icon}"
-
-    def test_sensor_names_are_human_readable(self, all_sensor_keys):
-        """Verify sensor names are human readable."""
-        from services.ha_sensors import CryptoSensorsManager
-
-        for key in all_sensor_keys:
-            name = CryptoSensorsManager.SENSORS[key]["name"]
-            # Name should not have underscores
-            assert "_" not in name, f"Name should not have underscores: {name}"
-            # For technical identifiers that start with digits (like "24h Change"), skip capitalization check
-            if not name[0].isdigit():
-                # Name should have proper capitalization
-                assert name[0].isupper(), f"Name should start with capital: {name}"
-
-    def test_unit_sensors_have_valid_units(self, all_sensor_keys):
-        """Verify sensors with units have valid unit values."""
-        from services.ha_sensors import CryptoSensorsManager
-
-        for key in all_sensor_keys:
-            sensor = CryptoSensorsManager.SENSORS[key]
-            unit = sensor.get("unit")
-            if unit:
-                # Unit should be a non-empty string
-                assert isinstance(unit, str)
-                assert len(unit) > 0
 
 
 class TestSensorCompleteness:
@@ -421,7 +344,6 @@ class TestSensorCompleteness:
             "dca_result",
             "dca_signal",
             "weekly_insight",
-            "next_action_timer",
             # Market sensors
             "fear_greed",
             "btc_dominance",

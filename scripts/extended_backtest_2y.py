@@ -19,9 +19,9 @@ import numpy as np
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from services.candlestick import CandleInterval, fetch_candlesticks
-from services.ml.backtester import ForecastBacktester
-from services.ml.forecaster import PriceForecaster
+from service.candlestick import CandleInterval, fetch_candlesticks
+from service.ml.backtester import ForecastBacktester
+from service.ml.forecaster import PriceForecaster
 
 # Configure logging
 logging.basicConfig(

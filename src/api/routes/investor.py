@@ -14,7 +14,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 
-from services.analysis import (
+from service.analysis import (
     DerivativesAnalyzer,
     OnChainAnalyzer,
     get_investor_analyzer,
@@ -322,7 +322,7 @@ async def get_ml_investment_insights(
     """
     try:
         # Import here to avoid circular imports
-        from services.investor.lazy_investor_ml import LazyInvestorMLAdvisor
+        from service.investor.lazy_investor_ml import LazyInvestorMLAdvisor
 
         advisor = LazyInvestorMLAdvisor()
 
@@ -430,7 +430,7 @@ async def get_lazy_daily_briefing(
     Focuses on market context, risk awareness, and informed positioning.
     """
     try:
-        from services.investor.lazy_investor_ml import LazyInvestorMLAdvisor
+        from service.investor.lazy_investor_ml import LazyInvestorMLAdvisor
 
         advisor = LazyInvestorMLAdvisor()
         briefing = await advisor.generate_daily_briefing(symbols)

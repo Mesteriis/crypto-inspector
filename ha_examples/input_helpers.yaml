@@ -1,0 +1,560 @@
+# =============================================================================
+# CRYPTO INSPECT - INPUT HELPERS / ВСПОМОГАТЕЛЬНЫЕ СУЩНОСТИ
+# =============================================================================
+# Примеры input_* сущностей для использования с Crypto Inspect
+# Add these to your Home Assistant configuration.yaml
+# =============================================================================
+
+# =============================================================================
+# INPUT SELECT - Выбор опций
+# =============================================================================
+
+input_select:
+  # ---------------------------------------------------------------------------
+  # Language Selection / Выбор языка
+  # ---------------------------------------------------------------------------
+  crypto_notification_language:
+    name: "Crypto Notification Language"
+    icon: mdi:translate
+    options:
+      - English
+      - Russian
+    initial: Russian
+
+  # ---------------------------------------------------------------------------
+  # Notification Mode / Режим уведомлений
+  # ---------------------------------------------------------------------------
+  crypto_notification_mode:
+    name: "Crypto Notification Mode / Режим уведомлений"
+    icon: mdi:bell-cog
+    options:
+      - All
+      - Important Only
+      - Critical Only
+      - Quiet
+    initial: Important Only
+
+  # ---------------------------------------------------------------------------
+  # Active Cryptocurrency / Активная криптовалюта
+  # ---------------------------------------------------------------------------
+  crypto_primary_coin:
+    name: "Primary Coin / Основная монета"
+    icon: mdi:bitcoin
+    options:
+      - BTC
+      - ETH
+      - SOL
+      - ADA
+      - XRP
+      - TON
+      - AR
+      - DOT
+      - AVAX
+      - MATIC
+    initial: BTC
+
+  # ---------------------------------------------------------------------------
+  # Dashboard Theme / Тема дашборда
+  # ---------------------------------------------------------------------------
+  crypto_dashboard_theme:
+    name: "Dashboard Theme / Тема"
+    icon: mdi:palette
+    options:
+      - Light
+      - Dark
+      - Auto
+    initial: Auto
+
+  # ---------------------------------------------------------------------------
+  # Investment Strategy / Стратегия инвестирования
+  # ---------------------------------------------------------------------------
+  crypto_investment_strategy:
+    name: "Investment Strategy / Стратегия"
+    icon: mdi:strategy
+    options:
+      - Conservative
+      - Moderate
+      - Aggressive
+    initial: Moderate
+
+  # ---------------------------------------------------------------------------
+  # Display Currency / Валюта отображения
+  # ---------------------------------------------------------------------------
+  crypto_display_currency:
+    name: "Display Currency / Валюта"
+    icon: mdi:currency-usd
+    options:
+      - USD
+      - EUR
+      - RUB
+      - GBP
+    initial: USD
+
+# =============================================================================
+# INPUT NUMBER - Числовые значения
+# =============================================================================
+
+input_number:
+  # ---------------------------------------------------------------------------
+  # DCA Settings / Настройки DCA
+  # ---------------------------------------------------------------------------
+  crypto_dca_weekly_amount:
+    name: "DCA Weekly Amount / Сумма DCA в неделю"
+    icon: mdi:cash
+    min: 0
+    max: 10000
+    step: 10
+    unit_of_measurement: "€"
+    initial: 100
+
+  crypto_dca_frequency_days:
+    name: "DCA Frequency / Частота DCA"
+    icon: mdi:calendar-refresh
+    min: 1
+    max: 30
+    step: 1
+    unit_of_measurement: "days"
+    initial: 7
+
+  # ---------------------------------------------------------------------------
+  # Alert Thresholds / Пороги алертов
+  # ---------------------------------------------------------------------------
+  crypto_price_alert_btc_high:
+    name: "BTC High Alert / BTC Макс. алерт"
+    icon: mdi:arrow-up-bold
+    min: 0
+    max: 500000
+    step: 1000
+    unit_of_measurement: "USDT"
+    initial: 100000
+
+  crypto_price_alert_btc_low:
+    name: "BTC Low Alert / BTC Мин. алерт"
+    icon: mdi:arrow-down-bold
+    min: 0
+    max: 500000
+    step: 1000
+    unit_of_measurement: "USDT"
+    initial: 80000
+
+  crypto_fear_greed_alert_low:
+    name: "Fear Alert Threshold / Порог страха"
+    icon: mdi:emoticon-sad
+    min: 0
+    max: 100
+    step: 5
+    initial: 20
+
+  crypto_fear_greed_alert_high:
+    name: "Greed Alert Threshold / Порог жадности"
+    icon: mdi:emoticon-excited
+    min: 0
+    max: 100
+    step: 5
+    initial: 80
+
+  # ---------------------------------------------------------------------------
+  # Portfolio Goals / Цели портфеля
+  # ---------------------------------------------------------------------------
+  crypto_portfolio_goal:
+    name: "Portfolio Goal / Цель портфеля"
+    icon: mdi:flag-checkered
+    min: 0
+    max: 1000000
+    step: 1000
+    unit_of_measurement: "USDT"
+    initial: 50000
+
+  crypto_monthly_investment:
+    name: "Monthly Investment / Месячные инвестиции"
+    icon: mdi:calendar-month
+    min: 0
+    max: 50000
+    step: 50
+    unit_of_measurement: "€"
+    initial: 500
+
+  # ---------------------------------------------------------------------------
+  # Risk Parameters / Параметры риска
+  # ---------------------------------------------------------------------------
+  crypto_max_drawdown_alert:
+    name: "Max Drawdown Alert / Алерт просадки"
+    icon: mdi:trending-down
+    min: 1
+    max: 50
+    step: 1
+    unit_of_measurement: "%"
+    initial: 15
+
+  crypto_position_size_limit:
+    name: "Position Size Limit / Лимит позиции"
+    icon: mdi:scale-balance
+    min: 0
+    max: 100
+    step: 5
+    unit_of_measurement: "%"
+    initial: 25
+
+  # ---------------------------------------------------------------------------
+  # Gas Price Thresholds / Пороги цены газа
+  # ---------------------------------------------------------------------------
+  crypto_gas_alert_threshold:
+    name: "Gas Alert Threshold / Порог алерта газа"
+    icon: mdi:gas-station
+    min: 1
+    max: 500
+    step: 5
+    unit_of_measurement: "Gwei"
+    initial: 50
+
+  crypto_gas_optimal_threshold:
+    name: "Gas Optimal Threshold / Оптимальный порог газа"
+    icon: mdi:speedometer-medium
+    min: 1
+    max: 200
+    step: 5
+    unit_of_measurement: "Gwei"
+    initial: 20
+
+# =============================================================================
+# INPUT BOOLEAN - Булевы переключатели
+# =============================================================================
+
+input_boolean:
+  # ---------------------------------------------------------------------------
+  # Notification Toggles / Переключатели уведомлений
+  # ---------------------------------------------------------------------------
+  crypto_notifications_enabled:
+    name: "Crypto Notifications Enabled / Уведомления вкл."
+    icon: mdi:bell
+
+  crypto_morning_briefing_enabled:
+    name: "Morning Briefing / Утренний брифинг"
+    icon: mdi:weather-sunny
+
+  crypto_evening_briefing_enabled:
+    name: "Evening Briefing / Вечерний брифинг"
+    icon: mdi:weather-night
+
+  crypto_price_alerts_enabled:
+    name: "Price Alerts / Ценовые алерты"
+    icon: mdi:currency-usd
+
+  crypto_whale_alerts_enabled:
+    name: "Whale Alerts / Алерты китов"
+    icon: mdi:fish
+
+  crypto_technical_alerts_enabled:
+    name: "Technical Alerts / Технические алерты"
+    icon: mdi:chart-line
+
+  crypto_risk_alerts_enabled:
+    name: "Risk Alerts / Риск-алерты"
+    icon: mdi:shield-alert
+
+  # ---------------------------------------------------------------------------
+  # Feature Toggles / Переключатели функций
+  # ---------------------------------------------------------------------------
+  crypto_auto_dca_enabled:
+    name: "Auto DCA Reminders / Авто-напоминания DCA"
+    icon: mdi:calendar-check
+
+  crypto_adaptive_notifications:
+    name: "Adaptive Notifications / Адаптивные уведомления"
+    icon: mdi:bell-ring
+
+  crypto_quiet_hours_enabled:
+    name: "Quiet Hours Enabled / Тихие часы"
+    icon: mdi:volume-off
+
+  crypto_weekend_notifications:
+    name: "Weekend Notifications / Уведомления по выходным"
+    icon: mdi:calendar-weekend
+
+  # ---------------------------------------------------------------------------
+  # Display Options / Опции отображения
+  # ---------------------------------------------------------------------------
+  crypto_show_traditional_markets:
+    name: "Show Traditional Markets / Традиционные рынки"
+    icon: mdi:chart-bar
+
+  crypto_show_portfolio_value:
+    name: "Show Portfolio Value / Показать стоимость"
+    icon: mdi:wallet
+
+  crypto_compact_mode:
+    name: "Compact Mode / Компактный режим"
+    icon: mdi:view-compact
+
+# =============================================================================
+# INPUT TEXT - Текстовые поля
+# =============================================================================
+
+input_text:
+  # ---------------------------------------------------------------------------
+  # Personal Notes / Личные заметки
+  # ---------------------------------------------------------------------------
+  crypto_investment_notes:
+    name: "Investment Notes / Заметки"
+    icon: mdi:note-text
+    max: 255
+    initial: ""
+
+  crypto_custom_watchlist:
+    name: "Custom Watchlist / Пользовательский список"
+    icon: mdi:format-list-bulleted
+    max: 100
+    initial: "BTC,ETH,SOL"
+
+# =============================================================================
+# INPUT DATETIME - Дата и время
+# =============================================================================
+
+input_datetime:
+  # ---------------------------------------------------------------------------
+  # Briefing Times / Время брифингов
+  # ---------------------------------------------------------------------------
+  crypto_morning_briefing_time:
+    name: "Morning Briefing Time / Время утреннего брифинга"
+    icon: mdi:weather-sunset-up
+    has_date: false
+    has_time: true
+
+  crypto_evening_briefing_time:
+    name: "Evening Briefing Time / Время вечернего брифинга"
+    icon: mdi:weather-sunset-down
+    has_date: false
+    has_time: true
+
+  # ---------------------------------------------------------------------------
+  # Quiet Hours / Тихие часы
+  # ---------------------------------------------------------------------------
+  crypto_quiet_hours_start:
+    name: "Quiet Hours Start / Начало тихих часов"
+    icon: mdi:volume-mute
+    has_date: false
+    has_time: true
+
+  crypto_quiet_hours_end:
+    name: "Quiet Hours End / Конец тихих часов"
+    icon: mdi:volume-high
+    has_date: false
+    has_time: true
+
+  # ---------------------------------------------------------------------------
+  # DCA Schedule / Расписание DCA
+  # ---------------------------------------------------------------------------
+  crypto_next_dca_date:
+    name: "Next DCA Date / Дата следующего DCA"
+    icon: mdi:calendar-clock
+    has_date: true
+    has_time: false
+
+# =============================================================================
+# TEMPLATE SENSORS - Шаблонные сенсоры
+# =============================================================================
+# Add to configuration.yaml under 'template:' section
+
+template_sensors:
+  # ---------------------------------------------------------------------------
+  # Calculated BTC Price from Dictionary
+  # ---------------------------------------------------------------------------
+  - sensor:
+      - name: "BTC Price"
+        unique_id: crypto_btc_price_extracted
+        icon: mdi:bitcoin
+        unit_of_measurement: "USDT"
+        state: >
+          {% set prices = states('sensor.crypto_inspect_prices') | from_json | default({}) %}
+          {{ prices.get('BTC/USDT', prices.get('BTC', 0)) | float(0) | round(0) }}
+        availability: "{{ states('sensor.crypto_inspect_prices') not in ['unknown', 'unavailable'] }}"
+
+  # ---------------------------------------------------------------------------
+  # Calculated ETH Price from Dictionary
+  # ---------------------------------------------------------------------------
+  - sensor:
+      - name: "ETH Price"
+        unique_id: crypto_eth_price_extracted
+        icon: mdi:ethereum
+        unit_of_measurement: "USDT"
+        state: >
+          {% set prices = states('sensor.crypto_inspect_prices') | from_json | default({}) %}
+          {{ prices.get('ETH/USDT', prices.get('ETH', 0)) | float(0) | round(2) }}
+        availability: "{{ states('sensor.crypto_inspect_prices') not in ['unknown', 'unavailable'] }}"
+
+  # ---------------------------------------------------------------------------
+  # Goal Progress Percentage
+  # ---------------------------------------------------------------------------
+  - sensor:
+      - name: "Crypto Goal Progress"
+        unique_id: crypto_goal_progress_calc
+        icon: mdi:progress-check
+        unit_of_measurement: "%"
+        state: >
+          {% set current = states('sensor.crypto_inspect_portfolio_value') | float(0) %}
+          {% set goal = states('input_number.crypto_portfolio_goal') | float(1) %}
+          {{ ((current / goal) * 100) | round(1) if goal > 0 else 0 }}
+
+  # ---------------------------------------------------------------------------
+  # Market Status Summary
+  # ---------------------------------------------------------------------------
+  - sensor:
+      - name: "Crypto Market Status"
+        unique_id: crypto_market_status_summary
+        icon: mdi:chart-line
+        state: >
+          {% set fg = states('sensor.crypto_inspect_fear_greed') | int(50) %}
+          {% set phase = states('sensor.crypto_inspect_investor_phase') %}
+          {% if fg <= 25 %}Extreme Fear
+          {% elif fg <= 45 %}Fear
+          {% elif fg <= 55 %}Neutral
+          {% elif fg <= 75 %}Greed
+          {% else %}Extreme Greed
+          {% endif %}
+        attributes:
+          fear_greed: "{{ states('sensor.crypto_inspect_fear_greed') }}"
+          phase: "{{ states('sensor.crypto_inspect_investor_phase') }}"
+          dca_signal: "{{ states('sensor.crypto_inspect_dca_signal') }}"
+
+  # ---------------------------------------------------------------------------
+  # RSI Alert Status
+  # ---------------------------------------------------------------------------
+  - binary_sensor:
+      - name: "BTC Oversold"
+        unique_id: crypto_btc_oversold
+        icon: mdi:arrow-down-bold-circle
+        device_class: problem
+        state: >
+          {% set data = states('sensor.crypto_inspect_ta_rsi') | from_json | default({}) %}
+          {{ data.get('BTC', 50) | float(50) < 30 }}
+
+      - name: "BTC Overbought"
+        unique_id: crypto_btc_overbought
+        icon: mdi:arrow-up-bold-circle
+        device_class: problem
+        state: >
+          {% set data = states('sensor.crypto_inspect_ta_rsi') | from_json | default({}) %}
+          {{ data.get('BTC', 50) | float(50) > 70 }}
+
+  # ---------------------------------------------------------------------------
+  # DCA Ready Status
+  # ---------------------------------------------------------------------------
+  - binary_sensor:
+      - name: "DCA Buy Signal"
+        unique_id: crypto_dca_buy_signal
+        icon: mdi:cash-plus
+        state: >
+          {% set signal = states('sensor.crypto_inspect_dca_signal') | lower %}
+          {{ 'buy' in signal or 'purchase' in signal }}
+
+  # ---------------------------------------------------------------------------
+  # Gas Price Optimal
+  # ---------------------------------------------------------------------------
+  - binary_sensor:
+      - name: "ETH Gas Optimal"
+        unique_id: crypto_eth_gas_optimal
+        icon: mdi:gas-station
+        state: >
+          {% set gas = states('sensor.crypto_inspect_eth_gas_standard') | int(100) %}
+          {% set threshold = states('input_number.crypto_gas_optimal_threshold') | int(20) %}
+          {{ gas <= threshold }}
+
+# =============================================================================
+# AUTOMATION HELPERS - Вспомогательные автоматизации
+# =============================================================================
+
+automation_helpers:
+  # ---------------------------------------------------------------------------
+  # Update DCA Date on Purchase
+  # ---------------------------------------------------------------------------
+  - alias: "Crypto - Update Next DCA Date"
+    description: "Updates next DCA date based on frequency"
+    trigger:
+      - platform: state
+        entity_id: input_boolean.crypto_dca_completed_today
+        to: "on"
+    action:
+      - service: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.crypto_next_dca_date
+        data:
+          date: >
+            {% set days = states('input_number.crypto_dca_frequency_days') | int(7) %}
+            {{ (now() + timedelta(days=days)).strftime('%Y-%m-%d') }}
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.crypto_dca_completed_today
+
+# =============================================================================
+# GROUPS - Группировка сущностей
+# =============================================================================
+
+group:
+  crypto_notification_settings:
+    name: "Crypto Notification Settings"
+    icon: mdi:bell-cog
+    entities:
+      - input_boolean.crypto_notifications_enabled
+      - input_boolean.crypto_morning_briefing_enabled
+      - input_boolean.crypto_evening_briefing_enabled
+      - input_boolean.crypto_price_alerts_enabled
+      - input_boolean.crypto_whale_alerts_enabled
+      - input_boolean.crypto_technical_alerts_enabled
+      - input_boolean.crypto_risk_alerts_enabled
+      - input_select.crypto_notification_mode
+      - input_select.crypto_notification_language
+
+  crypto_dca_settings:
+    name: "Crypto DCA Settings"
+    icon: mdi:cash-multiple
+    entities:
+      - input_number.crypto_dca_weekly_amount
+      - input_number.crypto_dca_frequency_days
+      - input_datetime.crypto_next_dca_date
+      - input_boolean.crypto_auto_dca_enabled
+      - input_select.crypto_investment_strategy
+
+  crypto_alert_thresholds:
+    name: "Crypto Alert Thresholds"
+    icon: mdi:alert
+    entities:
+      - input_number.crypto_price_alert_btc_high
+      - input_number.crypto_price_alert_btc_low
+      - input_number.crypto_fear_greed_alert_low
+      - input_number.crypto_fear_greed_alert_high
+      - input_number.crypto_max_drawdown_alert
+
+  crypto_market_sensors:
+    name: "Crypto Market Sensors"
+    icon: mdi:chart-line
+    entities:
+      - sensor.crypto_inspect_fear_greed
+      - sensor.crypto_inspect_btc_dominance
+      - sensor.crypto_inspect_altseason_index
+      - sensor.crypto_inspect_investor_phase
+      - sensor.crypto_inspect_volatility_status
+
+# =============================================================================
+# USAGE EXAMPLES / ПРИМЕРЫ ИСПОЛЬЗОВАНИЯ
+# =============================================================================
+#
+# 1. In configuration.yaml:
+#    input_select: !include input_helpers.yaml
+#
+# 2. Or copy relevant sections to your configuration.yaml
+#
+# 3. Template sensors should be added under 'template:' section
+#
+# 4. Use in automations:
+#    condition:
+#      - condition: state
+#        entity_id: input_boolean.crypto_notifications_enabled
+#        state: 'on'
+#
+# 5. Use in Lovelace:
+#    - type: entities
+#      entities:
+#        - entity: input_boolean.crypto_morning_briefing_enabled
+#        - entity: input_datetime.crypto_morning_briefing_time
+#
+# =============================================================================

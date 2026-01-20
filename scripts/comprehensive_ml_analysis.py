@@ -20,12 +20,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from sqlalchemy import text
 
 from core.constants import DEFAULT_SYMBOLS, MLDefaults
-from db.models.ml_predictions import MLPredictionRecord
-from db.repositories.ml_predictions import MLPredictionRepository
-from db.session import async_session_maker
-from services.candlestick import CandleInterval, fetch_candlesticks
-from services.ml.backtester import ForecastBacktester
-from services.ml.forecaster import PriceForecaster
+from models.models.ml_predictions import MLPredictionRecord
+from models.repositories.ml_predictions import MLPredictionRepository
+from models.session import async_session_maker
+from service.candlestick import CandleInterval, fetch_candlesticks
+from service.ml.backtester import ForecastBacktester
+from service.ml.forecaster import PriceForecaster
 
 # Configure logging
 logging.basicConfig(

@@ -18,8 +18,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from core.constants import MLDefaults
-from services.candlestick import CandleInterval, fetch_candlesticks
-from services.ml.models import BacktestMetrics, ForecastResult, ModelComparison
+from service.candlestick import CandleInterval, fetch_candlesticks
+from service.ml.models import BacktestMetrics, ForecastResult, ModelComparison
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

@@ -277,14 +277,14 @@ def mock_services(
 
     # Analysis service
     patches["technical"] = patch(
-        "services.analysis.technical.TechnicalAnalyzer.analyze",
+        "service.analysis.technical.TechnicalAnalyzer.analyze",
         new_callable=AsyncMock,
         return_value=mock_analysis_result,
     )
 
     # Investor service
     patches["investor"] = patch(
-        "services.analysis.investor.get_investor_status",
+        "service.analysis.investor.get_investor_status",
         new_callable=AsyncMock,
         return_value=mock_investor_status,
     )

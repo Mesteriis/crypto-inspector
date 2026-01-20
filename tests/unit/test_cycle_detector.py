@@ -15,7 +15,7 @@ from unittest.mock import patch
 import pytest
 
 from core.constants import HALVING_DATES, PriceDefaults
-from services.analysis.cycles import (
+from service.analysis.cycles import (
     PHASE_INFO,
     CycleDetector,
     CycleInfo,
@@ -59,7 +59,7 @@ class TestHalvingInfo:
         assert days_since >= 0
         assert days_to_next >= 0
 
-    @patch("services.analysis.cycles.date")
+    @patch("service.analysis.cycles.date")
     def test_get_halving_info_with_mocked_date(self, mock_date, detector):
         """Should correctly identify halving dates for specific dates."""
         # Test date after 2024 halving but before 2028

@@ -1,0 +1,164 @@
+# =============================================================================
+# Drawdown Alert Blueprint / Алерт просадки
+# =============================================================================
+# Sends notification when portfolio drawdown exceeds threshold
+# Отправляет уведомление когда просадка портфеля превышает порог
+# =============================================================================
+
+blueprint:
+  name: "Drawdown Alert / Алерт просадки"
+  description: >-
+    Get notified when your portfolio drawdown exceeds a threshold.
+    Уведомление когда просадка портфеля превышает порог.
+  domain: automation
+  author: "Crypto Inspect Add-on"
+  source_url: "https://github.com/Mesteriis/crypto-inspector"
+
+  input:
+    drawdown_threshold:
+      name: "Drawdown Threshold / Порог просадки"
+      description: >-
+        Alert when drawdown exceeds this percentage.
+        Алерт когда просадка превышает этот процент.
+      selector:
+        number:
+          min: 5
+          max: 50
+          step: 5
+          unit_of_measurement: "%"
+      default: 15
+
+    notify_service:
+      name: "Notification Service / Сервис уведомлений"
+      description: >-
+        The notification service to use.
+        Сервис для отправки уведомлений.
+      selector:
+        text:
+      default: "notify.mobile_app"
+
+    language:
+      name: "Language / Язык"
+      description: "Notification language / Язык уведомлений"
+      selector:
+        select:
+          options:
+            - label: "English"
+              value: "en"
+            - label: "Русский"
+              value: "ru"
+      default: "ru"
+
+    severity_levels:
+      name: "Enable Severity Levels / Уровни критичности"
+      description: >-
+        Send different alerts for Warning (threshold), Danger (+5%), Critical (+10%).
+        Отправлять разные алерты для Warning, Danger (+5%), Critical (+10%).
+      selector:
+        boolean:
+      default: true
+
+trigger:
+  - platform: numeric_state
+    entity_id: sensor.crypto_inspect_portfolio_current_drawdown
+    above: !input drawdown_threshold
+    for:
+      minutes: 5
+
+condition: []
+
+action:
+  - variables:
+      lang: !input language
+      threshold: !input drawdown_threshold
+      current_dd: "{{ states('sensor.crypto_inspect_portfolio_current_drawdown') | float(0) | abs }}"
+      max_dd: "{{ states('sensor.crypto_inspect_portfolio_max_drawdown') | float(0) | abs }}"
+      portfolio_value: "{{ states('sensor.crypto_inspect_bybit_total_portfolio') | float(0) }}"
+      risk_status: "{{ states('sensor.crypto_inspect_risk_status') }}"
+      fear_greed: "{{ states('sensor.crypto_inspect_fear_greed') }}"
+      severity_enabled: !input severity_levels
+      severity: >-
+        {% set dd = current_dd | float %}
+        {% set t = threshold | int %}
+        {% if dd >= t + 10 %}critical
+        {% elif dd >= t + 5 %}danger
+        {% else %}warning{% endif %}
+
+  - choose:
+      # Russian
+      - conditions:
+          - condition: template
+            value_template: "{{ lang == 'ru' }}"
+        sequence:
+          - service: !input notify_service
+            data:
+              title: >-
+                {% if severity == 'critical' %}
+                🚨 КРИТИЧЕСКАЯ просадка: {{ current_dd | round(1) }}%
+                {% elif severity == 'danger' %}
+                ⚠️ ОПАСНАЯ просадка: {{ current_dd | round(1) }}%
+                {% else %}
+                ⚠️ Просадка: {{ current_dd | round(1) }}%
+                {% endif %}
+              message: >-
+                Портфель упал на {{ current_dd | round(1) }}% от максимума
+
+                💰 Текущая стоимость: ${{ '{:,.0f}'.format(portfolio_value) }}
+                📉 Макс. историческая просадка: {{ max_dd | round(1) }}%
+                🔴 Статус риска: {{ risk_status }}
+                😱 Fear & Greed: {{ fear_greed }}
+
+                {% if severity == 'critical' %}
+                ❗ КРИТИЧЕСКИЙ УРОВЕНЬ - рассмотрите защитные действия!
+                {% elif severity == 'danger' %}
+                ⚠️ Опасный уровень - мониторьте ситуацию
+                {% else %}
+                ℹ️ Превышен порог просадки {{ threshold }}%
+                {% endif %}
+              data:
+                group: "crypto-risk"
+                tag: "drawdown-alert"
+                importance: >-
+                  {% if severity == 'critical' %}critical
+                  {% elif severity == 'danger' %}high
+                  {% else %}default{% endif %}
+
+      # English (default)
+      - conditions:
+          - condition: template
+            value_template: "{{ lang == 'en' }}"
+        sequence:
+          - service: !input notify_service
+            data:
+              title: >-
+                {% if severity == 'critical' %}
+                🚨 CRITICAL Drawdown: {{ current_dd | round(1) }}%
+                {% elif severity == 'danger' %}
+                ⚠️ DANGER Drawdown: {{ current_dd | round(1) }}%
+                {% else %}
+                ⚠️ Drawdown Alert: {{ current_dd | round(1) }}%
+                {% endif %}
+              message: >-
+                Portfolio dropped {{ current_dd | round(1) }}% from peak
+
+                💰 Current Value: ${{ '{:,.0f}'.format(portfolio_value) }}
+                📉 Max Historical DD: {{ max_dd | round(1) }}%
+                🔴 Risk Status: {{ risk_status }}
+                😱 Fear & Greed: {{ fear_greed }}
+
+                {% if severity == 'critical' %}
+                ❗ CRITICAL LEVEL - Consider protective actions!
+                {% elif severity == 'danger' %}
+                ⚠️ Dangerous level - Monitor the situation
+                {% else %}
+                ℹ️ Drawdown threshold {{ threshold }}% exceeded
+                {% endif %}
+              data:
+                group: "crypto-risk"
+                tag: "drawdown-alert"
+                importance: >-
+                  {% if severity == 'critical' %}critical
+                  {% elif severity == 'danger' %}high
+                  {% else %}default{% endif %}
+
+mode: single

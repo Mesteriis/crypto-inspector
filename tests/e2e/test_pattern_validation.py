@@ -23,7 +23,7 @@ class TestGoldenCrossPattern:
 
     def test_golden_cross_detection(self, golden_cross_candles, data_loader):
         """Test that golden cross is detected in the data."""
-        from services.analysis.patterns import PatternDetector
+        from service.analysis.patterns import PatternDetector
 
         detector = PatternDetector()
         patterns = detector.detect_all("BTC/USDT", golden_cross_candles)
@@ -95,7 +95,7 @@ class TestRSIPatterns:
 
     def test_rsi_oversold_detection(self, rsi_oversold_candles):
         """Test RSI oversold condition detection."""
-        from services.analysis.technical import TechnicalAnalyzer
+        from service.analysis.technical import TechnicalAnalyzer
 
         ta = TechnicalAnalyzer()
         closes = [c["close"] for c in rsi_oversold_candles[:30]]
@@ -142,7 +142,7 @@ class TestRSIPatterns:
 
     def test_rsi_extremes_generate_signals(self, sample_candles):
         """Test that RSI extreme values trigger pattern detection."""
-        from services.analysis.patterns import PatternDetector
+        from service.analysis.patterns import PatternDetector
 
         detector = PatternDetector()
 
@@ -161,7 +161,7 @@ class TestBollingerBandPatterns:
 
     def test_bb_position_calculation(self, sample_candles):
         """Test Bollinger Band position calculation."""
-        from services.analysis.technical import TechnicalAnalyzer
+        from service.analysis.technical import TechnicalAnalyzer
 
         ta = TechnicalAnalyzer()
         closes = [c["close"] for c in sample_candles]
@@ -180,7 +180,7 @@ class TestBollingerBandPatterns:
 
     def test_bb_breakout_detection(self, sample_candles):
         """Test BB breakout pattern detection."""
-        from services.analysis.patterns import PatternDetector
+        from service.analysis.patterns import PatternDetector
 
         detector = PatternDetector()
         patterns = detector.detect_all("BTC/USDT", sample_candles)
@@ -196,7 +196,7 @@ class TestTrendPatterns:
 
     def test_bullish_trend_detection(self, bullish_candles):
         """Test detection of bullish trends."""
-        from services.analysis.patterns import PatternDetector
+        from service.analysis.patterns import PatternDetector
 
         detector = PatternDetector()
         patterns = detector.detect_all("BTC/USDT", bullish_candles)
@@ -209,7 +209,7 @@ class TestTrendPatterns:
 
     def test_bearish_trend_detection(self, bearish_candles):
         """Test detection of bearish trends."""
-        from services.analysis.patterns import PatternDetector
+        from service.analysis.patterns import PatternDetector
 
         detector = PatternDetector()
         patterns = detector.detect_all("BTC/USDT", bearish_candles)
@@ -222,7 +222,7 @@ class TestTrendPatterns:
 
     def test_higher_highs_detection(self, bullish_candles):
         """Test higher highs pattern detection."""
-        from services.analysis.patterns import PatternDetector
+        from service.analysis.patterns import PatternDetector
 
         detector = PatternDetector()
         patterns = detector.detect_all("BTC/USDT", bullish_candles)
@@ -233,7 +233,7 @@ class TestTrendPatterns:
 
     def test_lower_lows_detection(self, bearish_candles):
         """Test lower lows pattern detection."""
-        from services.analysis.patterns import PatternDetector
+        from service.analysis.patterns import PatternDetector
 
         detector = PatternDetector()
         patterns = detector.detect_all("BTC/USDT", bearish_candles)
@@ -250,7 +250,7 @@ class TestPatternAccuracyReport:
         """Test pattern accuracy across multiple time periods."""
         candles = data_loader.load_from_list(sample_candles)
 
-        from services.analysis.patterns import PatternDetector
+        from service.analysis.patterns import PatternDetector
 
         detector = PatternDetector()
 

@@ -1,11 +1,13 @@
 """
 Pytest configuration and fixtures for E2E tests.
+
+Наследует базовые фикстуры из корневого conftest.py и добавляет
+специфичные для E2E тестирования.
 """
 
-import asyncio
 import os
+import random
 import sys
-from collections.abc import Generator
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -14,42 +16,8 @@ import pytest
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 sys.path.insert(0, os.path.join(project_root, "src"))
 
-
-@pytest.fixture(scope="session")
-def event_loop() -> Generator[asyncio.AbstractEventLoop]:
-    """Create event loop for async tests."""
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
-
-
-@pytest.fixture
-def sample_candles() -> list[dict]:
-    """Generate sample candle data for testing."""
-    import random
-
-    candles = []
-    base_price = 50000
-    start_date = datetime.now(UTC) - timedelta(days=300)
-
-    for i in range(300):
-        daily_return = random.gauss(0.001, 0.02)
-        base_price *= 1 + daily_return
-
-        ts = int((start_date + timedelta(days=i)).timestamp() * 1000)
-
-        candles.append(
-            {
-                "timestamp": ts,
-                "open": round(base_price * random.uniform(0.995, 1.005), 2),
-                "high": round(base_price * random.uniform(1.0, 1.02), 2),
-                "low": round(base_price * random.uniform(0.98, 1.0), 2),
-                "close": round(base_price, 2),
-                "volume": random.uniform(1000, 5000),
-            }
-        )
-
-    return candles
+# Маркер для всех E2E тестов
+pytestmark = [pytest.mark.e2e]
 
 
 @pytest.fixture

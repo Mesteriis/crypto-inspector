@@ -1,0 +1,189 @@
+# =============================================================================
+# Market Phase Change Alert Blueprint / Алерт изменения фазы рынка
+# =============================================================================
+# Sends notification when market phase changes
+# Отправляет уведомление при смене фазы рынка
+# =============================================================================
+
+blueprint:
+  name: "Market Phase Change / Смена фазы рынка"
+  description: >-
+    Get notified when the market phase changes (Accumulation, Growth, Euphoria, etc.).
+    Уведомление при смене фазы рынка (Накопление, Рост, Эйфория и т.д.).
+  domain: automation
+  author: "Crypto Inspect Add-on"
+  source_url: "https://github.com/Mesteriis/crypto-inspector"
+
+  input:
+    notify_service:
+      name: "Notification Service / Сервис уведомлений"
+      description: >-
+        The notification service to use.
+        Сервис для отправки уведомлений.
+      selector:
+        text:
+      default: "notify.mobile_app"
+
+    language:
+      name: "Language / Язык"
+      description: "Notification language / Язык уведомлений"
+      selector:
+        select:
+          options:
+            - label: "English"
+              value: "en"
+            - label: "Русский"
+              value: "ru"
+      default: "ru"
+
+    notify_accumulation:
+      name: "Notify on Accumulation / Уведомлять о накоплении"
+      description: "Send alert when entering Accumulation phase"
+      selector:
+        boolean:
+      default: true
+
+    notify_growth:
+      name: "Notify on Growth / Уведомлять о росте"
+      description: "Send alert when entering Growth phase"
+      selector:
+        boolean:
+      default: true
+
+    notify_euphoria:
+      name: "Notify on Euphoria / Уведомлять об эйфории"
+      description: "Send alert when entering Euphoria phase"
+      selector:
+        boolean:
+      default: true
+
+    notify_correction:
+      name: "Notify on Correction / Уведомлять о коррекции"
+      description: "Send alert when entering Correction phase"
+      selector:
+        boolean:
+      default: true
+
+    notify_capitulation:
+      name: "Notify on Capitulation / Уведомлять о капитуляции"
+      description: "Send alert when entering Capitulation phase"
+      selector:
+        boolean:
+      default: true
+
+trigger:
+  - platform: state
+    entity_id: sensor.crypto_inspect_investor_phase
+    not_from:
+      - "unknown"
+      - "unavailable"
+    not_to:
+      - "unknown"
+      - "unavailable"
+
+condition:
+  - condition: template
+    value_template: >
+      {% set new_phase = trigger.to_state.state | lower %}
+      {% set notify_acc = !input notify_accumulation %}
+      {% set notify_growth = !input notify_growth %}
+      {% set notify_euph = !input notify_euphoria %}
+      {% set notify_corr = !input notify_correction %}
+      {% set notify_cap = !input notify_capitulation %}
+
+      {% if 'accumulation' in new_phase and notify_acc %}true
+      {% elif 'growth' in new_phase and notify_growth %}true
+      {% elif 'euphoria' in new_phase and notify_euph %}true
+      {% elif 'correction' in new_phase and notify_corr %}true
+      {% elif 'capitulation' in new_phase and notify_cap %}true
+      {% else %}false{% endif %}
+
+action:
+  - variables:
+      lang: !input language
+      old_phase: "{{ trigger.from_state.state }}"
+      new_phase: "{{ trigger.to_state.state }}"
+      fear_greed: "{{ states('sensor.crypto_inspect_fear_greed') }}"
+      dca_signal: "{{ states('sensor.crypto_inspect_dca_signal') }}"
+      calm: "{{ states('sensor.crypto_inspect_calm_indicator') }}"
+
+  - choose:
+      # Russian
+      - conditions:
+          - condition: template
+            value_template: "{{ lang == 'ru' }}"
+        sequence:
+          - service: !input notify_service
+            data:
+              title: >-
+                {% set p = new_phase | lower %}
+                {% if 'accumulation' in p %}📊 Фаза: Накопление
+                {% elif 'growth' in p %}📈 Фаза: Рост
+                {% elif 'euphoria' in p %}🚀 Фаза: Эйфория
+                {% elif 'correction' in p %}📉 Фаза: Коррекция
+                {% elif 'capitulation' in p %}💥 Фаза: Капитуляция
+                {% else %}📊 Смена фазы рынка{% endif %}
+              message: >-
+                {{ old_phase }} → {{ new_phase }}
+
+                {% set p = new_phase | lower %}
+                {% if 'accumulation' in p %}
+                💡 Хорошее время для накопления позиций
+                {% elif 'growth' in p %}
+                📈 Рынок растёт, удерживайте позиции
+                {% elif 'euphoria' in p %}
+                ⚠️ Рынок перегрет, будьте осторожны
+                {% elif 'correction' in p %}
+                📉 Коррекция, возможность для покупки
+                {% elif 'capitulation' in p %}
+                💥 Капитуляция, экстремальный страх
+                {% endif %}
+
+                Fear & Greed: {{ fear_greed }}
+                DCA: {{ dca_signal }}
+                Спокойствие: {{ calm }}%
+              data:
+                group: "crypto-phase"
+                tag: "phase-change"
+                importance: high
+
+      # English (default)
+      - conditions:
+          - condition: template
+            value_template: "{{ lang == 'en' }}"
+        sequence:
+          - service: !input notify_service
+            data:
+              title: >-
+                {% set p = new_phase | lower %}
+                {% if 'accumulation' in p %}📊 Phase: Accumulation
+                {% elif 'growth' in p %}📈 Phase: Growth
+                {% elif 'euphoria' in p %}🚀 Phase: Euphoria
+                {% elif 'correction' in p %}📉 Phase: Correction
+                {% elif 'capitulation' in p %}💥 Phase: Capitulation
+                {% else %}📊 Market Phase Change{% endif %}
+              message: >-
+                {{ old_phase }} → {{ new_phase }}
+
+                {% set p = new_phase | lower %}
+                {% if 'accumulation' in p %}
+                💡 Good time to accumulate positions
+                {% elif 'growth' in p %}
+                📈 Market is growing, hold your positions
+                {% elif 'euphoria' in p %}
+                ⚠️ Market is overheated, be careful
+                {% elif 'correction' in p %}
+                📉 Correction, opportunity to buy
+                {% elif 'capitulation' in p %}
+                💥 Capitulation, extreme fear
+                {% endif %}
+
+                Fear & Greed: {{ fear_greed }}
+                DCA: {{ dca_signal }}
+                Calm: {{ calm }}%
+              data:
+                group: "crypto-phase"
+                tag: "phase-change"
+                importance: high
+
+mode: single

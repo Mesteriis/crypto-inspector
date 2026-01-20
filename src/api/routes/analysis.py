@@ -17,7 +17,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 
 from core.constants import PriceDefaults
-from services.analysis import (
+from service.analysis import (
     CycleDetector,
     DerivativesAnalyzer,
     OnChainAnalyzer,
@@ -44,7 +44,7 @@ def get_currency_list() -> list[str]:
     Returns:
         List of currency symbols (e.g., ["BTC", "ETH"])
     """
-    from services.ha_sensors import get_currency_list as get_dynamic_currency_list
+    from service.ha import get_currency_list as get_dynamic_currency_list
 
     # Get full currency pairs and extract base symbols
     full_pairs = get_dynamic_currency_list()

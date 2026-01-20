@@ -24,11 +24,10 @@ def mock_mqtt_client():
 
 @pytest.fixture
 def sensors_manager(mock_mqtt_client):
-    """Create a CryptoSensorsManager instance with mock MQTT."""
-    from services.ha_sensors import CryptoSensorsManager
+    """Create a HAIntegrationManager instance with mock publisher."""
+    from service.ha import HAIntegrationManager
 
-    manager = CryptoSensorsManager()
-    manager._mqtt_client = mock_mqtt_client
+    manager = HAIntegrationManager()
     return manager
 
 
@@ -122,7 +121,8 @@ def sample_ta_data():
 
 @pytest.fixture
 def all_sensor_keys():
-    """Get all sensor keys from the manager."""
-    from services.ha_sensors import CryptoSensorsManager
+    """Get all sensor keys from the registry."""
+    from service.ha import SensorRegistry
 
-    return list(CryptoSensorsManager.SENSORS.keys())
+    SensorRegistry.ensure_initialized()
+    return list(SensorRegistry.get_all().keys())

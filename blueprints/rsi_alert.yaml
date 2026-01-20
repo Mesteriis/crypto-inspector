@@ -1,0 +1,175 @@
+# =============================================================================
+# RSI Alert Blueprint / Алерт по RSI
+# =============================================================================
+# Sends notification when RSI enters overbought/oversold zones
+# Отправляет уведомление когда RSI входит в зоны перекупленности/перепроданности
+# =============================================================================
+
+blueprint:
+  name: "RSI Alert / Алерт RSI"
+  description: >-
+    Get notified when RSI enters overbought (>70) or oversold (<30) zones.
+    Уведомление когда RSI входит в зону перекупленности (>70) или перепроданности (<30).
+  domain: automation
+  author: "Crypto Inspect Add-on"
+  source_url: "https://github.com/Mesteriis/crypto-inspector"
+
+  input:
+    coin:
+      name: "Cryptocurrency / Криптовалюта"
+      description: >-
+        Which coin to monitor.
+        Какую монету мониторить.
+      selector:
+        select:
+          options:
+            - BTC
+            - ETH
+            - SOL
+            - ADA
+            - XRP
+      default: "BTC"
+
+    oversold_threshold:
+      name: "Oversold Threshold / Порог перепроданности"
+      description: >-
+        RSI level considered oversold.
+        Уровень RSI для перепроданности.
+      selector:
+        number:
+          min: 10
+          max: 40
+          step: 5
+      default: 30
+
+    overbought_threshold:
+      name: "Overbought Threshold / Порог перекупленности"
+      description: >-
+        RSI level considered overbought.
+        Уровень RSI для перекупленности.
+      selector:
+        number:
+          min: 60
+          max: 90
+          step: 5
+      default: 70
+
+    notify_service:
+      name: "Notification Service / Сервис уведомлений"
+      description: >-
+        The notification service to use.
+        Сервис для отправки уведомлений.
+      selector:
+        text:
+      default: "notify.mobile_app"
+
+    language:
+      name: "Language / Язык"
+      description: "Notification language / Язык уведомлений"
+      selector:
+        select:
+          options:
+            - label: "English"
+              value: "en"
+            - label: "Русский"
+              value: "ru"
+      default: "ru"
+
+trigger:
+  - platform: state
+    entity_id: sensor.crypto_inspect_ta_rsi
+    not_from:
+      - "unknown"
+      - "unavailable"
+    not_to:
+      - "unknown"
+      - "unavailable"
+
+condition:
+  - condition: template
+    value_template: >
+      {% set coin = !input coin %}
+      {% set data = states('sensor.crypto_inspect_ta_rsi') | from_json | default({}) %}
+      {% set rsi = data.get(coin, 50) | float(50) %}
+      {% set oversold = !input oversold_threshold | int(30) %}
+      {% set overbought = !input overbought_threshold | int(70) %}
+      {{ rsi < oversold or rsi > overbought }}
+
+action:
+  - variables:
+      lang: !input language
+      coin: !input coin
+      data: "{{ states('sensor.crypto_inspect_ta_rsi') | from_json | default({}) }}"
+      rsi: "{{ data.get(coin, 50) | float(50) | round(0) }}"
+      oversold: !input oversold_threshold
+      overbought: !input overbought_threshold
+      is_oversold: "{{ rsi | float < oversold | int }}"
+      prices: "{{ states('sensor.crypto_inspect_prices') | from_json | default({}) }}"
+      price: "{{ prices.get(coin ~ '/USDT', prices.get(coin, 0)) | float(0) }}"
+
+  - choose:
+      # Russian
+      - conditions:
+          - condition: template
+            value_template: "{{ lang == 'ru' }}"
+        sequence:
+          - service: !input notify_service
+            data:
+              title: >-
+                {% if is_oversold %}
+                📉 {{ coin }} перепродан (RSI {{ rsi }})
+                {% else %}
+                📈 {{ coin }} перекуплен (RSI {{ rsi }})
+                {% endif %}
+              message: >-
+                {% if is_oversold %}
+                {{ coin }} в зоне перепроданности!
+                RSI: {{ rsi }} (ниже {{ oversold }})
+                Цена: ${{ '{:,.0f}'.format(price) }}
+
+                💡 Возможность для покупки
+                {% else %}
+                {{ coin }} в зоне перекупленности!
+                RSI: {{ rsi }} (выше {{ overbought }})
+                Цена: ${{ '{:,.0f}'.format(price) }}
+
+                ⚠️ Рассмотрите фиксацию прибыли
+                {% endif %}
+              data:
+                group: "crypto-rsi"
+                tag: "rsi-{{ coin }}"
+                importance: high
+
+      # English (default)
+      - conditions:
+          - condition: template
+            value_template: "{{ lang == 'en' }}"
+        sequence:
+          - service: !input notify_service
+            data:
+              title: >-
+                {% if is_oversold %}
+                📉 {{ coin }} Oversold (RSI {{ rsi }})
+                {% else %}
+                📈 {{ coin }} Overbought (RSI {{ rsi }})
+                {% endif %}
+              message: >-
+                {% if is_oversold %}
+                {{ coin }} is oversold!
+                RSI: {{ rsi }} (below {{ oversold }})
+                Price: ${{ '{:,.0f}'.format(price) }}
+
+                💡 Potential buying opportunity
+                {% else %}
+                {{ coin }} is overbought!
+                RSI: {{ rsi }} (above {{ overbought }})
+                Price: ${{ '{:,.0f}'.format(price) }}
+
+                ⚠️ Consider taking profits
+                {% endif %}
+              data:
+                group: "crypto-rsi"
+                tag: "rsi-{{ coin }}"
+                importance: high
+
+mode: single

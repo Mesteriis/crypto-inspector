@@ -15,8 +15,8 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from services.candlestick import CandleInterval, fetch_candlesticks
-from services.ml.backtester import ForecastBacktester
+from service.candlestick import CandleInterval, fetch_candlesticks
+from service.ml.backtester import ForecastBacktester
 
 # Configure logging
 logging.basicConfig(

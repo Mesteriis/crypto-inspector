@@ -10,7 +10,7 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from services.ml.chronos_forecaster import ChronosBoltForecaster
+from service.ml.chronos_forecaster import ChronosBoltForecaster
 
 
 async def test_chronos_integration():

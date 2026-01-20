@@ -14,7 +14,7 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from services.ha_sensors import get_sensors_manager
+from service.ha import get_sensors_manager
 
 
 async def demo_ml_sensors():

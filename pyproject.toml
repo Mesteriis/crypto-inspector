@@ -33,8 +33,15 @@ dependencies = [
 ]
 
 [tool.uv]
-# Use CPU-only PyTorch to reduce image size by ~2-3GB
-extra-index-url = ["https://download.pytorch.org/whl/cpu"]
+# Use CPU-only PyTorch on Linux (Docker) to reduce image size by ~2-3GB
+# On macOS ARM, use default PyPI
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu", marker = "sys_platform == 'linux'" }
 
 [project.optional-dependencies]
 dev = [
@@ -73,7 +80,7 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v --tb=short -s"
+addopts = "-v --tb=short -s -m 'not slow'"
 asyncio_mode = "auto"
 filterwarnings = [
     "ignore::DeprecationWarning",

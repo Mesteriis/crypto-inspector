@@ -177,7 +177,7 @@ class BacktestRunner:
             Dictionary with RSI, MACD, BB, trend info
         """
         # Import analysis services
-        from services.analysis.technical import TechnicalAnalyzer
+        from service.analysis.technical import TechnicalAnalyzer
 
         if len(candles) < 50:
             return {}
@@ -221,7 +221,7 @@ class BacktestRunner:
         Returns:
             List of detected patterns
         """
-        from services.analysis.patterns import PatternDetector
+        from service.analysis.patterns import PatternDetector
 
         if len(candles) < 50:
             return []
@@ -248,8 +248,8 @@ class BacktestRunner:
         Returns:
             Composite score data
         """
-        from services.analysis.scoring import ScoringEngine
-        from services.analysis.technical import TechnicalIndicators
+        from service.analysis.scoring import ScoringEngine
+        from service.analysis.technical import TechnicalIndicators
 
         scoring = ScoringEngine()
 

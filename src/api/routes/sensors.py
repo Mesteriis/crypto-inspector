@@ -10,8 +10,8 @@ from typing import Any
 
 from fastapi import APIRouter
 
-from services.candlestick.buffer import get_candle_buffer
-from services.candlestick.websocket.manager import get_stream_manager
+from service.candlestick.buffer import get_candle_buffer
+from service.candlestick.websocket.manager import get_stream_manager
 
 logger = logging.getLogger(__name__)
 

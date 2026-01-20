@@ -11,21 +11,13 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
 
-from services.portfolio import get_portfolio_manager
+from schemas.api.portfolio import HoldingRequest
+from service.portfolio import get_portfolio_manager
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/portfolio", tags=["portfolio"])
-
-
-class HoldingRequest(BaseModel):
-    """Request to add/update a holding."""
-
-    symbol: str
-    amount: float
-    avg_price: float
 
 
 @router.get("")

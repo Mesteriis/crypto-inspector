@@ -12,25 +12,14 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
 
-from services.alerts import get_alert_manager
-from services.alerts.price_alerts import AlertStatus
+from schemas.api.alerts import CreateAlertRequest
+from service.alerts import get_alert_manager
+from service.alerts.price_alerts import AlertStatus
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/alerts", tags=["alerts"])
-
-
-class CreateAlertRequest(BaseModel):
-    """Request to create a price alert."""
-
-    symbol: str
-    alert_type: str  # above, below, change_up, change_down
-    threshold: float
-    cooldown_minutes: int = 60
-    expires_hours: int | None = None
-    note: str = ""
 
 
 @router.get("")

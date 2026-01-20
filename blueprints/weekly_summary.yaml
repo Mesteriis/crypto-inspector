@@ -1,0 +1,161 @@
+# =============================================================================
+# Weekly Summary Blueprint / Еженедельная сводка
+# =============================================================================
+# Sends comprehensive weekly crypto summary every Sunday
+# Отправляет подробную еженедельную сводку каждое воскресенье
+# =============================================================================
+
+blueprint:
+  name: "Weekly Crypto Summary / Недельная сводка"
+  description: >-
+    Receive a comprehensive weekly summary of your crypto portfolio and market.
+    Получайте подробную еженедельную сводку по портфелю и рынку.
+  domain: automation
+  author: "Crypto Inspect Add-on"
+  source_url: "https://github.com/Mesteriis/crypto-inspector"
+
+  input:
+    notify_service:
+      name: "Notification Service / Сервис уведомлений"
+      description: >-
+        The notification service to use.
+        Сервис для отправки уведомлений.
+      selector:
+        text:
+      default: "notify.mobile_app"
+
+    send_time:
+      name: "Send Time / Время отправки"
+      description: >-
+        Time to send the weekly summary (Sunday).
+        Время отправки еженедельной сводки (воскресенье).
+      selector:
+        time:
+      default: "18:00:00"
+
+    language:
+      name: "Language / Язык"
+      description: "Notification language / Язык уведомлений"
+      selector:
+        select:
+          options:
+            - label: "English"
+              value: "en"
+            - label: "Русский"
+              value: "ru"
+      default: "ru"
+
+trigger:
+  - platform: time
+    at: !input send_time
+
+condition:
+  # Only on Sunday (weekday 6)
+  - condition: template
+    value_template: "{{ now().weekday() == 6 }}"
+
+action:
+  - variables:
+      lang: !input language
+      # Portfolio
+      portfolio_value: "{{ states('sensor.crypto_inspect_bybit_total_portfolio') | float(0) }}"
+      pnl_7d: "{{ states('sensor.crypto_inspect_bybit_pnl_7d') | float(0) }}"
+      goal_progress: "{{ states('sensor.crypto_inspect_goal_progress') | float(0) }}"
+      # Market
+      fear_greed: "{{ states('sensor.crypto_inspect_fear_greed') }}"
+      investor_phase: "{{ states('sensor.crypto_inspect_investor_phase') }}"
+      btc_dominance: "{{ states('sensor.crypto_inspect_btc_dominance') | float(0) }}"
+      altseason: "{{ states('sensor.crypto_inspect_altseason_index') }}"
+      # Signals
+      dca_signal: "{{ states('sensor.crypto_inspect_dca_signal') }}"
+      weekly_insight: "{{ states('sensor.crypto_inspect_weekly_insight') }}"
+      # Risk
+      sharpe: "{{ states('sensor.crypto_inspect_portfolio_sharpe') }}"
+      max_dd: "{{ states('sensor.crypto_inspect_portfolio_max_drawdown') }}"
+      # Backtest
+      best_strategy: "{{ states('sensor.crypto_inspect_backtest_best_strategy') }}"
+      # Next week
+      macro_risk: "{{ states('sensor.crypto_inspect_macro_risk_week') }}"
+      next_macro: "{{ states('sensor.crypto_inspect_next_macro_event') }}"
+      days_fomc: "{{ states('sensor.crypto_inspect_days_to_fomc') }}"
+
+  - choose:
+      # Russian
+      - conditions:
+          - condition: template
+            value_template: "{{ lang == 'ru' }}"
+        sequence:
+          - service: !input notify_service
+            data:
+              title: "📊 Недельная крипто-сводка"
+              message: >-
+                📈 ПОРТФЕЛЬ
+                Стоимость: ${{ '{:,.0f}'.format(portfolio_value) }}
+                P&L за неделю: {{ '+' if pnl_7d > 0 else '' }}{{ pnl_7d | round(1) }}%
+                Прогресс к цели: {{ goal_progress | round(0) }}%
+
+                🌡️ РЫНОК
+                Fear & Greed: {{ fear_greed }}
+                Фаза: {{ investor_phase }}
+                BTC.D: {{ btc_dominance | round(1) }}%
+                Альтсезон: {{ altseason }}
+
+                🎯 РЕКОМЕНДАЦИИ
+                DCA: {{ dca_signal }}
+                {{ weekly_insight }}
+
+                ⚠️ РИСКИ
+                Sharpe: {{ sharpe }}
+                Макс. просадка: {{ max_dd }}%
+
+                📅 СЛЕДУЮЩАЯ НЕДЕЛЯ
+                Макро-риск: {{ macro_risk }}
+                {% if days_fomc and days_fomc | int < 14 %}
+                FOMC через {{ days_fomc }} дней
+                {% endif %}
+                {{ next_macro }}
+              data:
+                group: "crypto-weekly"
+                tag: "weekly-summary"
+                importance: default
+
+      # English (default)
+      - conditions:
+          - condition: template
+            value_template: "{{ lang == 'en' }}"
+        sequence:
+          - service: !input notify_service
+            data:
+              title: "📊 Weekly Crypto Summary"
+              message: >-
+                📈 PORTFOLIO
+                Value: ${{ '{:,.0f}'.format(portfolio_value) }}
+                Weekly P&L: {{ '+' if pnl_7d > 0 else '' }}{{ pnl_7d | round(1) }}%
+                Goal Progress: {{ goal_progress | round(0) }}%
+
+                🌡️ MARKET
+                Fear & Greed: {{ fear_greed }}
+                Phase: {{ investor_phase }}
+                BTC.D: {{ btc_dominance | round(1) }}%
+                Altseason: {{ altseason }}
+
+                🎯 RECOMMENDATIONS
+                DCA: {{ dca_signal }}
+                {{ weekly_insight }}
+
+                ⚠️ RISK
+                Sharpe: {{ sharpe }}
+                Max DD: {{ max_dd }}%
+
+                📅 NEXT WEEK
+                Macro Risk: {{ macro_risk }}
+                {% if days_fomc and days_fomc | int < 14 %}
+                FOMC in {{ days_fomc }} days
+                {% endif %}
+                {{ next_macro }}
+              data:
+                group: "crypto-weekly"
+                tag: "weekly-summary"
+                importance: default
+
+mode: single
