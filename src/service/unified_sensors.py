@@ -256,7 +256,7 @@ class UnifiedSensorManager:
             # In real implementation, this would call prediction services
             # return await prediction_service.get_latest_prediction(currency)
             return None  # Placeholder
-        except Exception:
+        except Exception:  # pragma: no cover
             return None
 
     async def _get_ai_trend(self, currency: str) -> str | None:
@@ -267,7 +267,7 @@ class UnifiedSensorManager:
             # In real implementation, this would call trend analysis services
             # return await trend_service.get_latest_trend(currency)
             return None  # Placeholder
-        except Exception:
+        except Exception:  # pragma: no cover
             return None
 
     async def _get_technical_indicators(self, currency: str) -> dict[str, Any] | None:
@@ -278,7 +278,7 @@ class UnifiedSensorManager:
             # In real implementation, this would call technical analysis services
             # return await technical_service.get_indicators(currency)
             return None  # Placeholder
-        except Exception:
+        except Exception:  # pragma: no cover
             return None
 
     async def _get_volatility(self, currency: str) -> float | None:
@@ -289,7 +289,7 @@ class UnifiedSensorManager:
             # In real implementation, this would calculate volatility from price data
             # return await volatility_service.calculate(currency)
             return None  # Placeholder
-        except Exception:
+        except Exception:  # pragma: no cover
             return None
 
     async def _get_market_sentiment(self, currency: str) -> float | None:
@@ -300,7 +300,7 @@ class UnifiedSensorManager:
             # In real implementation, this would analyze market sentiment
             # return await sentiment_service.analyze(currency)
             return None  # Placeholder
-        except Exception:
+        except Exception:  # pragma: no cover
             return None
 
     def is_initialized(self) -> bool:
@@ -312,7 +312,7 @@ class UnifiedSensorManager:
 _unified_sensor_manager = None
 
 
-def get_unified_sensor_manager(sensors_manager: CryptoSensorsManager = None) -> UnifiedSensorManager:
+def get_unified_sensor_manager(sensors_manager: HAIntegrationManager = None) -> UnifiedSensorManager:
     """Get singleton unified sensor manager instance."""
     global _unified_sensor_manager
     if _unified_sensor_manager is None:

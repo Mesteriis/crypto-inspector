@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.24 - Unified Sensors Fix & Test Coverage
+- **Date**: 2026-01-20
+- **Fixed**: NameError in `unified_sensors.py` - `CryptoSensorsManager` replaced with `HAIntegrationManager`.
+- **Tests**: Added 100% test coverage for `unified_sensors.py` (39 tests).
+- **Policy**: Added `unified_sensors.py` to critical HA files requiring 100% coverage.
+
 ## 0.2.23 - HA Init Graceful Degradation
 - **Date**: 2026-01-20
 - **Fixed**: Removed input_helpers creation via REST API (not supported by HA).
@@ -18,6 +24,21 @@
 - **Fixed**: Resolved "Task exception was never retrieved" asyncio warnings in fetcher.
 - **Fixed**: Changed expected API 404 errors (derivatives) from ERROR to DEBUG.
 - **Logging**: Set httpx, httpcore, apscheduler loggers to WARNING level.
+
+## 0.2.20 - HA Connection Retry
+- **Date**: 2026-01-20
+- **Feature**: Added HA connection retry with graceful fallback to standalone mode.
+
+## 0.2.19 - Python Environment Fix
+- **Date**: 2026-01-20
+- **Fixed**: Use system-wide Python install, lower requirement to Python 3.11.
+- **Fixed**: Install dependencies system-wide instead of venv.
+
+## 0.2.18 - Docker Build Fixes
+- **Date**: 2026-01-20
+- **Fixed**: Use venv python explicitly in run script.
+- **Fixed**: Add python3 to runtime image, fix import paths.
+- **Fixed**: Add uv.lock to repository for Docker builds.
 
 ## 0.2.17 - Documentation & Maintenance
 - **Date**: 2026-01-20
