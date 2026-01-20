@@ -378,10 +378,12 @@ class TestSensorValidation:
 
         for key in all_sensor_keys:
             name = CryptoSensorsManager.SENSORS[key]["name"]
-            # Name should have proper capitalization
-            assert name[0].isupper(), f"Name should start with capital: {name}"
             # Name should not have underscores
             assert "_" not in name, f"Name should not have underscores: {name}"
+            # For technical identifiers that start with digits (like "24h Change"), skip capitalization check
+            if not name[0].isdigit():
+                # Name should have proper capitalization
+                assert name[0].isupper(), f"Name should start with capital: {name}"
 
     def test_unit_sensors_have_valid_units(self, all_sensor_keys):
         """Verify sensors with units have valid unit values."""

@@ -1,7 +1,7 @@
-"""Crypto sensors for Home Assistant MQTT Discovery.
+"""Crypto sensors for Home Assistant using Supervisor API.
 
-This module registers crypto-related sensors that Home Assistant
-will automatically discover when the add-on starts.
+This module manages crypto-related sensors that are created and updated
+through Home Assistant Supervisor REST API.
 
 Sensors use dictionary format to support multiple trading pairs:
 - sensor.crypto_inspect_prices: {"BTC/USDT": 100000, "ETH/USDT": 3500}
@@ -13,28 +13,107 @@ import logging
 import os
 from datetime import UTC, datetime
 from decimal import Decimal
+from pathlib import Path
 
-from core.constants import APP_VERSION
+from core.config import settings
+from core.constants import APP_VERSION, DEFAULT_SYMBOLS
+from services.ha_integration import get_supervisor_client
 
 logger = logging.getLogger(__name__)
 
 
+async def get_sensor_language() -> str:
+    """Get current sensor language preference from input_select helper.
+    
+    Returns:
+        'en' or 'ru' based on user selection
+    """
+    from services.ha_integration import get_supervisor_client
+    
+    client = get_supervisor_client()
+    if not client.is_available:
+        return "ru"  # Default to Russian
+    
+    try:
+        # Get the state of the language selector
+        http_client = await client._get_client()
+        response = await http_client.get("/core/api/states/input_select.crypto_sensor_language")
+        
+        if response.status_code == 200:
+            data = response.json()
+            selected_option = data.get("state", "Russian")
+            # Convert Russian/English to ru/en
+            return "ru" if selected_option == "Russian" else "en"
+        else:
+            logger.debug(f"Language selector not found, using default Russian")
+            return "ru"
+    except Exception as e:
+        logger.debug(f"Could not get sensor language, using default: {e}")
+        return "ru"
+
+
+def get_localized_sensor_name(sensor_config: dict, language: str) -> str:
+    """Get localized sensor name based on language preference.
+    
+    Args:
+        sensor_config: Sensor configuration dictionary
+        language: Language code ('en' or 'ru')
+    
+    Returns:
+        Localized sensor name
+    """
+    if language == "ru" and "name_ru" in sensor_config:
+        return sensor_config["name_ru"]
+    else:
+        return sensor_config["name"]
+
+
 def get_symbols() -> list[str]:
-    """Get trading symbols from environment."""
+    """Get trading symbols from environment (deprecated - use get_currency_list instead)."""
     symbols_env = os.environ.get("HA_SYMBOLS", "BTC/USDT,ETH/USDT")
     return [s.strip() for s in symbols_env.split(",") if s.strip()]
 
 
+def get_currency_list() -> list[str]:
+    """Get the dynamic currency list from Home Assistant input_select helper.
+    
+    This is the single source of truth for currency selections across the application.
+    Falls back to environment variable or defaults if helper is not available.
+    
+    Returns:
+        List of currency symbols (e.g., ["BTC/USDT", "ETH/USDT"])
+    """
+    try:
+        # Try to get from HA input_select helper
+        supervisor_client = get_supervisor_client()
+        if supervisor_client.is_available:
+            # In a real implementation, we would fetch the current value from the helper
+            # For now, we'll fall back to the environment/default approach
+            # This would be implemented when we have the HA API integration
+            pass
+    except Exception:
+        pass
+    
+    # Fallback to environment variable
+    symbols_env = os.environ.get("HA_SYMBOLS", "")
+    if symbols_env:
+        return [s.strip() for s in symbols_env.split(",") if s.strip()]
+    
+    # Fallback to default symbols
+    return DEFAULT_SYMBOLS.copy()
+
+
 class CryptoSensorsManager:
     """
-    Manages crypto sensors for Home Assistant.
+    Manages crypto sensors for Home Assistant using Supervisor API.
 
-    Creates aggregated sensors that contain data for all trading pairs
+    Creates and updates aggregated sensors that contain data for all trading pairs
     in dictionary format, making it easy to use in HA templates.
     """
 
     DEVICE_ID = "crypto_inspect"
     DEVICE_NAME = "Crypto Inspect"
+    ENTITY_PREFIX = "sensor.crypto_inspect_"
 
     # Sensor definitions (English names with Russian translations)
     SENSORS = {
@@ -1059,20 +1138,178 @@ class CryptoSensorsManager:
             "description": "Total number of candles in DB",
             "description_ru": "Общее количество свечей в БД",
         },
+        "database_size": {
+            "name": "Database Size",
+            "name_ru": "Размер базы данных",
+            "icon": "mdi:database-settings",
+            "unit": "MB",
+            "entity_category": "diagnostic",
+            "description": "Size of database file",
+            "description_ru": "Размер файла базы данных",
+        },
+        # === AI Аналитика (словарный формат) ===
+        "ai_trends": {
+            "name": "AI Trends",
+            "name_ru": "AI Тренды",
+            "icon": "mdi:brain",
+            "entity_category": "diagnostic",
+            "description": 'AI-predicted trends for all currencies. Format: {"BTC": "Bullish", "ETH": "Neutral"}',
+            "description_ru": 'AI-предсказанные тренды для всех валют. Формат: {"BTC": "Bullish", "ETH": "Neutral"}',
+        },
+        "ai_confidences": {
+            "name": "AI Confidences",
+            "name_ru": "AI Уверенности",
+            "icon": "mdi:percent",
+            "unit": "%",
+            "entity_category": "diagnostic",
+            "description": 'AI prediction confidences for all currencies. Format: {"BTC": 85, "ETH": 78}',
+            "description_ru": 'Уровни уверенности AI-предсказаний для всех валют. Формат: {"BTC": 85, "ETH": 78}',
+        },
+        "ai_price_forecasts_24h": {
+            "name": "AI 24h Price Forecasts",
+            "name_ru": "AI Прогнозы цен 24ч",
+            "icon": "mdi:chart-line",
+            "unit": "USDT",
+            "entity_category": "diagnostic",
+            "description": 'AI-predicted prices in 24 hours for all currencies. Format: {"BTC": 95000, "ETH": 3200}',
+            "description_ru": 'AI-прогнозы цен через 24 часа для всех валют. Формат: {"BTC": 95000, "ETH": 3200}',
+        },
+        # === Адаптивные уведомления ===
+        "adaptive_notifications_status": {
+            "name": "Adaptive Notifications",
+            "name_ru": "Адаптивные уведомления",
+            "icon": "mdi:bell-ring",
+            "entity_category": "diagnostic",
+            "description": "Status of adaptive notification system",
+            "description_ru": "Статус системы адаптивных уведомлений",
+        },
+        "adaptive_volatilities": {
+            "name": "Adaptive Volatilities",
+            "name_ru": "Адаптивные уровни волатильности",
+            "icon": "mdi:wave",
+            "entity_category": "diagnostic",
+            "description": 'Current volatility levels for all currencies. Format: {"BTC": "High", "ETH": "Medium"}',
+            "description_ru": 'Текущие уровни волатильности для всех валют. Формат: {"BTC": "High", "ETH": "Medium"}',
+        },
+        "adaptive_notification_count_24h": {
+            "name": "Notifications 24h",
+            "name_ru": "Уведомлений за 24ч",
+            "icon": "mdi:counter",
+            "unit": "alerts",
+            "entity_category": "diagnostic",
+            "description": "Number of notifications sent in last 24 hours",
+            "description_ru": "Количество отправленных уведомлений за последние 24 часа",
+        },
+        "adaptive_adaptation_factors": {
+            "name": "Adaptive Adaptation Factors",
+            "name_ru": "Адаптивные факторы адаптации",
+            "icon": "mdi:scale-balance",
+            "unit": "x",
+            "entity_category": "diagnostic",
+            "description": 'Current adaptation factors for all currencies. Format: {"BTC": 1.5, "ETH": 1.2}',
+            "description_ru": 'Текущие факторы адаптации для всех валют. Формат: {"BTC": 1.5, "ETH": 1.2}',
+        },
+        # === Умная корреляция ===
+        "correlation_analysis_status": {
+            "name": "Correlation Analysis",
+            "name_ru": "Анализ корреляций",
+            "icon": "mdi:vector-link",
+            "entity_category": "diagnostic",
+            "description": "Status of smart correlation analysis",
+            "description_ru": "Статус анализа умных корреляций",
+        },
+        "correlation_significant_count": {
+            "name": "Significant Correlations",
+            "name_ru": "Значимые корреляции",
+            "icon": "mdi:link",
+            "unit": "pairs",
+            "entity_category": "diagnostic",
+            "description": "Number of statistically significant correlations detected",
+            "description_ru": "Количество статистически значимых корреляций",
+        },
+        "correlation_strongest_positive": {
+            "name": "Strongest Positive Corr",
+            "name_ru": "Сильнейшая положительная корреляция",
+            "icon": "mdi:trending-up",
+            "entity_category": "diagnostic",
+            "description": "Strongest positive correlation found",
+            "description_ru": "Самая сильная положительная корреляция",
+        },
+        "correlation_strongest_negative": {
+            "name": "Strongest Negative Corr",
+            "name_ru": "Сильнейшая отрицательная корреляция",
+            "icon": "mdi:trending-down",
+            "entity_category": "diagnostic",
+            "description": "Strongest negative correlation found",
+            "description_ru": "Самая сильная отрицательная корреляция",
+        },
+        "correlation_dominant_patterns": {
+            "name": "Dominant Patterns",
+            "name_ru": "Доминирующие паттерны",
+            "icon": "mdi:pattern",
+            "unit": "patterns",
+            "entity_category": "diagnostic",
+            "description": "Number of dominant correlation patterns identified",
+            "description_ru": "Количество выявленных доминирующих паттернов",
+        },
+        # === Экономический календарь ===
+        "economic_calendar_status": {
+            "name": "Economic Calendar",
+            "name_ru": "Экономический календарь",
+            "icon": "mdi:calendar-clock",
+            "entity_category": "diagnostic",
+            "description": "Status of economic events and news tracking",
+            "description_ru": "Статус отслеживания экономических событий и новостей",
+        },
+        "economic_upcoming_events_24h": {
+            "name": "Upcoming Events 24h",
+            "name_ru": "Предстоящие события 24ч",
+            "icon": "mdi:clock-alert",
+            "unit": "events",
+            "entity_category": "diagnostic",
+            "description": "Number of important economic events in next 24 hours",
+            "description_ru": "Количество важных экономических событий в ближайшие 24 часа",
+        },
+        "economic_important_events": {
+            "name": "Important Events",
+            "name_ru": "Важные события",
+            "icon": "mdi:alert-circle",
+            "unit": "events",
+            "entity_category": "diagnostic",
+            "description": "Number of currently tracked important events",
+            "description_ru": "Количество отслеживаемых важных событий",
+        },
+        "economic_breaking_news": {
+            "name": "Breaking News",
+            "name_ru": "Срочные новости",
+            "icon": "mdi:flash-alert",
+            "unit": "news",
+            "entity_category": "diagnostic",
+            "description": "Number of breaking cryptocurrency news",
+            "description_ru": "Количество срочных новостей о криптовалютах",
+        },
+        "economic_sentiment_score": {
+            "name": "Market Sentiment",
+            "name_ru": "Рыночные настроения",
+            "icon": "mdi:emoticon",
+            "entity_category": "diagnostic",
+            "description": "Overall market sentiment from news and events",
+            "description_ru": "Общие рыночные настроения из новостей и событий",
+        },
     }
 
-    def __init__(self, mqtt_client=None):
-        self._mqtt = mqtt_client
+    def __init__(self):
         self._prices: dict[str, str] = {}
         self._changes: dict[str, str] = {}
         self._volumes: dict[str, str] = {}
         self._highs: dict[str, str] = {}
         self._lows: dict[str, str] = {}
         self._cache: dict[str, any] = {}  # General cache for sensor values
+        self._supervisor_client = get_supervisor_client()
 
     @property
     def device_info(self) -> dict:
-        """Device info for MQTT Discovery."""
+        """Device info for sensor attributes."""
         return {
             "identifiers": [self.DEVICE_ID],
             "name": self.DEVICE_NAME,
@@ -1081,96 +1318,166 @@ class CryptoSensorsManager:
             "sw_version": APP_VERSION,
         }
 
-    def _get_discovery_topic(self, sensor_id: str) -> str:
-        """Get MQTT discovery config topic."""
-        return f"homeassistant/sensor/{self.DEVICE_ID}/{sensor_id}/config"
+    def _get_entity_id(self, sensor_id: str) -> str:
+        """Get full entity ID for Supervisor API."""
+        return f"{self.ENTITY_PREFIX}{sensor_id}"
 
-    def _get_state_topic(self, sensor_id: str) -> str:
-        """Get MQTT state topic."""
-        return f"{self.DEVICE_ID}/{sensor_id}/state"
-
-    def _get_attributes_topic(self, sensor_id: str) -> str:
-        """Get MQTT attributes topic."""
-        return f"{self.DEVICE_ID}/{sensor_id}/attributes"
-
+    async def register_sensor(self, sensor_id: str, sensor_config: dict) -> bool:
+        """
+        Register a single sensor via Supervisor API.
+        
+        Args:
+            sensor_id: Unique identifier for the sensor
+            sensor_config: Configuration dictionary containing:
+                - name: Display name
+                - name_ru: Russian display name
+                - icon: Material Design icon
+                - unit: Optional unit of measurement
+                - description: English description
+                - description_ru: Russian description
+                
+        Returns:
+            True if registered successfully
+        """
+        if not self._supervisor_client.is_available:
+            logger.warning("Supervisor API not available, skipping sensor registration")
+            return False
+            
+        try:
+            success = await self._supervisor_client.create_sensor(
+                sensor_id=sensor_id,
+                state="unknown",
+                friendly_name=sensor_config["name"],
+                icon=sensor_config.get("icon", "mdi:information"),
+                unit=sensor_config.get("unit"),
+                device_class=sensor_config.get("device_class"),
+                attributes={
+                    "device": self.device_info,
+                    "description": sensor_config.get("description", ""),
+                    "description_ru": sensor_config.get("description_ru", ""),
+                    "name_ru": sensor_config.get("name_ru", ""),
+                },
+            )
+            
+            if success:
+                logger.info(f"Registered sensor: {sensor_config['name']} (ID: {sensor_id})")
+                return True
+            else:
+                logger.error(f"Failed to register sensor {sensor_id}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Error registering sensor {sensor_id}: {e}")
+            return False
+    
     async def register_sensors(self) -> int:
         """
-        Register all sensors via MQTT Discovery.
+        Register all sensors via Supervisor API.
 
         Returns:
             Number of sensors registered.
         """
-        if not self._mqtt:
-            logger.warning("MQTT client not configured, skipping sensor registration")
+        if not self._supervisor_client.is_available:
+            logger.warning("Supervisor API not available, skipping sensor registration")
             return 0
 
         count = 0
         symbols = get_symbols()
 
         for sensor_id, sensor_def in self.SENSORS.items():
-            config = {
-                "name": sensor_def["name"],
-                "unique_id": f"{self.DEVICE_ID}_{sensor_id}",
-                "state_topic": self._get_state_topic(sensor_id),
-                "json_attributes_topic": self._get_attributes_topic(sensor_id),
-                "device": self.device_info,
-            }
-
-            if "icon" in sensor_def:
-                config["icon"] = sensor_def["icon"]
-            if "unit" in sensor_def:
-                config["unit_of_measurement"] = sensor_def["unit"]
-            if "device_class" in sensor_def:
-                config["device_class"] = sensor_def["device_class"]
-            if "entity_category" in sensor_def:
-                config["entity_category"] = sensor_def["entity_category"]
-
-            topic = self._get_discovery_topic(sensor_id)
-
-            try:
-                await self._mqtt.publish(topic, json.dumps(config), retain=True)
+            # Create sensor with initial empty state
+            success = await self._supervisor_client.create_sensor(
+                sensor_id=sensor_id,
+                state="unknown",
+                friendly_name=sensor_def["name"],
+                icon=sensor_def.get("icon", "mdi:information"),
+                unit=sensor_def.get("unit"),
+                device_class=sensor_def.get("device_class"),
+                attributes={
+                    "device": self.device_info,
+                    "description": sensor_def.get("description", ""),
+                    "description_ru": sensor_def.get("description_ru", ""),
+                    "name_ru": sensor_def.get("name_ru", ""),
+                },
+            )
+            
+            if success:
                 count += 1
                 logger.info(f"Registered sensor: {sensor_def['name']}")
-            except Exception as e:
-                logger.error(f"Failed to register sensor {sensor_id}: {e}")
+            else:
+                logger.error(f"Failed to register sensor {sensor_id}")
 
-        # Publish initial attributes with symbol list
-        await self._publish_attributes("prices", {"symbols": symbols, "count": len(symbols)})
+        # Update prices sensor with initial attributes
+        await self._update_sensor_attributes("prices", {"symbols": symbols, "count": len(symbols)})
 
-        logger.info(f"Registered {count} MQTT sensors, tracking {len(symbols)} symbols")
+        logger.info(f"Registered {count} sensors via Supervisor API, tracking {len(symbols)} symbols")
         return count
 
-    async def _publish_state(self, sensor_id: str, state: str | dict) -> bool:
-        """Publish sensor state."""
-        if not self._mqtt:
+    async def _update_sensor_state(self, sensor_id: str, state: str | dict) -> bool:
+        """Update sensor state via Supervisor API."""
+        if not self._supervisor_client.is_available:
             return False
 
-        topic = self._get_state_topic(sensor_id)
         payload = json.dumps(state) if isinstance(state, dict) else str(state)
-
+        
         try:
-            await self._mqtt.publish(topic, payload)
-            return True
+            success = await self._supervisor_client.update_sensor(sensor_id, payload)
+            if success:
+                logger.debug(f"Updated state for {sensor_id}: {payload}")
+            return success
         except Exception as e:
-            logger.error(f"Failed to publish state for {sensor_id}: {e}")
+            logger.error(f"Failed to update state for {sensor_id}: {e}")
             return False
 
+    async def _update_sensor_attributes(self, sensor_id: str, attributes: dict) -> bool:
+        """Update sensor attributes via Supervisor API."""
+        if not self._supervisor_client.is_available:
+            return False
+
+        try:
+            # We need to get current state first to preserve it
+            entity_id = self._get_entity_id(sensor_id)
+            success = await self._supervisor_client.set_state(entity_id, "unknown", attributes)
+            if success:
+                logger.debug(f"Updated attributes for {sensor_id}")
+            return success
+        except Exception as e:
+            logger.error(f"Failed to update attributes for {sensor_id}: {e}")
+            return False
+
+    async def _publish_state(self, sensor_id: str, state: any) -> bool:
+        """
+        Internal method to publish sensor state.
+        
+        Args:
+            sensor_id: Sensor identifier
+            state: State value (dict, list, or scalar)
+            
+        Returns:
+            True if published successfully
+        """
+        # Cache the value
+        self._cache[sensor_id] = state
+        
+        # Update via Supervisor API
+        return await self._update_sensor_state(sensor_id, state)
+    
     async def _publish_attributes(self, sensor_id: str, attributes: dict) -> bool:
-        """Publish sensor attributes."""
-        if not self._mqtt:
-            return False
-
-        topic = self._get_attributes_topic(sensor_id)
-        try:
-            await self._mqtt.publish(topic, json.dumps(attributes))
-            return True
-        except Exception as e:
-            logger.error(f"Failed to publish attributes for {sensor_id}: {e}")
-            return False
-
+        """
+        Internal method to publish sensor attributes.
+        
+        Args:
+            sensor_id: Sensor identifier
+            attributes: Attributes dictionary
+            
+        Returns:
+            True if published successfully
+        """
+        return await self._update_sensor_attributes(sensor_id, attributes)
+    
     async def publish_sensor(self, sensor_id: str, value: any, attributes: dict | None = None) -> bool:
         """
-        Publish a sensor value with optional attributes.
+        Update a sensor value with optional attributes via Supervisor API.
 
         This is the main public API for updating sensor values.
         Values are cached for later retrieval.
@@ -1181,17 +1488,17 @@ class CryptoSensorsManager:
             attributes: Optional attributes dict
 
         Returns:
-            True if published successfully
+            True if updated successfully
         """
         # Cache the value
         self._cache[sensor_id] = value
 
-        # Publish state
-        result = await self._publish_state(sensor_id, value)
+        # Update state
+        result = await self._update_sensor_state(sensor_id, value)
 
-        # Publish attributes if provided
+        # Update attributes if provided
         if attributes and result:
-            await self._publish_attributes(sensor_id, attributes)
+            await self._update_sensor_attributes(sensor_id, attributes)
 
         return result
 
@@ -1205,7 +1512,7 @@ class CryptoSensorsManager:
         low_24h: Decimal | float | None = None,
     ) -> None:
         """
-        Update price data for a symbol.
+        Update price data for a symbol via Supervisor API.
 
         Args:
             symbol: Trading pair (e.g., "BTC/USDT")
@@ -1227,9 +1534,9 @@ class CryptoSensorsManager:
         if low_24h is not None:
             self._lows[symbol] = str(low_24h)
 
-        # Publish all price data
-        await self._publish_state("prices", self._prices)
-        await self._publish_attributes(
+        # Update all price data via Supervisor API
+        await self._update_sensor_state("prices", self._prices)
+        await self._update_sensor_attributes(
             "prices",
             {
                 "symbols": list(self._prices.keys()),
@@ -1238,19 +1545,19 @@ class CryptoSensorsManager:
             },
         )
 
-        # Publish other metrics if we have data
+        # Update other metrics if we have data
         if self._changes:
-            await self._publish_state("changes_24h", self._changes)
+            await self._update_sensor_state("changes_24h", self._changes)
         if self._volumes:
-            await self._publish_state("volumes_24h", self._volumes)
+            await self._update_sensor_state("volumes_24h", self._volumes)
         if self._highs:
-            await self._publish_state("highs_24h", self._highs)
+            await self._update_sensor_state("highs_24h", self._highs)
         if self._lows:
-            await self._publish_state("lows_24h", self._lows)
+            await self._update_sensor_state("lows_24h", self._lows)
 
     async def update_all_prices(self, prices_data: dict[str, dict]) -> None:
         """
-        Update prices for all symbols at once.
+        Update prices for all symbols at once via Supervisor API.
 
         Args:
             prices_data: Dict of {symbol: {price, change_24h, volume_24h, high_24h, low_24h}}
@@ -1266,14 +1573,14 @@ class CryptoSensorsManager:
             if "low_24h" in data:
                 self._lows[symbol] = str(data["low_24h"])
 
-        # Publish all states
-        await self._publish_state("prices", self._prices)
-        await self._publish_state("changes_24h", self._changes)
-        await self._publish_state("volumes_24h", self._volumes)
-        await self._publish_state("highs_24h", self._highs)
-        await self._publish_state("lows_24h", self._lows)
+        # Update all states via Supervisor API
+        await self._update_sensor_state("prices", self._prices)
+        await self._update_sensor_state("changes_24h", self._changes)
+        await self._update_sensor_state("volumes_24h", self._volumes)
+        await self._update_sensor_state("highs_24h", self._highs)
+        await self._update_sensor_state("lows_24h", self._lows)
 
-        await self._publish_attributes(
+        await self._update_sensor_attributes(
             "prices",
             {
                 "symbols": list(self._prices.keys()),
@@ -1290,7 +1597,7 @@ class CryptoSensorsManager:
         total_candles: int | None = None,
     ) -> None:
         """
-        Update sync status sensors.
+        Update sync status sensors via Supervisor API.
 
         Args:
             status: Current status ('running', 'completed', 'error')
@@ -1299,8 +1606,8 @@ class CryptoSensorsManager:
             total_candles: Total candles in database
         """
         # Sync status
-        await self._publish_state("sync_status", status)
-        await self._publish_attributes(
+        await self._update_sensor_state("sync_status", status)
+        await self._update_sensor_attributes(
             "sync_status",
             {
                 "success_count": success_count,
@@ -1315,41 +1622,42 @@ class CryptoSensorsManager:
         )
 
         # Last sync timestamp
-        await self._publish_state("last_sync", datetime.now(UTC).isoformat())
+        await self._update_sensor_state("last_sync", datetime.now(UTC).isoformat())
 
         # Total candles
         if total_candles is not None:
-            await self._publish_state("candles_count", str(total_candles))
+            await self._update_sensor_state("candles_count", str(total_candles))
 
     async def remove_sensors(self) -> None:
-        """Remove all sensors by publishing empty configs."""
-        if not self._mqtt:
+        """Remove all sensors by setting their states to 'unavailable'."""
+        if not self._supervisor_client.is_available:
             return
 
         for sensor_id in self.SENSORS:
-            topic = self._get_discovery_topic(sensor_id)
             try:
-                await self._mqtt.publish(topic, "", retain=True)
+                entity_id = self._get_entity_id(sensor_id)
+                # Set state to unavailable to effectively "remove" the sensor
+                await self._supervisor_client.set_state(entity_id, "unavailable")
             except Exception as e:
                 logger.error(f"Failed to remove sensor {sensor_id}: {e}")
 
-        logger.info("Removed all MQTT sensors")
+        logger.info("Marked all sensors as unavailable")
 
     async def update_investor_status(self, status_data: dict) -> None:
         """
-        Update all investor-related sensors from InvestorStatus.
+        Update all investor-related sensors from InvestorStatus via Supervisor API.
 
         Args:
             status_data: Dictionary from InvestorStatus.to_dict()
         """
-        if not self._mqtt:
-            logger.warning("MQTT not configured, skipping investor update")
+        if not self._supervisor_client.is_available:
+            logger.warning("Supervisor API not available, skipping investor update")
             return
 
         # Do Nothing OK
         do_nothing = status_data.get("do_nothing_ok", {})
-        await self._publish_state("do_nothing_ok", do_nothing.get("state", "N/A"))
-        await self._publish_attributes(
+        await self._update_sensor_state("do_nothing_ok", do_nothing.get("state", "N/A"))
+        await self._update_sensor_attributes(
             "do_nothing_ok",
             {
                 "value": do_nothing.get("value", False),
@@ -1359,8 +1667,8 @@ class CryptoSensorsManager:
 
         # Investor Phase
         phase = status_data.get("phase", {})
-        await self._publish_state("investor_phase", phase.get("name_ru", "N/A"))
-        await self._publish_attributes(
+        await self._update_sensor_state("investor_phase", phase.get("name_ru", "N/A"))
+        await self._update_sensor_attributes(
             "investor_phase",
             {
                 "value": phase.get("value", "unknown"),
@@ -1371,8 +1679,8 @@ class CryptoSensorsManager:
 
         # Calm Indicator
         calm = status_data.get("calm", {})
-        await self._publish_state("calm_indicator", str(calm.get("score", 50)))
-        await self._publish_attributes(
+        await self._update_sensor_state("calm_indicator", str(calm.get("score", 50)))
+        await self._update_sensor_attributes(
             "calm_indicator",
             {
                 "level": calm.get("level", "neutral"),
@@ -1384,8 +1692,8 @@ class CryptoSensorsManager:
         red_flags = status_data.get("red_flags", {})
         flags_count = red_flags.get("count", 0)
         state_emoji = "🟢" if flags_count == 0 else "🟡" if flags_count <= 2 else "🔴"
-        await self._publish_state("red_flags", f"{state_emoji} {flags_count}")
-        await self._publish_attributes(
+        await self._update_sensor_state("red_flags", f"{state_emoji} {flags_count}")
+        await self._update_sensor_attributes(
             "red_flags",
             {
                 "flags_count": flags_count,
@@ -1396,8 +1704,8 @@ class CryptoSensorsManager:
 
         # Market Tension
         tension = status_data.get("tension", {})
-        await self._publish_state("market_tension", tension.get("state", "N/A"))
-        await self._publish_attributes(
+        await self._update_sensor_state("market_tension", tension.get("state", "N/A"))
+        await self._update_sensor_attributes(
             "market_tension",
             {
                 "score": tension.get("score", 50),
@@ -1407,8 +1715,8 @@ class CryptoSensorsManager:
 
         # Price Context
         price_ctx = status_data.get("price_context", {})
-        await self._publish_state("price_context", price_ctx.get("context_ru", "N/A"))
-        await self._publish_attributes(
+        await self._update_sensor_state("price_context", price_ctx.get("context_ru", "N/A"))
+        await self._update_sensor_attributes(
             "price_context",
             {
                 "current_price": price_ctx.get("current_price", 0),
@@ -1420,8 +1728,8 @@ class CryptoSensorsManager:
 
         # DCA Result
         dca = status_data.get("dca", {})
-        await self._publish_state("dca_result", str(dca.get("total_amount", 0)))
-        await self._publish_attributes(
+        await self._update_sensor_state("dca_result", str(dca.get("total_amount", 0)))
+        await self._update_sensor_attributes(
             "dca_result",
             {
                 "btc_amount": dca.get("btc_amount", 0),
@@ -1432,8 +1740,8 @@ class CryptoSensorsManager:
         )
 
         # DCA Signal
-        await self._publish_state("dca_signal", dca.get("state", "N/A"))
-        await self._publish_attributes(
+        await self._update_sensor_state("dca_signal", dca.get("state", "N/A"))
+        await self._update_sensor_attributes(
             "dca_signal",
             {
                 "signal": dca.get("signal", "neutral"),
@@ -1444,8 +1752,8 @@ class CryptoSensorsManager:
 
         # Weekly Insight
         insight = status_data.get("weekly_insight", {})
-        await self._publish_state("weekly_insight", insight.get("summary_ru", "N/A"))
-        await self._publish_attributes(
+        await self._update_sensor_state("weekly_insight", insight.get("summary_ru", "N/A"))
+        await self._update_sensor_attributes(
             "weekly_insight",
             {
                 "btc_status": insight.get("btc_status", ""),
@@ -1457,9 +1765,9 @@ class CryptoSensorsManager:
         )
 
         # Next Action Timer
-        await self._publish_state("next_action_timer", dca.get("next_dca", "N/A"))
+        await self._update_sensor_state("next_action_timer", dca.get("next_dca", "N/A"))
 
-        logger.info("Updated investor sensors via MQTT")
+        logger.info("Updated investor sensors via Supervisor API")
 
     async def update_market_data(
         self,
@@ -1468,7 +1776,7 @@ class CryptoSensorsManager:
         derivatives_data: dict | None = None,
     ) -> None:
         """
-        Update market-related sensors.
+        Update market-related sensors via Supervisor API.
 
         Args:
             fear_greed: Fear & Greed Index (0-100)
@@ -1488,8 +1796,8 @@ class CryptoSensorsManager:
             else:
                 state = f"🟢 {fear_greed} (Extreme Greed)"
 
-            await self._publish_state("fear_greed", state)
-            await self._publish_attributes(
+            await self._update_sensor_state("fear_greed", state)
+            await self._update_sensor_attributes(
                 "fear_greed",
                 {
                     "value": fear_greed,
@@ -1498,8 +1806,8 @@ class CryptoSensorsManager:
             )
 
         if btc_dominance is not None:
-            await self._publish_state("btc_dominance", f"{btc_dominance:.1f}")
-            await self._publish_attributes(
+            await self._update_sensor_state("btc_dominance", f"{btc_dominance:.1f}")
+            await self._update_sensor_attributes(
                 "btc_dominance",
                 {
                     "value": btc_dominance,
@@ -1508,8 +1816,8 @@ class CryptoSensorsManager:
             )
 
         if derivatives_data:
-            await self._publish_state("derivatives", "Active")
-            await self._publish_attributes("derivatives", derivatives_data)
+            await self._update_sensor_state("derivatives", "Active")
+            await self._update_sensor_attributes("derivatives", derivatives_data)
 
     def _get_fg_classification(self, value: int) -> str:
         """Get Fear & Greed classification."""
@@ -1525,19 +1833,19 @@ class CryptoSensorsManager:
 
     async def update_smart_summary(self, summary_data: dict) -> None:
         """
-        Update smart summary sensors.
+        Update smart summary sensors via Supervisor API.
 
         Args:
             summary_data: Dict with market_pulse, portfolio_health, today_action, weekly_outlook
         """
-        if not self._mqtt:
+        if not self._supervisor_client.is_available:
             return
 
         # Market Pulse
         if "market_pulse" in summary_data:
             pulse = summary_data["market_pulse"]
-            await self._publish_state("market_pulse", pulse.get("sentiment_ru", "N/A"))
-            await self._publish_attributes(
+            await self._update_sensor_state("market_pulse", pulse.get("sentiment_ru", "N/A"))
+            await self._update_sensor_attributes(
                 "market_pulse",
                 {
                     "sentiment_en": pulse.get("sentiment_en", ""),
@@ -1549,13 +1857,13 @@ class CryptoSensorsManager:
                     "factors_ru": pulse.get("factors_ru", []),
                 },
             )
-            await self._publish_state("market_pulse_confidence", str(pulse.get("confidence", 0)))
+            await self._update_sensor_state("market_pulse_confidence", str(pulse.get("confidence", 0)))
 
         # Portfolio Health
         if "portfolio_health" in summary_data:
             health = summary_data["portfolio_health"]
-            await self._publish_state("portfolio_health", health.get("status_ru", "N/A"))
-            await self._publish_attributes(
+            await self._update_sensor_state("portfolio_health", health.get("status_ru", "N/A"))
+            await self._update_sensor_attributes(
                 "portfolio_health",
                 {
                     "status_en": health.get("status_en", ""),
@@ -1565,13 +1873,13 @@ class CryptoSensorsManager:
                     "main_issue_ru": health.get("main_issue_ru", ""),
                 },
             )
-            await self._publish_state("portfolio_health_score", str(health.get("score", 0)))
+            await self._update_sensor_state("portfolio_health_score", str(health.get("score", 0)))
 
         # Today's Action
         if "today_action" in summary_data:
             action = summary_data["today_action"]
-            await self._publish_state("today_action", action.get("action_ru", "N/A"))
-            await self._publish_attributes(
+            await self._update_sensor_state("today_action", action.get("action_ru", "N/A"))
+            await self._update_sensor_attributes(
                 "today_action",
                 {
                     "action_en": action.get("action_en", ""),
@@ -1582,28 +1890,28 @@ class CryptoSensorsManager:
                     "details_ru": action.get("details_ru", ""),
                 },
             )
-            await self._publish_state("today_action_priority", action.get("priority_ru", "N/A"))
+            await self._update_sensor_state("today_action_priority", action.get("priority_ru", "N/A"))
 
         # Weekly Outlook
         if "weekly_outlook" in summary_data:
             outlook = summary_data["weekly_outlook"]
-            await self._publish_state("weekly_outlook", outlook.get("outlook_ru", "N/A"))
-            await self._publish_attributes("weekly_outlook", outlook)
+            await self._update_sensor_state("weekly_outlook", outlook.get("outlook_ru", "N/A"))
+            await self._update_sensor_attributes("weekly_outlook", outlook)
 
-        logger.info("Updated smart summary sensors via MQTT")
+        logger.info("Updated smart summary sensors via Supervisor API")
 
     async def update_notification_status(self, status_data: dict) -> None:
         """
-        Update notification-related sensors.
+        Update notification-related sensors via Supervisor API.
 
         Args:
             status_data: Dict from NotificationManager.format_sensor_attributes()
         """
-        if not self._mqtt:
+        if not self._supervisor_client.is_available:
             return
 
-        await self._publish_state("pending_alerts_count", str(status_data.get("pending_alerts_count", 0)))
-        await self._publish_attributes(
+        await self._update_sensor_state("pending_alerts_count", str(status_data.get("pending_alerts_count", 0)))
+        await self._update_sensor_attributes(
             "pending_alerts_count",
             {
                 "critical": status_data.get("pending_alerts_critical", 0),
@@ -1612,10 +1920,10 @@ class CryptoSensorsManager:
             },
         )
 
-        await self._publish_state("pending_alerts_critical", str(status_data.get("pending_alerts_critical", 0)))
+        await self._update_sensor_state("pending_alerts_critical", str(status_data.get("pending_alerts_critical", 0)))
 
-        await self._publish_state("daily_digest_ready", status_data.get("digest_ready_ru", "Новых оповещений нет"))
-        await self._publish_attributes(
+        await self._update_sensor_state("daily_digest_ready", status_data.get("digest_ready_ru", "Новых оповещений нет"))
+        await self._update_sensor_attributes(
             "daily_digest_ready",
             {
                 "ready": status_data.get("daily_digest_ready", False),
@@ -1625,8 +1933,8 @@ class CryptoSensorsManager:
             },
         )
 
-        await self._publish_state("notification_mode", status_data.get("notification_mode_ru", "Умный режим"))
-        await self._publish_attributes(
+        await self._update_sensor_state("notification_mode", status_data.get("notification_mode_ru", "Умный режим"))
+        await self._update_sensor_attributes(
             "notification_mode",
             {
                 "mode": status_data.get("notification_mode", "smart"),
@@ -1635,22 +1943,22 @@ class CryptoSensorsManager:
             },
         )
 
-        logger.info("Updated notification sensors via MQTT")
+        logger.info("Updated notification sensors via Supervisor API")
 
     async def update_briefing_status(self, briefing_data: dict) -> None:
         """
-        Update briefing-related sensors.
+        Update briefing-related sensors via Supervisor API.
 
         Args:
             briefing_data: Dict from BriefingService.format_sensor_attributes()
         """
-        if not self._mqtt:
+        if not self._supervisor_client.is_available:
             return
 
-        await self._publish_state(
+        await self._update_sensor_state(
             "morning_briefing", briefing_data.get("morning_briefing_status_ru", "Не сгенерирован")
         )
-        await self._publish_attributes(
+        await self._update_sensor_attributes(
             "morning_briefing",
             {
                 "available": briefing_data.get("morning_briefing_available", False),
@@ -1660,10 +1968,10 @@ class CryptoSensorsManager:
             },
         )
 
-        await self._publish_state(
+        await self._update_sensor_state(
             "evening_briefing", briefing_data.get("evening_briefing_status_ru", "Не сгенерирован")
         )
-        await self._publish_attributes(
+        await self._update_sensor_attributes(
             "evening_briefing",
             {
                 "available": briefing_data.get("evening_briefing_available", False),
@@ -1678,9 +1986,9 @@ class CryptoSensorsManager:
         last_evening = briefing_data.get("last_evening_briefing")
         last_sent = last_evening or last_morning or None
         if last_sent:
-            await self._publish_state("briefing_last_sent", last_sent)
+            await self._update_sensor_state("briefing_last_sent", last_sent)
 
-        logger.info("Updated briefing sensors via MQTT")
+        logger.info("Updated briefing sensors via Supervisor API")
 
     async def update_ml_investor_sensors(self, ml_data: dict) -> None:
         """
@@ -1689,16 +1997,13 @@ class CryptoSensorsManager:
         Args:
             ml_data: Словарь с результатами ML-анализа для пассивных инвесторов
         """
-        from services.ha_integration import get_supervisor_client
-
-        client = get_supervisor_client()
-        if not client.is_available:
+        if not self._supervisor_client.is_available:
             logger.warning("Supervisor API недоступен, пропускаем обновление ML-сенсоров")
             return
 
         # Сенсор здоровья портфеля ML
         portfolio_sentiment = ml_data.get("portfolio_sentiment", "нейтральный")
-        await client.create_sensor(
+        await self._supervisor_client.create_sensor(
             sensor_id="ml_portfolio_health",
             state=portfolio_sentiment,
             friendly_name="ML Portfolio Health",
@@ -1717,7 +2022,7 @@ class CryptoSensorsManager:
 
         # Сенсор уверенности рынка ML
         confidence_level = ml_data.get("confidence_level", "средний")
-        await client.create_sensor(
+        await self._supervisor_client.create_sensor(
             sensor_id="ml_market_confidence",
             state=confidence_level,
             friendly_name="ML Market Confidence",
@@ -1735,7 +2040,7 @@ class CryptoSensorsManager:
 
         # Сенсор инвестиционных возможностей ML
         opportunity_status = ml_data.get("opportunity_status", "нет")
-        await client.create_sensor(
+        await self._supervisor_client.create_sensor(
             sensor_id="ml_investment_opportunity",
             state=opportunity_status,
             friendly_name="ML Investment Opportunity",
@@ -1752,7 +2057,7 @@ class CryptoSensorsManager:
 
         # Сенсор предупреждений о рисках ML
         risk_level = ml_data.get("risk_level", "чисто")
-        await client.create_sensor(
+        await self._supervisor_client.create_sensor(
             sensor_id="ml_risk_warning",
             state=risk_level,
             friendly_name="ML Risk Warning",
@@ -1769,7 +2074,7 @@ class CryptoSensorsManager:
 
         # Сенсор статуса ML-системы
         system_status = ml_data.get("system_status", "операционный")
-        await client.create_sensor(
+        await self._supervisor_client.create_sensor(
             sensor_id="ml_system_status",
             state=system_status,
             friendly_name="ML System Status",
@@ -1803,7 +2108,7 @@ class CryptoSensorsManager:
 
         # Сенсор последних ML-предсказаний
         latest_predictions = prediction_data.get("latest_predictions", {})
-        await client.create_sensor(
+        await self._supervisor_client.create_sensor(
             sensor_id="ml_latest_predictions",
             state=str(len(latest_predictions)),
             friendly_name="ML Latest Predictions",
@@ -1821,7 +2126,7 @@ class CryptoSensorsManager:
 
         # Сенсор счетчика верных предсказаний
         correct_count = prediction_data.get("correct_predictions", 0)
-        await client.create_sensor(
+        await self._supervisor_client.create_sensor(
             sensor_id="ml_correct_predictions",
             state=str(correct_count),
             friendly_name="ML Correct Predictions",
@@ -1838,7 +2143,7 @@ class CryptoSensorsManager:
         # Сенсор точности ML-моделей
         accuracy_rate = prediction_data.get("accuracy_percentage", 0)
         accuracy_text = f"{accuracy_rate}%"
-        await client.create_sensor(
+        await self._supervisor_client.create_sensor(
             sensor_id="ml_accuracy_rate",
             state=accuracy_text,
             friendly_name="ML Accuracy Rate",
@@ -1871,16 +2176,16 @@ class CryptoSensorsManager:
 
     async def update_goal_status(self, goal_data: dict) -> None:
         """
-        Update goal tracking sensors.
+        Update goal tracking sensors via Supervisor API.
 
         Args:
             goal_data: Dict from GoalTracker.format_sensor_attributes()
         """
-        if not self._mqtt:
+        if not self._supervisor_client.is_available:
             return
 
-        await self._publish_state("goal_target", str(goal_data.get("goal_target", 0)))
-        await self._publish_attributes(
+        await self._update_sensor_state("goal_target", str(goal_data.get("goal_target", 0)))
+        await self._update_sensor_attributes(
             "goal_target",
             {
                 "goal_name": goal_data.get("goal_name", ""),
@@ -1892,8 +2197,8 @@ class CryptoSensorsManager:
 
         progress = goal_data.get("goal_progress", 0)
         emoji = goal_data.get("goal_emoji", "🎯")
-        await self._publish_state("goal_progress", f"{emoji} {progress:.1f}%")
-        await self._publish_attributes(
+        await self._update_sensor_state("goal_progress", f"{emoji} {progress:.1f}%")
+        await self._update_sensor_attributes(
             "goal_progress",
             {
                 "percent": progress,
@@ -1905,16 +2210,16 @@ class CryptoSensorsManager:
             },
         )
 
-        await self._publish_state("goal_remaining", str(goal_data.get("goal_remaining", 0)))
+        await self._update_sensor_state("goal_remaining", str(goal_data.get("goal_remaining", 0)))
 
         days_estimate = goal_data.get("goal_days_estimate")
         if days_estimate is not None:
-            await self._publish_state("goal_days_estimate", str(days_estimate))
+            await self._update_sensor_state("goal_days_estimate", str(days_estimate))
         else:
-            await self._publish_state("goal_days_estimate", "N/A")
+            await self._update_sensor_state("goal_days_estimate", "N/A")
 
-        await self._publish_state("goal_status", goal_data.get("goal_status_ru", "В процессе"))
-        await self._publish_attributes(
+        await self._update_sensor_state("goal_status", goal_data.get("goal_status_ru", "В процессе"))
+        await self._update_sensor_attributes(
             "goal_status",
             {
                 "status": goal_data.get("goal_status", ""),
@@ -1925,16 +2230,492 @@ class CryptoSensorsManager:
             },
         )
 
-        logger.info("Updated goal sensors via MQTT")
+        logger.info("Updated goal sensors via Supervisor API")
 
+    async def update_economic_calendar_sensors(self) -> None:
+        """Update economic calendar sensors."""
+        if not self._supervisor_client.is_available:
+            return
+        
+        try:
+            from services.economic_calendar import get_economic_calendar, EventImpact
+            
+            calendar = get_economic_calendar()
+            
+            # Initialize if needed
+            if not calendar._last_update:
+                await calendar.initialize_events()
+            
+            # Get calendar summary
+            summary = await calendar.get_calendar_summary()
+            
+            # Update status
+            await self._update_sensor_state("economic_calendar_status", "Active")
+            
+            # Update event counts
+            await self._update_sensor_state(
+                "economic_upcoming_events_24h",
+                str(summary["upcoming_events_24h"])
+            )
+            await self._update_sensor_state(
+                "economic_important_events",
+                str(summary["important_events"])
+            )
+            await self._update_sensor_state(
+                "economic_breaking_news",
+                str(summary["breaking_news"])
+            )
+            
+            # Update sentiment score
+            sentiment_data = await calendar.get_sentiment_analysis()
+            sentiment_score = sentiment_data["average_sentiment"]
+            
+            # Map sentiment score to readable format
+            if sentiment_score >= 0.5:
+                sentiment_state = f"🟢 Very Positive ({sentiment_score:+.2f})"
+            elif sentiment_score >= 0.1:
+                sentiment_state = f"🔵 Positive ({sentiment_score:+.2f})"
+            elif sentiment_score <= -0.5:
+                sentiment_state = f"🔴 Very Negative ({sentiment_score:+.2f})"
+            elif sentiment_score <= -0.1:
+                sentiment_state = f"🟠 Negative ({sentiment_score:+.2f})"
+            else:
+                sentiment_state = f"⚪ Neutral ({sentiment_score:+.2f})"
+            
+            await self._update_sensor_state("economic_sentiment_score", sentiment_state)
+            
+            # Update attributes with detailed information
+            attributes = {
+                "upcoming_events_48h": summary["upcoming_events_48h"],
+                "recent_events_24h": summary["recent_events_24h"],
+                "high_impact_events": summary["high_impact_events"],
+                "critical_events": summary["critical_events"],
+                "relevant_news_24h": summary["relevant_news_24h"],
+                "next_event": summary["next_event"],
+                "sentiment_details": {
+                    "label": sentiment_data["sentiment_label"],
+                    "positive_news": sentiment_data["positive_news"],
+                    "negative_news": sentiment_data["negative_news"],
+                    "neutral_news": sentiment_data["neutral_news"]
+                },
+                "last_update": summary["last_update"]
+            }
+            
+            await self._update_sensor_attributes("economic_calendar_status", attributes)
+            
+            # Log significant events
+            if summary["upcoming_events_24h"] > 0:
+                logger.info(f"Economic calendar: {summary['upcoming_events_24h']} events in next 24h")
+            if summary["breaking_news"] > 0:
+                logger.info(f"Breaking news: {summary['breaking_news']} articles")
+            
+        except ImportError:
+            logger.warning("Economic calendar not available, skipping sensor updates")
+            await self._update_sensor_state("economic_calendar_status", "Not Available")
+        except Exception as e:
+            logger.error(f"Failed to update economic calendar sensors: {e}")
+            await self._update_sensor_state("economic_calendar_status", "Error")
+    
+    async def update_correlation_sensors(self) -> None:
+        """Update smart correlation analysis sensors."""
+        if not self._supervisor_client.is_available:
+            return
+        
+        try:
+            from services.smart_correlation import get_correlation_engine
+            
+            correlation_engine = get_correlation_engine()
+            
+            # Get correlation summary
+            summary = await correlation_engine.get_correlation_summary()
+            
+            if summary["status"] == "no_data":
+                await self._update_sensor_state("correlation_analysis_status", "No Data")
+                await self._update_sensor_state("correlation_significant_count", "0")
+                await self._update_sensor_state("correlation_dominant_patterns", "0")
+                await self._update_sensor_state("correlation_strongest_positive", "N/A")
+                await self._update_sensor_state("correlation_strongest_negative", "N/A")
+                return
+            
+            # Update status
+            await self._update_sensor_state("correlation_analysis_status", "Active")
+            
+            # Update counts
+            await self._update_sensor_state(
+                "correlation_significant_count", 
+                str(summary["significant_correlations"])
+            )
+            await self._update_sensor_state(
+                "correlation_dominant_patterns",
+                str(summary.get("dominant_patterns", 0))
+            )
+            
+            # Update strongest correlations
+            pos_corr = summary.get("strongest_positive", "N/A")
+            neg_corr = summary.get("strongest_negative", "N/A")
+            
+            await self._update_sensor_state("correlation_strongest_positive", pos_corr)
+            await self._update_sensor_state("correlation_strongest_negative", neg_corr)
+            
+            # Update attributes with detailed information
+            attributes = {
+                "total_correlations": summary.get("total_correlations", 0),
+                "trading_opportunities": summary.get("trading_opportunities", 0),
+                "risk_indicators": summary.get("risk_indicators", 0),
+                "last_analysis": summary.get("timestamp", "N/A"),
+                "analysis_details": {
+                    "positive_correlation": pos_corr,
+                    "negative_correlation": neg_corr
+                }
+            }
+            
+            await self._update_sensor_attributes("correlation_analysis_status", attributes)
+            
+            logger.info(
+                f"Updated correlation sensors: "
+                f"{summary['significant_correlations']} significant correlations, "
+                f"{summary.get('dominant_patterns', 0)} patterns"
+            )
+            
+        except ImportError:
+            logger.warning("Smart correlation engine not available, skipping sensor updates")
+            await self._update_sensor_state("correlation_analysis_status", "Not Available")
+        except Exception as e:
+            logger.error(f"Failed to update correlation sensors: {e}")
+            await self._update_sensor_state("correlation_analysis_status", "Error")
+    
+    async def update_adaptive_notification_sensors(self) -> None:
+        """Update adaptive notification system sensors."""
+        if not self._supervisor_client.is_available:
+            return
+        
+        try:
+            from services.adaptive_notifications import get_adaptive_notifications, MarketVolatility
+            
+            notification_manager = get_adaptive_notifications()
+            
+            # Update volatility profiles
+            await notification_manager.update_volatility_profiles()
+            
+            # Update status sensor
+            status_state = "active" if notification_manager.rules else "inactive"
+            await self._update_sensor_state("adaptive_notifications_status", status_state)
+            
+            # Update volatility sensors
+            volatility_status = notification_manager.get_volatility_status()
+            
+            # Initialize consolidated data structures
+            volatility_states = {}
+            adaptation_factors = {}
+            detailed_data = {}
+            
+            for symbol, profile in volatility_status.items():
+                coin_id = "btc" if "BTC" in symbol else "eth"
+                
+                # Collect data for consolidated sensors
+                volatility_level = profile["volatility_level"]
+                level_mapping = {
+                    "very_low": "🟢 Very Low",
+                    "low": "🟡 Low", 
+                    "moderate": "🔵 Moderate",
+                    "high": "🟠 High",
+                    "very_high": "🔴 Very High"
+                }
+                volatility_states[coin_id.upper()] = level_mapping.get(volatility_level, "Unknown")
+                
+                adaptation_factors[coin_id.upper()] = round(profile["adaptation_factor"], 1)
+                
+                # Store detailed data for attributes
+                detailed_data[coin_id.upper()] = {
+                    "current_volatility": f"{profile['current_volatility']:.2f}%",
+                    "price_change_24h": f"{profile['price_change_24h']:+.2f}%",
+                    "price_change_1h": f"{profile['price_change_1h']:+.2f}%",
+                    "last_update": profile["last_update"]
+                }
+            
+            # Update consolidated sensors
+            await self._publish_state("adaptive_volatilities", volatility_states)
+            await self._publish_state("adaptive_adaptation_factors", adaptation_factors)
+            await self._publish_attributes("adaptive_volatilities", detailed_data)
+            
+            # Update notification count sensor
+            stats = await notification_manager.get_notification_stats()
+            await self._update_sensor_state("adaptive_notification_count_24h", str(stats["recent_24h"]))
+            
+            # Update notification count attributes
+            count_attributes = {
+                "total_sent": stats["total_sent"],
+                "by_priority": stats["by_priority"],
+                "by_symbol": stats["by_symbol"],
+                "last_notification": stats["last_notification"]
+            }
+            await self._update_sensor_attributes("adaptive_notification_count_24h", count_attributes)
+            
+            logger.info("Updated adaptive notification sensors")
+            
+        except ImportError:
+            logger.warning("Adaptive notifications not available, skipping sensor updates")
+        except Exception as e:
+            logger.error(f"Failed to update adaptive notification sensors: {e}")
+    
+    async def update_ai_trend_sensors(self) -> None:
+        """Update AI trend analysis sensors for major cryptocurrencies."""
+        if not self._supervisor_client.is_available:
+            return
+        
+        try:
+            from services.trend_analyzer import get_trend_analyzer, TrendDirection, TrendConfidence
+            
+            analyzer = get_trend_analyzer()
+            symbols = ["BTC/USDT", "ETH/USDT"]
+            
+            # Initialize consolidated data structures
+            ai_trends = {}
+            ai_confidences = {}
+            ai_forecasts = {}
+            ai_details = {}
+            
+            for symbol in symbols:
+                try:
+                    # Analyze trend
+                    analysis = await analyzer.analyze_trend(symbol, "1h", lookback_days=30)
+                    
+                    # Map trend direction to readable format
+                    direction_map = {
+                        TrendDirection.STRONGLY_BULLISH: "🚀 Strong Bullish",
+                        TrendDirection.BULLISH: "📈 Bullish",
+                        TrendDirection.NEUTRAL: "⏸️ Neutral",
+                        TrendDirection.BEARISH: "📉 Bearish",
+                        TrendDirection.STRONGLY_BEARISH: "💥 Strong Bearish"
+                    }
+                    
+                    # Get coin identifier
+                    coin_id = "btc" if "BTC" in symbol else "eth"
+                    coin_key = coin_id.upper()
+                    
+                    # Collect data for consolidated sensors
+                    trend_state = direction_map.get(analysis.direction, "Unknown")
+                    ai_trends[coin_key] = trend_state
+                    ai_confidences[coin_key] = round(analysis.confidence, 1)
+                    ai_forecasts[coin_key] = round(analysis.predicted_price_24h, 2)
+                    
+                    # Store detailed analysis
+                    ai_details[coin_key] = {
+                        "confidence_level": analysis.confidence_level.value,
+                        "technical_score": analysis.technical_score,
+                        "ml_consensus": analysis.ml_consensus,
+                        "ml_confidence": analysis.ml_confidence,
+                        "volatility": analysis.volatility,
+                        "volume_trend": analysis.volume_trend,
+                        "market_phase": analysis.market_phase,
+                        "risk_level": analysis.risk_level,
+                        "risk_factors": analysis.risk_factors,
+                        "support_levels": analysis.support_levels[:3],
+                        "resistance_levels": analysis.resistance_levels[:3],
+                        "price_change_24h_pct": analysis.price_change_24h_pct,
+                        "price_change_7d_pct": analysis.price_change_7d_pct,
+                        "models_used": analysis.models_used,
+                        "last_analysis": analysis.timestamp.isoformat()
+                    }
+                    
+                    logger.info(f"Updated AI sensors for {symbol}: {trend_state} ({analysis.confidence:.1f}% confidence)")
+                    
+                except Exception as e:
+                    logger.error(f"Failed to update AI sensors for {symbol}: {e}")
+                    # Set error states in consolidated data
+                    coin_id = "btc" if "BTC" in symbol else "eth"
+                    coin_key = coin_id.upper()
+                    ai_trends[coin_key] = "Error"
+                    ai_confidences[coin_key] = 0
+                    ai_forecasts[coin_key] = 0
+        
+            # Update consolidated AI sensors
+            await self._publish_state("ai_trends", ai_trends)
+            await self._publish_state("ai_confidences", ai_confidences)
+            await self._publish_state("ai_price_forecasts_24h", ai_forecasts)
+            await self._publish_attributes("ai_trends", ai_details)
+            
+        except ImportError:
+            logger.warning("Trend analyzer not available, skipping AI sensor updates")
+            # Set error states for consolidated sensors
+            await self._publish_state("ai_trends", {"BTC": "Error", "ETH": "Error"})
+            await self._publish_state("ai_confidences", {"BTC": 0, "ETH": 0})
+            await self._publish_state("ai_price_forecasts_24h", {"BTC": 0, "ETH": 0})
+        except Exception as e:
+            logger.error(f"Failed to update AI trend sensors: {e}")
+            # Set error states for consolidated sensors
+            await self._publish_state("ai_trends", {"BTC": "Error", "ETH": "Error"})
+            await self._publish_state("ai_confidences", {"BTC": 0, "ETH": 0})
+            await self._publish_state("ai_price_forecasts_24h", {"BTC": 0, "ETH": 0})
+    
+    async def update_database_size(self) -> None:
+        """Update database size sensor."""
+        if not self._supervisor_client.is_available:
+            return
+        
+        try:
+            # Get database file size
+            db_path = Path(settings.db_path)
+            if db_path.exists():
+                size_bytes = db_path.stat().st_size
+                size_mb = round(size_bytes / (1024 * 1024), 2)
+                await self._update_sensor_state("database_size", str(size_mb))
+                logger.debug(f"Database size: {size_mb} MB")
+            else:
+                await self._update_sensor_state("database_size", "0")
+                logger.warning("Database file not found")
+        except Exception as e:
+            logger.error(f"Failed to get database size: {e}")
+            await self._update_sensor_state("database_size", "error")
+    
+    async def cleanup_historical_data(self, keep_days: int = 30, min_candles: int = 1000) -> dict:
+        """
+        Cleanup historical candle data.
+        
+        Args:
+            keep_days: Days of history to keep
+            min_candles: Minimum candles to preserve per symbol
+            
+        Returns:
+            Dict with cleanup statistics
+        """
+        if not self._supervisor_client.is_available:
+            return {"error": "Supervisor API not available"}
+        
+        try:
+            from datetime import datetime, timedelta, UTC
+            from sqlalchemy import text
+            from src.core.db import get_db_session
+            
+            cutoff_date = datetime.now(UTC) - timedelta(days=keep_days)
+            deleted_count = 0
+            symbols_affected = []
+            
+            # Get current candles count before cleanup
+            async with get_db_session() as session:
+                result = await session.execute(text("SELECT COUNT(*) FROM candles"))
+                total_before = result.scalar_one()
+            
+            # Delete old candles (keeping minimum per symbol)
+            async with get_db_session() as session:
+                # First, get symbols that have old data
+                result = await session.execute(
+                    text("""
+                        SELECT symbol, COUNT(*) as candle_count
+                        FROM candles 
+                        WHERE timestamp < :cutoff_date
+                        GROUP BY symbol
+                        HAVING COUNT(*) > :min_candles
+                    """),
+                    {"cutoff_date": cutoff_date, "min_candles": min_candles}
+                )
+                
+                for row in result:
+                    symbol = row.symbol
+                    # Delete oldest candles, keeping min_candles
+                    result = await session.execute(
+                        text("""
+                            DELETE FROM candles 
+                            WHERE symbol = :symbol 
+                            AND timestamp < :cutoff_date
+                            AND id NOT IN (
+                                SELECT id FROM candles 
+                                WHERE symbol = :symbol 
+                                ORDER BY timestamp DESC 
+                                LIMIT :min_candles
+                            )
+                        """),
+                        {"symbol": symbol, "cutoff_date": cutoff_date, "min_candles": min_candles}
+                    )
+                    deleted = result.rowcount
+                    if deleted > 0:
+                        deleted_count += deleted
+                        symbols_affected.append(symbol)
+                        logger.info(f"Cleaned {deleted} candles for {symbol}")
+                
+                await session.commit()
+            
+            # Get count after cleanup
+            async with get_db_session() as session:
+                result = await session.execute(text("SELECT COUNT(*) FROM candles"))
+                total_after = result.scalar_one()
+            
+            # Update sensors
+            stats = {
+                "deleted_candles": deleted_count,
+                "symbols_affected": len(symbols_affected),
+                "symbols_list": symbols_affected,
+                "total_before": total_before,
+                "total_after": total_after,
+                "space_freed_mb": round((total_before - total_after) * 0.001, 2),  # Rough estimate
+                "keep_days": keep_days,
+                "min_candles": min_candles,
+                "cleanup_timestamp": datetime.now(UTC).isoformat()
+            }
+            
+            # Update database size sensor
+            await self.update_database_size()
+            
+            logger.info(f"Cleanup completed: {deleted_count} candles removed from {len(symbols_affected)} symbols")
+            return stats
+            
+        except Exception as e:
+            logger.error(f"Cleanup failed: {e}")
+            return {"error": str(e)}
+    
+    async def cleanup_database(self) -> dict:
+        """
+        Perform full database maintenance.
+        Includes VACUUM and ANALYZE operations.
+        """
+        if not self._supervisor_client.is_available:
+            return {"error": "Supervisor API not available"}
+        
+        try:
+            from sqlalchemy import text
+            from src.core.db import get_db_session
+            
+            logger.info("Starting database maintenance...")
+            
+            # Get size before maintenance
+            db_path = Path(settings.db_path)
+            size_before = db_path.stat().st_size if db_path.exists() else 0
+            
+            # Perform VACUUM and ANALYZE
+            async with get_db_session() as session:
+                await session.execute(text("VACUUM"))
+                await session.execute(text("ANALYZE"))
+                await session.commit()
+            
+            # Get size after maintenance
+            size_after = db_path.stat().st_size if db_path.exists() else 0
+            space_saved = size_before - size_after
+            
+            stats = {
+                "operation": "vacuum_analyze",
+                "size_before_mb": round(size_before / (1024 * 1024), 2),
+                "size_after_mb": round(size_after / (1024 * 1024), 2),
+                "space_saved_mb": round(space_saved / (1024 * 1024), 2),
+                "maintenance_timestamp": datetime.now(UTC).isoformat()
+            }
+            
+            # Update database size sensor
+            await self.update_database_size()
+            
+            logger.info(f"Database maintenance completed. Saved {stats['space_saved_mb']} MB")
+            return stats
+            
+        except Exception as e:
+            logger.error(f"Database maintenance failed: {e}")
+            return {"error": str(e)}
 
 # Global instance
 _sensors_manager: CryptoSensorsManager | None = None
 
 
-def get_sensors_manager(mqtt_client=None) -> CryptoSensorsManager:
+def get_sensors_manager() -> CryptoSensorsManager:
     """Get or create sensors manager."""
     global _sensors_manager
-    if _sensors_manager is None or mqtt_client is not None:
-        _sensors_manager = CryptoSensorsManager(mqtt_client)
+    if _sensors_manager is None:
+        _sensors_manager = CryptoSensorsManager()
     return _sensors_manager

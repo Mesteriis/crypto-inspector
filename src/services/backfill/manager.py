@@ -98,9 +98,20 @@ class BackfillManager:
         self._is_running = False
 
     def _get_symbols(self) -> list[str]:
-        """Get configured crypto symbols."""
+        """Get configured crypto symbols (deprecated - use get_currency_list instead)."""
         symbols_env = os.environ.get("HA_SYMBOLS", "BTC/USDT,ETH/USDT")
         return [s.strip() for s in symbols_env.split(",") if s.strip()]
+
+    def _get_currency_list(self) -> list[str]:
+        """Get the dynamic currency list from Home Assistant input_select helper.
+        
+        This is the single source of truth for currency selections across the application.
+        
+        Returns:
+            List of currency symbols (e.g., ["BTC/USDT", "ETH/USDT"])
+        """
+        from services.ha_sensors import get_currency_list as get_dynamic_currency_list
+        return get_dynamic_currency_list()
 
     def _is_first_run(self) -> bool:
         """Check if this is the first run (no backfill marker)."""
@@ -172,7 +183,7 @@ class BackfillManager:
 
     async def _backfill_crypto(self):
         """Backfill crypto candlesticks."""
-        symbols = self._get_symbols()
+        symbols = self._get_currency_list()
         intervals = self.crypto_intervals
 
         self._progress.crypto_symbols_total = len(symbols) * len(intervals)
@@ -317,7 +328,7 @@ class BackfillManager:
         Returns:
             Dict of {symbol_interval: [(gap_start, gap_end), ...]}
         """
-        symbols = self._get_symbols()
+        symbols = self._get_currency_list()
         intervals = self.crypto_intervals
 
         crypto_backfill = get_crypto_backfill()

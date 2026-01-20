@@ -72,6 +72,7 @@ def _register_jobs(sched: AsyncIOScheduler) -> None:
         unlocks_job,
         volatility_job,
         whale_monitor_job,
+        currency_list_monitor_job,
     )
 
     # Candlestick sync job - runs every 5 minutes at :00, :05, :10, etc.
@@ -318,7 +319,18 @@ def _register_jobs(sched: AsyncIOScheduler) -> None:
         coalesce=True,
     )
 
-    logger.info("Registered scheduled jobs (23 total)")
+    # Currency List Monitor job - runs every 10 minutes
+    sched.add_job(
+        currency_list_monitor_job,
+        trigger=CronTrigger(minute="*/10"),
+        id="currency_list_monitor_job",
+        name="Currency List Monitor Job",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+    )
+
+    logger.info("Registered scheduled jobs (24 total)")
 
 
 @asynccontextmanager

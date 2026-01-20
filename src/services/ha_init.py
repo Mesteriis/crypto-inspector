@@ -7,10 +7,14 @@
 """
 
 import logging
+import os
+import shutil
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 import httpx
+import yaml
 
 from services.ha_integration import get_supervisor_client
 from services.ha_sensors import CryptoSensorsManager
@@ -200,6 +204,27 @@ INPUT_NUMBERS: dict[str, InputNumberConfig] = {
         initial=100,
         icon="mdi:calculator",
     ),
+    # === Очистка данных ===
+    "crypto_cleanup_keep_days": InputNumberConfig(
+        name="Хранить дней истории",
+        min_value=1,
+        max_value=365,
+        step=1,
+        initial=30,
+        unit="days",
+        icon="mdi:calendar-clock",
+        mode="slider",
+    ),
+    "crypto_cleanup_min_candles": InputNumberConfig(
+        name="Минимум свечей",
+        min_value=100,
+        max_value=10000,
+        step=100,
+        initial=1000,
+        unit="candles",
+        icon="mdi:candle",
+        mode="box",
+    ),
     # === Риск-менеджмент ===
     "crypto_max_drawdown_alert": InputNumberConfig(
         name="Алерт просадки",
@@ -267,6 +292,12 @@ INPUT_SELECTS: dict[str, InputSelectConfig] = {
         initial="Russian",
         icon="mdi:translate",
     ),
+    "crypto_sensor_language": InputSelectConfig(
+        name="Язык сенсоров",
+        options=["Russian", "English"],
+        initial="Russian",
+        icon="mdi:translate-variant",
+    ),
     "crypto_notification_mode": InputSelectConfig(
         name="Режим уведомлений",
         options=["all", "smart", "digest_only", "critical_only", "silent"],
@@ -278,6 +309,12 @@ INPUT_SELECTS: dict[str, InputSelectConfig] = {
         options=["EUR", "USD", "RUB", "UAH", "BTC", "ETH", "USDT"],
         initial="EUR",
         icon="mdi:swap-horizontal",
+    ),
+    "crypto_currency_list": InputSelectConfig(
+        name="Список криптовалют",
+        options=["BTC/USDT", "ETH/USDT", "SOL/USDT", "TON/USDT", "AR/USDT"],
+        initial="BTC/USDT,ETH/USDT,SOL/USDT,TON/USDT,AR/USDT",
+        icon="mdi:bitcoin",
     ),
 }
 
@@ -323,10 +360,65 @@ INPUT_BOOLEANS: dict[str, InputBooleanConfig] = {
         initial=True,
         icon="mdi:chart-line",
     ),
+    "crypto_cleanup_history_trigger": InputBooleanConfig(
+        name="Очистить историю",
+        initial=False,
+        icon="mdi:delete-clock",
+    ),
+    "crypto_cleanup_database_trigger": InputBooleanConfig(
+        name="Очистить базу данных",
+        initial=False,
+        icon="mdi:database-remove",
+    ),
 }
 
 # Префикс для сенсоров нашего аддона
 SENSOR_PREFIX = "sensor.crypto_inspect_"
+
+# Директории blueprint-ов
+BLUEPRINTS_SOURCE_DIR = Path("/blueprints")
+BLUEPRINTS_TARGET_DIR = Path("/config/blueprints/automation/crypto_inspect")
+
+# Список обязательных blueprint-ов
+REQUIRED_BLUEPRINTS = [
+    "price_alert.yaml",
+    "fear_greed_alert.yaml", 
+    "dca_reminder.yaml",
+    "technical_signal.yaml",
+    "morning_briefing.yaml",
+    "evening_briefing.yaml",
+    "daily_digest.yaml",
+    "goal_milestone.yaml",
+    "portfolio_milestone.yaml",
+    "ai_report.yaml",
+    "whale_alert.yaml",
+    "risk_alert.yaml",
+]
+
+# Дефолтные параметры для автоматизаций
+DEFAULT_AUTOMATION_CONFIGS = {
+    "price_alert.yaml": {
+        "symbol": "BTC",
+        "condition": "below",
+        "target_price": 80000,
+        "notify_device": None  # Будет определено динамически
+    },
+    "fear_greed_alert.yaml": {
+        "threshold": 20,
+        "condition": "below",
+        "notify_device": None
+    },
+    "dca_reminder.yaml": {
+        "day_of_week": "mon",
+        "time": "09:00:00",
+        "notify_device": None
+    },
+    "technical_signal.yaml": {
+        "symbol": "BTC",
+        "indicators": ["rsi", "macd"],
+        "notify_device": None
+    }
+}
 
 
 # ============================================================================
@@ -687,6 +779,9 @@ async def initialize_ha_entities() -> dict[str, Any]:
     Выполняет:
     1. Очистку устаревших сенсоров
     2. Создание/валидацию input helpers
+    3. Установку blueprint-ов
+    4. Валидацию blueprint-ов
+    5. Создание автоматизаций из blueprint-ов
 
     Returns:
         Статистика инициализации.
@@ -698,6 +793,14 @@ async def initialize_ha_entities() -> dict[str, Any]:
         "helpers_created": 0,
         "helpers_existing": 0,
         "helpers_failed": 0,
+        "blueprints_installed": 0,
+        "blueprints_skipped": 0,
+        "blueprints_failed": 0,
+        "blueprints_valid": 0,
+        "blueprints_invalid": 0,
+        "automations_created": 0,
+        "automations_skipped": 0,
+        "automations_failed": 0,
     }
 
     # 1. Очистка устаревших сенсоров
@@ -715,18 +818,361 @@ async def initialize_ha_entities() -> dict[str, Any]:
     except Exception as e:
         logger.error(f"Ошибка при создании input helpers: {e}")
 
+    # 3. Установка blueprint-ов
+    try:
+        blueprint_install_stats = await install_blueprints()
+        result["blueprints_installed"] = blueprint_install_stats.get("installed", 0)
+        result["blueprints_skipped"] = blueprint_install_stats.get("skipped", 0)
+        result["blueprints_failed"] = blueprint_install_stats.get("failed", 0)
+    except Exception as e:
+        logger.error(f"Ошибка при установке blueprint-ов: {e}")
+
+    # 4. Валидация blueprint-ов
+    try:
+        blueprint_validation = await validate_blueprints()
+        result["blueprints_valid"] = blueprint_validation.get("valid", 0)
+        result["blueprints_invalid"] = blueprint_validation.get("invalid", 0)
+        # Логируем детали валидации только при наличии проблем
+        invalid_details = {
+            name: details for name, details in blueprint_validation.get("details", {}).items()
+            if details.get("errors") and "OK" not in details["errors"]
+        }
+        if invalid_details:
+            logger.warning(f"Невалидные blueprint-ы: {list(invalid_details.keys())}")
+    except Exception as e:
+        logger.error(f"Ошибка при валидации blueprint-ов: {e}")
+
+    # 5. Создание автоматизаций из blueprint-ов
+    try:
+        automation_stats = await create_automations_from_blueprints()
+        result["automations_created"] = automation_stats.get("created", 0)
+        result["automations_skipped"] = automation_stats.get("skipped", 0)
+        result["automations_failed"] = automation_stats.get("failed", 0)
+    except Exception as e:
+        logger.error(f"Ошибка при создании автоматизаций: {e}")
+
     logger.info("=== Инициализация Home Assistant entities завершена ===")
     logger.info(
-        f"Результат: удалено сенсоров={result['sensors_removed']}, "
+        f"Результат: "
+        f"сенсоров удалено={result['sensors_removed']}, "
         f"helpers создано={result['helpers_created']}, "
         f"helpers существует={result['helpers_existing']}, "
-        f"helpers ошибок={result['helpers_failed']}"
+        f"helpers ошибок={result['helpers_failed']}, "
+        f"blueprints установлено={result['blueprints_installed']}, "
+        f"blueprints пропущено={result['blueprints_skipped']}, "
+        f"blueprints ошибок={result['blueprints_failed']}, "
+        f"blueprints валидных={result['blueprints_valid']}, "
+        f"blueprints невалидных={result['blueprints_invalid']}, "
+        f"автоматизаций создано={result['automations_created']}, "
+        f"автоматизаций пропущено={result['automations_skipped']}, "
+        f"автоматизаций ошибок={result['automations_failed']}"
     )
 
     return result
 
 
-async def get_missing_helpers_yaml() -> str:
+async def install_blueprints() -> dict[str, int]:
+    """
+    Автоматическая установка blueprint-ов в Home Assistant.
+
+    Копирует файлы blueprint-ов из исходной директории в
+    конфигурационную директорию Home Assistant.
+
+    Returns:
+        Статистика установки: {"installed": N, "skipped": N, "failed": N}
+    """
+    stats = {"installed": 0, "skipped": 0, "failed": 0}
+    
+    # Проверяем доступность Supervisor API
+    client = get_supervisor_client()
+    if not client.is_available:
+        logger.warning("Supervisor API недоступен, пропускаем установку blueprint-ов")
+        return stats
+    
+    logger.info("Начинаем установку blueprint-ов...")
+    
+    # Создаем целевую директорию если она не существует
+    try:
+        BLUEPRINTS_TARGET_DIR.mkdir(parents=True, exist_ok=True)
+        logger.debug(f"Директория blueprint-ов создана: {BLUEPRINTS_TARGET_DIR}")
+    except Exception as e:
+        logger.error(f"Не удалось создать директорию blueprint-ов: {e}")
+        stats["failed"] = len(REQUIRED_BLUEPRINTS)
+        return stats
+    
+    # Копируем каждый blueprint
+    for blueprint_file in REQUIRED_BLUEPRINTS:
+        source_path = BLUEPRINTS_SOURCE_DIR / blueprint_file
+        target_path = BLUEPRINTS_TARGET_DIR / blueprint_file
+        
+        # Проверяем существование исходного файла
+        if not source_path.exists():
+            logger.warning(f"Исходный файл blueprint не найден: {source_path}")
+            stats["failed"] += 1
+            continue
+        
+        # Проверяем нужно ли обновить
+        if target_path.exists():
+            try:
+                source_mtime = source_path.stat().st_mtime
+                target_mtime = target_path.stat().st_mtime
+                if source_mtime <= target_mtime:
+                    logger.debug(f"Blueprint уже актуален: {blueprint_file}")
+                    stats["skipped"] += 1
+                    continue
+            except Exception:
+                pass  # Если не можем проверить время, копируем заново
+        
+        # Копируем файл
+        try:
+            shutil.copy2(source_path, target_path)
+            logger.info(f"Установлен blueprint: {blueprint_file}")
+            stats["installed"] += 1
+        except Exception as e:
+            logger.error(f"Не удалось скопировать blueprint {blueprint_file}: {e}")
+            stats["failed"] += 1
+    
+    logger.info(
+        f"Установка blueprint-ов завершена: "
+        f"установлено={stats['installed']}, "
+        f"пропущено={stats['skipped']}, "
+        f"ошибок={stats['failed']}"
+    )
+    
+    return stats
+
+
+async def validate_blueprints() -> dict[str, Any]:
+    """
+    Проверка корректности установленных blueprint-ов.
+
+    Проверяет:
+    1. Существование файлов
+    2. Корректность YAML формата
+    3. Наличие обязательных полей blueprint
+    4. Совместимость с текущей версией
+
+    Returns:
+        Результаты валидации
+    """
+    results = {
+        "total": len(REQUIRED_BLUEPRINTS),
+        "valid": 0,
+        "invalid": 0,
+        "missing": 0,
+        "details": {}
+    }
+    
+    logger.info("Начинаем валидацию blueprint-ов...")
+    
+    for blueprint_file in REQUIRED_BLUEPRINTS:
+        target_path = BLUEPRINTS_TARGET_DIR / blueprint_file
+        blueprint_name = blueprint_file.replace(".yaml", "")
+        
+        result = {
+            "exists": False,
+            "valid_format": False,
+            "has_blueprint_section": False,
+            "errors": []
+        }
+        
+        # Проверяем существование файла
+        if not target_path.exists():
+            result["errors"].append("Файл не найден")
+            results["missing"] += 1
+            results["details"][blueprint_name] = result
+            continue
+        
+        result["exists"] = True
+        
+        # Проверяем формат YAML
+        try:
+            with open(target_path, 'r', encoding='utf-8') as f:
+                content = yaml.safe_load(f)
+            result["valid_format"] = True
+        except yaml.YAMLError as e:
+            result["errors"].append(f"Ошибка YAML: {str(e)}")
+            results["invalid"] += 1
+            results["details"][blueprint_name] = result
+            continue
+        except Exception as e:
+            result["errors"].append(f"Ошибка чтения файла: {str(e)}")
+            results["invalid"] += 1
+            results["details"][blueprint_name] = result
+            continue
+        
+        # Проверяем наличие секции blueprint
+        if not isinstance(content, dict) or "blueprint" not in content:
+            result["errors"].append("Отсутствует секция 'blueprint'")
+            results["invalid"] += 1
+            results["details"][blueprint_name] = result
+            continue
+        
+        blueprint_section = content["blueprint"]
+        result["has_blueprint_section"] = True
+        
+        # Проверяем обязательные поля в секции blueprint
+        required_fields = ["name", "domain"]
+        for field in required_fields:
+            if field not in blueprint_section:
+                result["errors"].append(f"Отсутствует обязательное поле: {field}")
+        
+        # Проверяем что domain = automation
+        if blueprint_section.get("domain") != "automation":
+            result["errors"].append("Неверный домен (должен быть 'automation')")
+        
+        # Если есть ошибки, помечаем как невалидный
+        if result["errors"]:
+            results["invalid"] += 1
+        else:
+            results["valid"] += 1
+            result["errors"] = ["OK"]
+        
+        results["details"][blueprint_name] = result
+    
+    logger.info(
+        f"Валидация завершена: "
+        f"валидных={results['valid']}, "
+        f"невалидных={results['invalid']}, "
+        f"отсутствующих={results['missing']}"
+    )
+    
+    return results
+
+
+async def create_automations_from_blueprints() -> dict[str, int]:
+    """
+    Создание автоматизаций на основе установленных blueprint-ов.
+
+    Использует дефолтные параметры для создания базовых автоматизаций.
+
+    Returns:
+        Статистика создания: {"created": N, "skipped": N, "failed": N}
+    """
+    stats = {"created": 0, "skipped": 0, "failed": 0}
+    
+    client = get_supervisor_client()
+    if not client.is_available:
+        logger.warning("Supervisor API недоступен, пропускаем создание автоматизаций")
+        return stats
+    
+    logger.info("Начинаем создание автоматизаций из blueprint-ов...")
+    
+    # Получаем список мобильных устройств для уведомлений
+    mobile_devices = await _get_mobile_devices(client)
+    if not mobile_devices:
+        logger.warning("Мобильные устройства не найдены, некоторые автоматизации могут не работать")
+    
+    # Создаем автоматизации для каждого blueprint с дефолтными параметрами
+    for blueprint_file, default_config in DEFAULT_AUTOMATION_CONFIGS.items():
+        blueprint_name = blueprint_file.replace(".yaml", "")
+        automation_id = f"crypto_inspect_{blueprint_name}_default"
+        
+        # Проверяем существует ли уже такая автоматизация
+        if await _automation_exists(client, automation_id):
+            logger.debug(f"Автоматизация уже существует: {automation_id}")
+            stats["skipped"] += 1
+            continue
+        
+        # Обновляем конфигурацию с реальными данными
+        config = default_config.copy()
+        if config.get("notify_device") is None and mobile_devices:
+            config["notify_device"] = mobile_devices[0]  # Используем первое доступное устройство
+        
+        # Создаем автоматизацию
+        success = await _create_automation_from_blueprint(
+            client, 
+            automation_id, 
+            blueprint_name, 
+            config
+        )
+        
+        if success:
+            logger.info(f"Создана автоматизация: {automation_id}")
+            stats["created"] += 1
+        else:
+            logger.error(f"Не удалось создать автоматизацию: {automation_id}")
+            stats["failed"] += 1
+    
+    logger.info(
+        f"Создание автоматизаций завершено: "
+        f"создано={stats['created']}, "
+        f"пропущено={stats['skipped']}, "
+        f"ошибок={stats['failed']}"
+    )
+    
+    return stats
+
+
+async def _get_mobile_devices(client) -> list[str]:
+    """Получить список мобильных устройств."""
+    try:
+        http_client = await client._get_client()
+        response = await http_client.get("/core/api/devices")
+        response.raise_for_status()
+        
+        devices = response.json()
+        mobile_devices = []
+        
+        for device in devices:
+            if device.get("disabled_by") is None:  # Не отключенное устройство
+                integrations = device.get("config_entries", [])
+                # Ищем устройства с мобильной интеграцией
+                for config_entry in integrations:
+                    # Здесь можно добавить более точную проверку интеграции
+                    if "mobile_app" in str(config_entry).lower():
+                        mobile_devices.append(device["id"])
+                        break
+        
+        return mobile_devices
+    except Exception as e:
+        logger.error(f"Ошибка получения списка мобильных устройств: {e}")
+        return []
+
+
+async def _automation_exists(client, automation_id: str) -> bool:
+    """Проверить существует ли автоматизация."""
+    try:
+        http_client = await client._get_client()
+        response = await http_client.get(f"/core/api/automations/{automation_id}")
+        return response.status_code == 200
+    except Exception:
+        return False
+
+
+async def _create_automation_from_blueprint(
+    client, 
+    automation_id: str, 
+    blueprint_name: str, 
+    config: dict
+) -> bool:
+    """Создать автоматизацию на основе blueprint."""
+    try:
+        http_client = await client._get_client()
+        
+        # Формируем конфигурацию автоматизации
+        automation_config = {
+            "alias": f"Crypto Inspect - {blueprint_name.title()} (Auto)",
+            "description": f"Автоматически созданная автоматизация из blueprint: {blueprint_name}",
+            "mode": "single",
+            "use_blueprint": {
+                "path": f"crypto_inspect/{blueprint_name}.yaml",
+                "input": config
+            }
+        }
+        
+        # Отправляем запрос на создание
+        response = await http_client.post(
+            "/core/api/automations",
+            json=automation_config
+        )
+        
+        return response.status_code in (200, 201)
+        
+    except Exception as e:
+        logger.error(f"Ошибка создания автоматизации {automation_id}: {e}")
+        return False
+
     """
     Генерирует YAML-конфигурацию для отсутствующих input helpers.
 

@@ -1,0 +1,205 @@
+# System Diagnostic Dashboard
+# Панель для диагностики состояния системы и базы данных
+
+views:
+  - title: System Diagnostics
+    path: system-diagnostics
+    icon: mdi:heart-pulse
+    badges: []
+    cards:
+      # Заголовок панели
+      - type: markdown
+        content: >
+          # 🩺 Системная Диагностика
+          
+          Мониторинг состояния системы, базы данных и производительности
+          
+          Статус: {{ states('sensor.crypto_inspect_sync_status') }}
+      
+      # Основные метрики системы
+      - type: horizontal-stack
+        cards:
+          - type: gauge
+            name: Статус синхронизации
+            entity: sensor.crypto_inspect_sync_status
+            unit: "%"
+            min: 0
+            max: 100
+            severity:
+              green: 90
+              yellow: 70
+              red: 0
+            theme: dark
+          
+          - type: gauge
+            name: Размер базы данных
+            entity: sensor.crypto_inspect_database_size
+            unit: "MB"
+            min: 0
+            max: 1000
+            severity:
+              green: 500
+              yellow: 800
+              red: 950
+            theme: dark
+          
+          - type: gauge
+            name: Количество свечей
+            entity: sensor.crypto_inspect_candles_count
+            unit: ""
+            min: 0
+            max: 100000
+            severity:
+              green: 50000
+              yellow: 20000
+              red: 0
+            theme: dark
+      
+      # Статус компонентов системы
+      - type: entities
+        title: 📊 Статус Компонентов
+        entities:
+          - entity: sensor.crypto_inspect_sync_status
+            name: Синхронизация данных
+          - entity: sensor.crypto_inspect_last_sync
+            name: Последняя синхронизация
+          - entity: sensor.crypto_inspect_database_size
+            name: Размер базы данных
+          - entity: sensor.crypto_inspect_candles_count
+            name: Количество свечей
+      
+      # Производительность системы
+      - type: markdown
+        title: ⚡ Производительность
+        content: >
+          ## Метрики производительности:
+          
+          **Использование ресурсов:**
+          - CPU: {{ states('sensor.system_cpu') | default('N/A') }}
+          - RAM: {{ states('sensor.system_ram') | default('N/A') }}
+          - Disk: {{ states('sensor.system_disk') | default('N/A') }}
+          
+          **Время отклика:**
+          - API Response: {{ states('sensor.api_response_time') | default('N/A') }}ms
+          - Database Query: {{ states('sensor.db_query_time') | default('N/A') }}ms
+          
+          **Пропускная способность:**
+          - Requests/min: {{ states('sensor.requests_per_minute') | default('N/A') }}
+          - Data processed: {{ states('sensor.data_processed_mb') | default('N/A') }}MB
+      
+      # График системных метрик
+      - type: history-graph
+        title: 📈 Системные Метрики (24ч)
+        hours_to_show: 24
+        entities:
+          - entity: sensor.crypto_inspect_sync_status
+            name: Статус синхронизации
+          - entity: sensor.crypto_inspect_database_size
+            name: Размер БД
+          - entity: sensor.crypto_inspect_candles_count
+            name: Количество свечей
+      
+      # Журнал ошибок и предупреждений
+      - type: logbook
+        title: 📖 Журнал Событий
+        hours_to_show: 24
+        entities:
+          - sensor.crypto_inspect_sync_status
+          - sensor.crypto_inspect_database_size
+      
+      # Диагностические проверки
+      - type: markdown
+        title: 🔍 Диагностические Проверки
+        content: >
+          ## Автоматические проверки:
+          
+          **✅ База данных:**
+          - Состояние: {% if states('sensor.crypto_inspect_database_size') != 'unavailable' %}OK{% else %}ERROR{% endif %}
+          - Размер: {{ states('sensor.crypto_inspect_database_size') }}
+          - Свободное место: {{ states('sensor.system_disk_free') | default('N/A') }}
+          
+          **✅ Синхронизация:**
+          - Статус: {{ states('sensor.crypto_inspect_sync_status') }}
+          - Последнее обновление: {{ states('sensor.crypto_inspect_last_sync') }}
+          - Интервал: 5 минут
+          
+          **✅ Данные:**
+          - Свечи: {{ states('sensor.crypto_inspect_candles_count') }}
+          - Валюты: {{ states('sensor.crypto_inspect_crypto_currency_list') }}
+          - Актуальность: {% if states('sensor.crypto_inspect_last_sync') != 'unavailable' %}OK{% else %}STALE{% endif %}
+      
+      # Рекомендации по оптимизации
+      - type: conditional
+        conditions:
+          - entity: sensor.crypto_inspect_database_size
+            state: '> 800'
+        card:
+          type: markdown
+          title: ⚠️ Рекомендации по Оптимизации
+          content: >
+            **База данных превышает 800MB**
+            
+            Рекомендуемые действия:
+            - Очистить старые данные (>90 дней)
+            - Оптимизировать индексы
+            - Архивировать исторические данные
+            - Рассмотреть разделение базы данных
+      
+      # Статус сервисов
+      - type: entities
+        title: 🛠️ Статус Сервисов
+        entities:
+          - entity: binary_sensor.crypto_inspect_api_status
+            name: API сервис
+          - entity: binary_sensor.crypto_inspect_database_status
+            name: База данных
+          - entity: binary_sensor.crypto_inspect_scheduler_status
+            name: Планировщик задач
+          - entity: binary_sensor.crypto_inspect_notification_service
+            name: Сервис уведомлений
+      
+      # Мониторинг ресурсов
+      - type: horizontal-stack
+        cards:
+          - type: gauge
+            name: CPU Usage
+            entity: sensor.system_cpu
+            unit: "%"
+            min: 0
+            max: 100
+            severity:
+              green: 50
+              yellow: 80
+              red: 95
+            theme: dark
+          
+          - type: gauge
+            name: RAM Usage
+            entity: sensor.system_ram
+            unit: "%"
+            min: 0
+            max: 100
+            severity:
+              green: 60
+              yellow: 80
+              red: 90
+            theme: dark
+      
+      # Информация о системе
+      - type: markdown
+        title: ℹ️ Информация о Системе
+        content: >
+          ## Конфигурация:
+          
+          **Версия:** {{ states('sensor.crypto_inspect_version') | default('Unknown') }}
+          **Окружение:** {{ states('sensor.environment') | default('Production') }}
+          **Время работы:** {{ states('sensor.uptime') | default('N/A') }}
+          
+          **Настройки:**
+          - Интервал синхронизации: 5 минут
+          - Хранение данных: 90 дней
+          - Валюты: {{ states('sensor.crypto_inspect_crypto_currency_list') }}
+          
+          **Контакты:**
+          - Поддержка: support@crypto-inspect.com
+          - Документация: docs.crypto-inspect.com

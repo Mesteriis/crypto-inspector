@@ -68,6 +68,11 @@ class Settings(BaseSettings):
     BYBIT_API_SECRET: str = ""
     BYBIT_TESTNET: bool = False
 
+    # Own API Server
+    API_ENABLED: bool = True
+    API_PORT: int = 9999
+    API_HOST: str = "0.0.0.0"
+    
     # MCP Server (Model Context Protocol)
     MCP_ENABLED: bool = True
     MCP_PORT: int = 9998
@@ -107,6 +112,12 @@ class Settings(BaseSettings):
                 self.BYBIT_API_SECRET = _ha_options["bybit_api_secret"]
             if "bybit_testnet" in _ha_options:
                 self.BYBIT_TESTNET = _ha_options["bybit_testnet"]
+            # API settings
+            if "api_enabled" in _ha_options:
+                self.API_ENABLED = _ha_options["api_enabled"]
+            if "api_port" in _ha_options:
+                self.API_PORT = _ha_options["api_port"]
+            
             # MCP settings
             if "mcp_enabled" in _ha_options:
                 self.MCP_ENABLED = _ha_options["mcp_enabled"]
@@ -151,8 +162,21 @@ class Settings(BaseSettings):
                 self.NOTIFICATION_MODE = _ha_options["notification_mode"]
 
     def get_streaming_symbols(self) -> list[str]:
-        """Parse streaming symbols from HA_SYMBOLS env or config."""
-        # Priority: HA_SYMBOLS env > STREAMING_SYMBOLS > default
+        """Parse streaming symbols from dynamic currency list or config.
+        
+        This method now uses the centralized currency list from Home Assistant input_select helper,
+        falling back to environment variables and defaults for backward compatibility.
+        """
+        # Try to get from dynamic currency list first
+        try:
+            from services.ha_sensors import get_currency_list
+            symbols = get_currency_list()
+            if symbols:
+                return symbols
+        except Exception:
+            pass
+        
+        # Fallback to environment variable
         symbols_str = os.environ.get("HA_SYMBOLS", "").strip()
         if not symbols_str:
             symbols_str = self.STREAMING_SYMBOLS or self.DEFAULT_SYMBOLS

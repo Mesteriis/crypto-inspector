@@ -1,0 +1,59 @@
+# ==============================================================================
+# Crypto Inspect - Adaptive Notifications Blueprint  
+# ==============================================================================
+# Intelligent notification system adapting to market conditions
+# ==============================================================================
+
+blueprint:
+  name: Adaptive Crypto Notifications
+  description: Intelligent notification system adapting to market conditions
+  domain: automation
+  source_url: https://github.com/Mesteriis/crypto-inspector/blob/main/blueprints/adaptive_notifications.yaml
+
+  input:
+    notify_device:
+      name: Device to notify
+      selector:
+        device:
+          integration: mobile_app
+    
+    volatility_threshold:
+      name: Volatility threshold (%)
+      description: Minimum volatility for triggering notifications
+      default: 5.0
+      selector:
+        number:
+          min: 1.0
+          max: 20.0
+          step: 0.5
+          mode: slider
+
+trigger:
+  - platform: state
+    entity_id: sensor.crypto_inspect_adaptive_volatilities
+
+condition:
+  - condition: template
+    value_template: "{{ trigger.from_state.state != trigger.to_state.state }}"
+
+action:
+  - service: notify.mobile_app_{{ device_attr('!input notify_device', 'name') | slugify }}
+    data:
+      title: "🔔 Adaptive Alert"
+      message: >-
+        {% set volatilities = state_attr('sensor.crypto_inspect_adaptive_volatilities', 'data') %}
+        {% set threshold = !input volatility_threshold %}
+        
+        {% if volatilities %}
+        High volatility detected:
+        {% for currency, data in volatilities.items() %}
+          {% if data.value >= threshold %}
+        • {{ currency }}: {{ "%.2f"|format(data.value) }}% ({{ data.level }})
+          {% endif %}
+        {% endfor %}
+        {% endif %}
+      data:
+        tag: adaptive_alert
+        group: crypto_adaptive
+
+mode: single

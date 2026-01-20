@@ -22,11 +22,24 @@ logger = logging.getLogger(__name__)
 
 
 def get_symbols() -> list[str]:
-    """Get trading symbols from environment or use defaults."""
+    """Get trading symbols from environment (deprecated - use get_currency_list instead)."""
     symbols_env = os.environ.get("HA_SYMBOLS", "")
     if symbols_env:
         return [s.strip() for s in symbols_env.split(",") if s.strip()]
     return DEFAULT_SYMBOLS
+
+
+def get_currency_list() -> list[str]:
+    """Get the dynamic currency list from Home Assistant input_select helper.
+    
+    This is the single source of truth for currency selections across the application.
+    Falls back to environment variable or defaults if helper is not available.
+    
+    Returns:
+        List of currency symbols (e.g., ["BTC/USDT", "ETH/USDT"])
+    """
+    from services.ha_sensors import get_currency_list as get_dynamic_currency_list
+    return get_dynamic_currency_list()
 
 
 def get_intervals_to_fetch(now: datetime) -> list[str]:
@@ -224,7 +237,7 @@ async def candlestick_sync_job() -> None:
     logger.info(f"[{current_time}] Starting candlestick sync job")
 
     # Get symbols and intervals to fetch
-    symbols = get_symbols()
+    symbols = get_currency_list()
     intervals = get_intervals_to_fetch(now)
 
     logger.info(f"Symbols: {symbols}")
@@ -310,7 +323,7 @@ async def market_analysis_job() -> None:
 
     logger.info(f"[{current_time}] Starting market analysis job")
 
-    symbols = get_symbols()
+    symbols = get_currency_list()
     base_symbols = [s.split("/")[0] for s in symbols]  # BTC/USDT -> BTC
 
     results = {}
@@ -848,7 +861,7 @@ async def divergence_job() -> None:
 
     detector = DivergenceDetector()
     sensors = get_sensors_manager()
-    symbols = get_symbols()
+    symbols = get_currency_list()
     base_symbols = [s.split("/")[0] for s in symbols]  # BTC/USDT -> BTC
 
     try:
@@ -1305,6 +1318,43 @@ async def profit_taking_job() -> None:
         logger.error(f"Profit taking job failed: {e}")
     finally:
         await advisor.close()
+
+
+async def currency_list_monitor_job() -> None:
+    """
+    Currency List Monitor job.
+    
+    Runs every 10 minutes to check for changes in the dynamic currency list.
+    Handles automatic cleanup of removed currencies and loading of new currencies.
+    Updates notification systems and consolidated sensors.
+    """
+    from services.currency_manager import get_currency_manager
+    from services.ha_sensors import get_sensors_manager
+    from services.unified_sensors import get_unified_sensor_manager
+    
+    logger.info("Starting currency list monitor job")
+    
+    try:
+        # Get managers
+        currency_manager = get_currency_manager()
+        sensors_manager = get_sensors_manager()
+        unified_manager = get_unified_sensor_manager(sensors_manager)
+        
+        # Initialize currency manager if needed
+        if not hasattr(currency_manager, '_initialized'):
+            await currency_manager.initialize()
+            currency_manager._initialized = True
+        
+        # Check for currency list changes
+        await currency_manager.check_for_changes()
+        
+        # Update consolidated sensors
+        await unified_manager.update_consolidated_sensors()
+        
+        logger.info("Currency list monitor job completed")
+        
+    except Exception as e:
+        logger.error(f"Currency list monitor job failed: {e}")
 
 
 async def traditional_finance_job() -> None:

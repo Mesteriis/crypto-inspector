@@ -94,6 +94,33 @@ sections:
           {% set changes = states('sensor.crypto_inspect_changes_24h') | from_json %}
           BTC: {{ changes.get('BTC/USDT', '0') }}% | ETH: {{ changes.get('ETH/USDT', '0') }}%
         icon: mdi:percent
+      
+      # 24h Highs
+      - type: custom:mushroom-template-card
+        primary: "24h Highs"
+        secondary: |
+          {% set highs = states('sensor.crypto_inspect_highs_24h') | from_json %}
+          BTC: ${{ '{:,.0f}'.format(highs.get('BTC/USDT', 0) | float) }}
+        icon: mdi:arrow-top-right
+        icon_color: green
+      
+      # 24h Lows
+      - type: custom:mushroom-template-card
+        primary: "24h Lows"
+        secondary: |
+          {% set lows = states('sensor.crypto_inspect_lows_24h') | from_json %}
+          BTC: ${{ '{:,.0f}'.format(lows.get('BTC/USDT', 0) | float) }}
+        icon: mdi:arrow-bottom-left
+        icon_color: red
+      
+      # 24h Volumes
+      - type: custom:mushroom-template-card
+        primary: "24h Volume"
+        secondary: |
+          {% set volumes = states('sensor.crypto_inspect_volumes_24h') | from_json %}
+          BTC: ${{ '{:,.0f}M'.format((volumes.get('BTC/USDT', 0) | float) / 1000000) }}
+        icon: mdi:chart-bar
+        icon_color: blue
 
       # Portfolio Value
       - type: custom:mushroom-entity-card
@@ -197,6 +224,12 @@ sections:
           {% set data = states('sensor.crypto_inspect_ta_bb_position') | from_json %}
           BTC: {{ data.BTC | default('N/A') }}% | ETH: {{ data.ETH | default('N/A') }}%
         icon: mdi:chart-bell-curve
+                
+      # Trend Analysis
+      - type: custom:mushroom-entity-card
+        entity: sensor.crypto_inspect_ta_trend
+        name: Market Trend
+        icon: mdi:trending-up
 
       - type: custom:mushroom-template-card
         primary: "Trends"

@@ -87,7 +87,7 @@ async def stop_websocket_streaming() -> None:
 async def start_mcp_server() -> None:
     """Start MCP server if enabled."""
     if not settings.MCP_ENABLED:
-        logger.info("MCP server disabled")
+        logger.debug("MCP server disabled by configuration")
         return
 
     try:
@@ -141,6 +141,20 @@ async def _run_backfill_background(manager) -> None:
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """Application lifespan manager."""
     logger.info(f"Starting {settings.APP_NAME}...")
+    
+    # Log service configuration
+    services_info = []
+    if settings.API_ENABLED:
+        services_info.append(f"API (port {settings.API_PORT})")
+    if settings.MCP_ENABLED:
+        services_info.append(f"MCP (port {settings.MCP_PORT})")
+    if settings.STREAMING_ENABLED:
+        services_info.append("WebSocket Streaming")
+    
+    if services_info:
+        logger.info(f"Enabled services: {', '.join(services_info)}")
+    else:
+        logger.info("All optional services disabled")
 
     # Initialize HA entities (cleanup old sensors, create input helpers)
     try:
@@ -160,8 +174,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     # Start WebSocket streaming
     await start_websocket_streaming()
 
-    # Start MCP server
-    await start_mcp_server()
+    # Start MCP server (conditional)
+    if settings.MCP_ENABLED:
+        await start_mcp_server()
+    else:
+        logger.info("MCP server disabled by configuration")
 
     # Run initial backfill (background task)
     await run_initial_backfill()
@@ -171,7 +188,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         yield
 
     # Stop services
-    await stop_mcp_server()
+    if settings.MCP_ENABLED:
+        await stop_mcp_server()
     await stop_websocket_streaming()
 
     logger.info(f"{settings.APP_NAME} shutdown complete")
@@ -183,7 +201,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.include_router(api_router)
+# Include API router only if API is enabled
+if settings.API_ENABLED:
+    app.include_router(api_router)
+    logger.info(f"API server enabled on port {settings.API_PORT}")
+else:
+    logger.info("API server disabled by configuration")
 
 # Static files for web UI
 static_dir = Path(__file__).parent / "static"
