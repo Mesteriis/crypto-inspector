@@ -2,25 +2,33 @@
 # https://developers.home-assistant.io/docs/add-ons
 # syntax=docker/dockerfile:1.4
 
-# =============================================================================
-# Stage 1: Builder - Install dependencies and build wheels
-# =============================================================================
 ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base-debian:bookworm
-FROM ${BUILD_FROM} AS builder
+FROM ${BUILD_FROM}
 
-# Install build dependencies
+# Labels
+LABEL maintainer="Crypto Inspect" \
+    org.opencontainers.image.title="Crypto Inspect" \
+    org.opencontainers.image.description="Cryptocurrency data collector for Home Assistant"
+
+# Install build and runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     gfortran \
     pkg-config \
     libopenblas-dev \
     python3-dev \
-    python3-venv \
+    python3-pip \
     curl \
     libffi-dev \
     libssl-dev \
+    postgresql-client \
+    libopenblas0 \
+    libgomp1 \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
+
+# Remove PEP 668 restriction to allow system-wide pip install
+RUN rm -f /usr/lib/python3.11/EXTERNALLY-MANAGED
 
 # Install uv package manager
 ENV UV_INSTALL_DIR="/opt/uv" \
@@ -33,36 +41,12 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
 
 WORKDIR /app
 
-# Copy only dependency files first (better layer caching)
+# Copy dependency files
 COPY pyproject.toml uv.lock ./
 
-# Install dependencies system-wide (no venv)
+# Install dependencies system-wide
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip install --system --python $(which python3) -r pyproject.toml
-
-# =============================================================================
-# Stage 2: Runtime - Minimal production image
-# =============================================================================
-ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base-debian:bookworm
-FROM ${BUILD_FROM} AS runtime
-
-# Labels
-LABEL maintainer="Crypto Inspect" \
-    org.opencontainers.image.title="Crypto Inspect" \
-    org.opencontainers.image.description="Cryptocurrency data collector for Home Assistant"
-
-# Install only runtime dependencies (no build tools)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 \
-    python3-venv \
-    postgresql-client \
-    libopenblas0 \
-    libgomp1 \
-    curl \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean \
-    && rm -rf /tmp/* /var/tmp/* \
-    && find /var/log -type f -delete
+    uv pip install --system --python /usr/bin/python3 .
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -70,8 +54,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/app/src \
     PYTHONFAULTHANDLER=1 \
     PYTHONHASHSEED=random
-
-WORKDIR /app
 
 # Copy application code
 COPY --chown=root:root src ./src
@@ -89,6 +71,20 @@ RUN find /etc/s6-overlay -type f -exec chmod 755 {} + 2>/dev/null || true \
 
 # Create data directory for SQLite
 RUN mkdir -p /data && chmod 755 /data
+
+# Cleanup build dependencies to reduce image size
+RUN apt-get purge -y --auto-remove \
+    build-essential \
+    gfortran \
+    pkg-config \
+    libopenblas-dev \
+    python3-dev \
+    libffi-dev \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /tmp/* /var/tmp/* \
+    && find /var/log -type f -delete \
+    && find /usr -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
