@@ -157,20 +157,40 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     else:
         logger.info("All optional services disabled")
 
-    # Initialize HA entities (cleanup old sensors, create input helpers)
-    try:
-        from service.ha_init import initialize_ha_entities
+    # Check HA Supervisor connection with retries
+    from service.ha_integration import get_supervisor_client
+    
+    supervisor_client = get_supervisor_client()
+    ha_connected = await supervisor_client.check_connection()
+    
+    if not ha_connected:
+        if settings.API_ENABLED or settings.MCP_ENABLED:
+            logger.info(
+                "HA Supervisor not available, but API/MCP enabled - continuing in standalone mode"
+            )
+        else:
+            logger.warning(
+                "HA Supervisor not available and no API/MCP enabled. "
+                "Application will run with limited functionality."
+            )
 
-        await initialize_ha_entities()
-    except ImportError:
-        logger.warning("ha_init module not available, skipping entity initialization")
-    except Exception as e:
-        logger.error(f"Error initializing HA entities: {e}")
+    # Initialize HA entities only if connected
+    if ha_connected:
+        try:
+            from service.ha_init import initialize_ha_entities
 
-    # Register HA sensors
-    from service.ha_integration import register_sensors
+            await initialize_ha_entities()
+        except ImportError:
+            logger.warning("ha_init module not available, skipping entity initialization")
+        except Exception as e:
+            logger.error(f"Error initializing HA entities: {e}")
 
-    await register_sensors()
+        # Register HA sensors
+        from service.ha_integration import register_sensors
+
+        await register_sensors()
+    else:
+        logger.info("Skipping HA entity initialization (not connected)")
 
     # Start WebSocket streaming
     await start_websocket_streaming()

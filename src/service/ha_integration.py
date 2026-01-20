@@ -4,6 +4,7 @@ This module provides:
 1. Supervisor API client for notifications and sensor management
 """
 
+import asyncio
 import logging
 import os
 from dataclasses import dataclass
@@ -16,6 +17,10 @@ logger = logging.getLogger(__name__)
 # Supervisor API token is automatically available in add-ons
 SUPERVISOR_TOKEN = os.environ.get("SUPERVISOR_TOKEN", "")
 SUPERVISOR_URL = "http://supervisor"
+
+# Retry configuration
+HA_CONNECTION_RETRIES = 5
+HA_RETRY_DELAY_SECONDS = 3
 
 
 class NotificationType(str, Enum):
@@ -43,6 +48,8 @@ class SupervisorAPIClient:
         self.base_url = SUPERVISOR_URL
         self.token = SUPERVISOR_TOKEN
         self._client: httpx.AsyncClient | None = None
+        self._connection_checked = False
+        self._connection_available = False
 
     @property
     def headers(self) -> dict[str, str]:
@@ -55,6 +62,50 @@ class SupervisorAPIClient:
     def is_available(self) -> bool:
         """Check if Supervisor API is available."""
         return bool(self.token)
+
+    async def check_connection(self, retries: int = HA_CONNECTION_RETRIES) -> bool:
+        """
+        Check connection to Supervisor API with retries.
+        
+        Args:
+            retries: Number of retry attempts
+            
+        Returns:
+            True if connection successful
+        """
+        if not self.is_available:
+            logger.info("Supervisor token not found, running in standalone mode")
+            return False
+        
+        for attempt in range(1, retries + 1):
+            try:
+                client = await self._get_client()
+                response = await client.get("/core/api/")
+                if response.status_code == 200:
+                    self._connection_checked = True
+                    self._connection_available = True
+                    logger.info("Successfully connected to Home Assistant Supervisor API")
+                    return True
+            except httpx.HTTPError as e:
+                logger.warning(
+                    f"HA Supervisor connection attempt {attempt}/{retries} failed: {e}"
+                )
+            except Exception as e:
+                logger.warning(
+                    f"HA Supervisor connection attempt {attempt}/{retries} error: {e}"
+                )
+            
+            if attempt < retries:
+                logger.info(f"Retrying in {HA_RETRY_DELAY_SECONDS} seconds...")
+                await asyncio.sleep(HA_RETRY_DELAY_SECONDS)
+        
+        self._connection_checked = True
+        self._connection_available = False
+        logger.warning(
+            f"Could not connect to HA Supervisor after {retries} attempts. "
+            "Continuing without HA integration."
+        )
+        return False
 
     async def _get_client(self) -> httpx.AsyncClient:
         if self._client is None or self._client.is_closed:
