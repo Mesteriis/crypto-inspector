@@ -164,19 +164,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
     # Check HA Supervisor connection with retries
     from service.ha_integration import get_supervisor_client
-    
+
     supervisor_client = get_supervisor_client()
     ha_connected = await supervisor_client.check_connection()
-    
+
     if not ha_connected:
         if settings.API_ENABLED or settings.MCP_ENABLED:
-            logger.info(
-                "HA Supervisor not available, but API/MCP enabled - continuing in standalone mode"
-            )
+            logger.info("HA Supervisor not available, but API/MCP enabled - continuing in standalone mode")
         else:
             logger.warning(
-                "HA Supervisor not available and no API/MCP enabled. "
-                "Application will run with limited functionality."
+                "HA Supervisor not available and no API/MCP enabled. Application will run with limited functionality."
             )
 
     # Initialize HA entities only if connected
@@ -190,10 +187,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         except Exception as e:
             logger.error(f"Error initializing HA entities: {e}")
 
-        # Register HA sensors
-        from service.ha_integration import register_sensors
+        # Register HA sensors from new modular system
+        from service.ha import get_ha_manager
 
-        await register_sensors()
+        ha_manager = get_ha_manager()
+        await ha_manager.register_sensors()
     else:
         logger.info("Skipping HA entity initialization (not connected)")
 

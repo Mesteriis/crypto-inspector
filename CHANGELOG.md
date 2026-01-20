@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.25 - Fix Sensor Registration (152 sensors)
+- **Date**: 2026-01-20
+- **Fixed**: Changed sensor registration to use `HAIntegrationManager.register_sensors()` instead of legacy `ha_integration.register_sensors()`.
+- **Result**: Now all 152 sensors from SensorRegistry are registered (was 10).
+
 ## 0.2.24 - Unified Sensors Fix & Test Coverage
 - **Date**: 2026-01-20
 - **Fixed**: NameError in `unified_sensors.py` - `CryptoSensorsManager` replaced with `HAIntegrationManager`.
