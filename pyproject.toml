@@ -1,6 +1,6 @@
 [project]
 name = "crypto-inspect"
-version = "0.2.16"
+version = "0.2.17"
 description = "Crypto inspection application"
 requires-python = ">=3.13"
 dependencies = [
@@ -43,6 +43,8 @@ dev = [
     "httpx>=0.28.0",
     "ruff>=0.8.0",
     "pre-commit>=3.6.0",
+    "faker>=28.0.0",
+    "factory-boy>=3.3.0",
 ]
 
 [build-system]
@@ -67,4 +69,22 @@ ignore = ["E741", "UP038"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short -s"
 asyncio_mode = "auto"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+    "ignore::pytest.PytestUnraisableExceptionWarning",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests requiring database connection",
+    "e2e: marks end-to-end backtest tests",
+    "backtest: marks backtest tests with hyperparameter optimization",
+    "unit: marks unit tests",
+    "smoke: marks smoke tests for quick validation",
+]

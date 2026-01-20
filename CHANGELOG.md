@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.2.17 - Documentation & Maintenance
+
+### Documentation
+- Comprehensive README.md with 1900+ lines of documentation
+- Full DOCS.md with 2000+ lines for Home Assistant Add-on Store
+- 30+ ready-to-use automation examples with bilingual support (RU/EN)
+- Lovelace card examples for all sensor categories
+- MCP Server integration guide for AI agents (Claude, Gemini, OpenAI)
+- TradingView and ApexCharts integration examples
+- Progressive disclosure dashboards (Summary → Detailed → Power User)
+
+### Sensors
+- 100+ MQTT sensors with automatic Home Assistant discovery
+- Dictionary format for multi-currency data (prices, changes, RSI, etc.)
+- Traditional finance sensors (Gold, S&P500, NASDAQ, EUR/USD, Oil)
+- AI prediction sensors (trends, forecasts, confidence levels)
+- Smart correlation and economic calendar sensors
+
 ## 0.2.1 - Bugfixes & Improvements
 
 ### Fixed
