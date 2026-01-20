@@ -373,28 +373,48 @@ async def _run_startup_jobs() -> None:
     Run critical jobs at startup to populate sensors.
 
     This prevents sensors from showing 'unknown' until scheduled run.
+    First sets initial values based on feature flags, then runs enabled jobs.
     """
     import asyncio
 
-    from core.scheduler.jobs import (
-        gas_tracker_job,
-        investor_analysis_job,
-        profit_taking_job,
-        unlocks_job,
-        volatility_job,
-    )
+    from core.config import settings
 
-    logger.info("Running startup jobs to initialize sensors...")
+    logger.info("Initializing sensor values based on feature flags...")
 
-    # Run jobs in parallel with timeout
-    startup_jobs = [
-        ("gas_tracker", gas_tracker_job),
-        ("investor_analysis", investor_analysis_job),
-        ("volatility", volatility_job),
-        ("profit_taking", profit_taking_job),
-        ("unlocks", unlocks_job),
-    ]
+    # Set initial values for all sensors first
+    await _set_initial_sensor_values()
 
+    logger.info("Running startup jobs for enabled features...")
+
+    # Only run jobs for features that are enabled
+    startup_jobs = []
+
+    # Gas tracker - always enabled (no feature flag)
+    from core.scheduler.jobs import gas_tracker_job
+
+    startup_jobs.append(("gas_tracker", gas_tracker_job))
+
+    # Investor analysis - always enabled
+    from core.scheduler.jobs import investor_analysis_job
+
+    startup_jobs.append(("investor_analysis", investor_analysis_job))
+
+    # Volatility - always enabled
+    from core.scheduler.jobs import volatility_job
+
+    startup_jobs.append(("volatility", volatility_job))
+
+    # Profit taking - always enabled
+    from core.scheduler.jobs import profit_taking_job
+
+    startup_jobs.append(("profit_taking", profit_taking_job))
+
+    # Unlocks - always enabled
+    from core.scheduler.jobs import unlocks_job
+
+    startup_jobs.append(("unlocks", unlocks_job))
+
+    # Run jobs sequentially with timeout
     for name, job_func in startup_jobs:
         try:
             await asyncio.wait_for(job_func(), timeout=30.0)
@@ -405,3 +425,116 @@ async def _run_startup_jobs() -> None:
             logger.warning(f"Startup job '{name}' failed: {e}")
 
     logger.info("Startup jobs completed")
+
+
+async def _set_initial_sensor_values() -> None:
+    """
+    Set initial sensor values based on feature flags.
+
+    This sets informative values for disabled features instead of 'unknown'.
+    """
+    from core.config import settings
+    from service.ha import get_sensors_manager
+
+    sensors = get_sensors_manager()
+    disabled_text = "Disabled"
+    disabled_dict = {}
+
+    # AI sensors - depends on AI_ENABLED
+    if not settings.AI_ENABLED:
+        ai_sensors = [
+            ("ai_daily_summary", "AI disabled"),
+            ("ai_market_sentiment", "AI disabled"),
+            ("ai_recommendation", "AI disabled"),
+            ("ai_last_analysis", "N/A"),
+            ("ai_provider", "None"),
+            ("ai_trends", disabled_dict),
+            ("ai_confidences", disabled_dict),
+            ("ai_price_forecasts_24h", disabled_dict),
+        ]
+        for sensor_id, value in ai_sensors:
+            try:
+                await sensors.publish_sensor(sensor_id, value, {"status": "disabled"})
+            except Exception:
+                pass
+        logger.debug("AI sensors set to disabled state")
+
+    # Bybit sensors - depends on credentials
+    if not settings.has_bybit_credentials():
+        bybit_sensors = [
+            ("bybit_balance", 0),
+            ("bybit_pnl_24h", 0),
+            ("bybit_pnl_7d", 0),
+            ("bybit_positions", 0),
+            ("bybit_unrealized_pnl", 0),
+            ("bybit_earn_balance", 0),
+            ("bybit_earn_positions", 0),
+            ("bybit_earn_apy", 0),
+            ("bybit_total_portfolio", 0),
+        ]
+        for sensor_id, value in bybit_sensors:
+            try:
+                await sensors.publish_sensor(sensor_id, value, {"status": "not_configured"})
+            except Exception:
+                pass
+        logger.debug("Bybit sensors set to not configured state")
+
+    # Goal sensors - depends on GOAL_ENABLED
+    if not settings.GOAL_ENABLED:
+        goal_sensors = [
+            ("goal_progress", 0),
+            ("goal_status", "Goal disabled"),
+            ("goal_target", 0),
+            ("goal_current", 0),
+            ("goal_remaining", 0),
+        ]
+        for sensor_id, value in goal_sensors:
+            try:
+                await sensors.publish_sensor(sensor_id, value, {"status": "disabled"})
+            except Exception:
+                pass
+        logger.debug("Goal sensors set to disabled state")
+
+    # Set default values for sensors that are always enabled
+    # These will be updated by startup jobs, but set reasonable defaults first
+    default_sensors = [
+        # Volatility
+        ("volatility_30d", {}),
+        ("volatility_percentile", 50),
+        ("volatility_status", "Loading..."),
+        # Unlocks
+        ("unlock_next_event", "Loading..."),
+        ("unlock_risk_level", "Loading..."),
+        ("unlocks_next_7d", 0),
+        # Profit taking
+        ("tp_levels", {}),
+        # Alerts
+        ("active_alerts_count", 0),
+        ("triggered_alerts_24h", 0),
+        # Smart summary
+        ("today_action", "Loading..."),
+        ("today_action_priority", "low"),
+        ("market_pulse", "Loading..."),
+        ("weekly_outlook", "Loading..."),
+        # Investor
+        ("do_nothing_ok", True),
+        ("investor_phase", "Loading..."),
+        ("calm_indicator", 50),
+        ("red_flags", "🟢 0"),
+        # Technical
+        ("divergences", {}),
+        ("divergences_active", 0),
+        # Gas
+        ("gas_fast", 0),
+        ("gas_standard", 0),
+        ("gas_slow", 0),
+        ("gas_status", "Loading..."),
+    ]
+
+    for sensor_id, value in default_sensors:
+        try:
+            await sensors.publish_sensor(sensor_id, value)
+        except Exception:
+            pass
+
+    logger.info("Initial sensor values set based on feature configuration")
