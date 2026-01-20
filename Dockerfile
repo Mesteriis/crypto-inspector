@@ -36,19 +36,9 @@ WORKDIR /app
 # Copy only dependency files first (better layer caching)
 COPY pyproject.toml uv.lock ./
 
-# Install dependencies with cache mount for faster rebuilds
-# Unset VIRTUAL_ENV to avoid uv warning about path mismatch
+# Install dependencies system-wide (no venv)
 RUN --mount=type=cache,target=/root/.cache/uv \
-    unset VIRTUAL_ENV && \
-    uv sync --frozen --no-dev --python 3.13 \
-    && find /app/.venv -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true \
-    && find /app/.venv -type f -name "*.pyc" -delete 2>/dev/null || true \
-    && find /app/.venv -type f -name "*.pyo" -delete 2>/dev/null || true \
-    && find /app/.venv -type f -name "*.pyi" -delete 2>/dev/null || true \
-    && rm -rf /app/.venv/share/doc \
-    && rm -rf /app/.venv/share/man \
-    && rm -rf /app/.venv/lib/python*/site-packages/torch/test \
-    && rm -rf /app/.venv/lib/python*/site-packages/caffe2 2>/dev/null || true
+    uv pip install --system --python $(which python3) -r pyproject.toml
 
 # =============================================================================
 # Stage 2: Runtime - Minimal production image
@@ -74,13 +64,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /tmp/* /var/tmp/* \
     && find /var/log -type f -delete
 
-# Copy virtual environment from builder
-COPY --from=builder /app/.venv /app/.venv
-
 # Set environment variables
-ENV VIRTUAL_ENV=/app/.venv \
-    PATH="/app/.venv/bin:$PATH" \
-    PYTHONDONTWRITEBYTECODE=1 \
+ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app/src \
     PYTHONFAULTHANDLER=1 \
