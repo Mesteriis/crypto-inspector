@@ -19,6 +19,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Reduce noise from httpx and other verbose loggers
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("apscheduler.executors.default").setLevel(logging.WARNING)
+
 
 async def start_websocket_streaming() -> None:
     """Start WebSocket streaming if enabled."""
@@ -47,7 +52,7 @@ async def start_websocket_streaming() -> None:
     async def on_candle(symbol: str, candle, is_closed: bool, source: str) -> None:
         """Handle received candle."""
         if is_closed:
-            logger.info(
+            logger.debug(
                 f"[{source}] {symbol} candle closed: "
                 f"O={candle.open_price} H={candle.high_price} "
                 f"L={candle.low_price} C={candle.close_price} V={candle.volume}"

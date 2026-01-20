@@ -201,7 +201,7 @@ async def fetch_and_save_candlesticks(
                     },
                 )
             await session.commit()
-            logger.info(f"Saved {len(result.candlesticks)} candlesticks for {symbol} {interval_str}")
+            logger.debug(f"Saved {len(result.candlesticks)} candlesticks for {symbol} {interval_str}")
 
         return True
 
@@ -235,14 +235,14 @@ async def candlestick_sync_job() -> None:
     now = datetime.now()
     current_time = now.strftime("%Y-%m-%d %H:%M:%S")
 
-    logger.info(f"[{current_time}] Starting candlestick sync job")
+    logger.debug(f"[{current_time}] Starting candlestick sync job")
 
     # Get symbols and intervals to fetch
     symbols = get_currency_list()
     intervals = get_intervals_to_fetch(now)
 
-    logger.info(f"Symbols: {symbols}")
-    logger.info(f"Intervals to fetch: {intervals}")
+    logger.debug(f"Symbols: {symbols}")
+    logger.debug(f"Intervals to fetch: {intervals}")
 
     # Track results
     success_count = 0
@@ -653,14 +653,14 @@ async def gas_tracker_job() -> None:
     from service.ha import get_sensors_manager
 
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    logger.info(f"[{current_time}] Starting gas tracker job")
+    logger.debug(f"[{current_time}] Starting gas tracker job")
 
     tracker = GasTracker()
     sensors = get_sensors_manager()
 
     try:
         data = await tracker.get_gas_prices()
-        logger.info(f"Gas prices: slow={data.slow}, standard={data.standard}, fast={data.fast}, status={data.status}")
+        logger.debug(f"Gas prices: slow={data.slow}, standard={data.standard}, fast={data.fast}, status={data.status}")
 
         # Update HA sensors
         await sensors.publish_sensor("eth_gas_slow", data.slow)
@@ -819,7 +819,7 @@ async def portfolio_job() -> None:
     from service.portfolio import get_portfolio_manager
 
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    logger.info(f"[{current_time}] Starting portfolio update job")
+    logger.debug(f"[{current_time}] Starting portfolio update job")
 
     portfolio = get_portfolio_manager()
     sensors = get_sensors_manager()

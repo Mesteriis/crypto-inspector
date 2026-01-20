@@ -121,12 +121,12 @@ class CandleBuffer:
         if not to_flush:
             return 0
 
-        logger.info(f"[Buffer] Flushing {len(to_flush)} candles to database")
+        logger.debug(f"[Buffer] Flushing {len(to_flush)} candles to database")
 
         try:
             count = await self._write_to_db(to_flush)
             self._stats["flushed"] += count
-            logger.info(f"[Buffer] Successfully wrote {count} candles")
+            logger.debug(f"[Buffer] Successfully wrote {count} candles")
             return count
 
         except Exception as e:
@@ -253,7 +253,7 @@ class CandleBuffer:
         """Start the periodic flush task."""
         self._should_stop = False
         self._flush_task = asyncio.create_task(self._periodic_flush())
-        logger.info("[Buffer] Started periodic flush task")
+        logger.debug("[Buffer] Started periodic flush task")
 
     async def stop(self) -> None:
         """Stop and flush remaining buffer."""
@@ -268,10 +268,10 @@ class CandleBuffer:
 
         # Final flush
         if self._buffer:
-            logger.info(f"[Buffer] Final flush of {len(self._buffer)} candles")
+            logger.debug(f"[Buffer] Final flush of {len(self._buffer)} candles")
             await self.flush()
 
-        logger.info(f"[Buffer] Stopped. Stats: {self.stats}")
+        logger.debug(f"[Buffer] Stopped. Stats: {self.stats}")
 
 
 # Global buffer instance

@@ -88,7 +88,7 @@ class CandlestickFetcher:
         start = time.perf_counter()
 
         try:
-            logger.info(f"[{exchange.name}] Starting fetch for {symbol} {interval.value}")
+            logger.debug(f"[{exchange.name}] Starting fetch for {symbol} {interval.value}")
 
             candlesticks = await exchange.fetch_candlesticks(
                 symbol=symbol,
@@ -100,7 +100,7 @@ class CandlestickFetcher:
 
             elapsed_ms = (time.perf_counter() - start) * 1000
 
-            logger.info(
+            logger.debug(
                 f"[{exchange.name}] Successfully fetched {len(candlesticks)} candlesticks in {elapsed_ms:.2f}ms"
             )
 
@@ -115,7 +115,7 @@ class CandlestickFetcher:
         except CandlestickServiceError:
             raise
         except Exception as e:
-            logger.warning(f"[{exchange.name}] Fetch failed: {e}")
+            logger.debug(f"[{exchange.name}] Fetch failed: {e}")
             raise
 
     async def fetch(
@@ -165,7 +165,7 @@ class CandlestickFetcher:
                 )
                 pending_tasks.add(task)
 
-            logger.info(f"Racing {len(pending_tasks)} exchanges for {symbol} {interval.value}")
+            logger.debug(f"Racing {len(pending_tasks)} exchanges for {symbol} {interval.value}")
 
             # Wait for first successful result or all failures
             while pending_tasks:
@@ -182,7 +182,7 @@ class CandlestickFetcher:
 
                         # Validate we got actual data
                         if result.candlesticks:
-                            logger.info(
+                            logger.debug(
                                 f"First successful response from {result.exchange} "
                                 f"with {len(result.candlesticks)} candlesticks"
                             )
@@ -191,16 +191,25 @@ class CandlestickFetcher:
                             for pending_task in pending_tasks:
                                 pending_task.cancel()
 
+                            # Retrieve results from any other completed tasks to avoid
+                            # "Task exception was never retrieved" warnings
+                            for other_task in done:
+                                if other_task is not task and not other_task.cancelled():
+                                    try:
+                                        other_task.result()
+                                    except Exception:
+                                        pass  # Already logged, just consume the exception
+
                             return result
                         else:
                             # Empty result, treat as failure
-                            logger.warning(f"[{exchange_name}] Returned empty result")
+                            logger.debug(f"[{exchange_name}] Returned empty result")
                             errors[exchange_name] = Exception("Empty result")
 
                     except asyncio.CancelledError:
                         logger.debug(f"[{exchange_name}] Task cancelled")
                     except Exception as e:
-                        logger.warning(f"[{exchange_name}] Failed: {e}")
+                        logger.debug(f"[{exchange_name}] Failed: {e}")
                         errors[exchange_name] = e
 
             # All exchanges failed
@@ -291,7 +300,7 @@ class CandlestickFetcher:
 
                         # Check if result meets requirements
                         if len(result.candlesticks) >= min_count:
-                            logger.info(
+                            logger.debug(
                                 f"Sufficient data from {result.exchange}: {len(result.candlesticks)} candlesticks"
                             )
 
@@ -299,19 +308,28 @@ class CandlestickFetcher:
                             for pending_task in pending_tasks:
                                 pending_task.cancel()
 
+                            # Retrieve results from any other completed tasks to avoid
+                            # "Task exception was never retrieved" warnings
+                            for other_task in done:
+                                if other_task is not task and not other_task.cancelled():
+                                    try:
+                                        other_task.result()
+                                    except Exception:
+                                        pass
+
                             return result
 
                         # Keep track of best result so far
                         if best_result is None or len(result.candlesticks) > len(best_result.candlesticks):
                             best_result = result
-                            logger.info(
+                            logger.debug(
                                 f"Best result so far from {result.exchange}: {len(result.candlesticks)} candlesticks"
                             )
 
                     except asyncio.CancelledError:
                         pass
                     except Exception as e:
-                        logger.warning(f"[{exchange_name}] Failed: {e}")
+                        logger.debug(f"[{exchange_name}] Failed: {e}")
                         errors[exchange_name] = e
 
             # Return best result if we have any

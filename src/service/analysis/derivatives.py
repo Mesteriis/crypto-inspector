@@ -296,7 +296,7 @@ class DerivativesAnalyzer:
             )
 
         except httpx.HTTPError as e:
-            logger.error(f"Long/Short ratio API error for {symbol}: {e}")
+            logger.debug(f"Long/Short ratio API error for {symbol}: {e}")
             return None
         except Exception as e:
             logger.error(f"Long/Short ratio parsing error for {symbol}: {e}")
@@ -337,7 +337,7 @@ class DerivativesAnalyzer:
             )
 
         except httpx.HTTPError as e:
-            logger.error(f"Top trader API error for {symbol}: {e}")
+            logger.debug(f"Top trader API error for {symbol}: {e}")
             return None
         except Exception as e:
             logger.error(f"Top trader parsing error for {symbol}: {e}")

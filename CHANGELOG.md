@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.21 - Logging Improvements
+- **Date**: 2026-01-20
+- **Logging**: Changed candlestick fetch operations from INFO to DEBUG level to reduce log noise.
+- **Fixed**: Resolved "Task exception was never retrieved" asyncio warnings in fetcher.
+- **Fixed**: Changed expected API 404 errors (derivatives) from ERROR to DEBUG.
+- **Logging**: Set httpx, httpcore, apscheduler loggers to WARNING level.
+
 ## 0.2.17 - Documentation & Maintenance
 - **Date**: 2026-01-20
 - **Documentation**: Comprehensive README.md (1900+ lines) and DOCS.md (2000+ lines).
