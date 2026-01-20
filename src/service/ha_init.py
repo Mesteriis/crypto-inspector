@@ -7,13 +7,11 @@
 """
 
 import logging
-import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import httpx
-import yaml
 
 from service.ha import SensorRegistry
 from service.ha_integration import get_supervisor_client
@@ -544,189 +542,57 @@ async def cleanup_old_sensors() -> int:
 # ============================================================================
 
 
-async def create_input_number(client, object_id: str, config: InputNumberConfig) -> bool:
-    """
-    Создать input_number helper.
-
-    Args:
-        client: SupervisorAPIClient
-        object_id: ID без префикса
-        config: Конфигурация
-
-    Returns:
-        True если успешно создан или уже существует.
-    """
-    entity_id = f"input_number.{object_id}"
-
-    if await entity_exists(client, entity_id):
-        logger.debug(f"input_number {object_id} уже существует")
-        return True
-
-    # Пробуем создать через helpers API
-    http_client = await client._get_client()
-    helpers_url = "/core/api/config/input_number"
-
-    data = {
-        "name": config.name,
-        "min": config.min_value,
-        "max": config.max_value,
-        "step": config.step,
-        "mode": config.mode,
-        "icon": config.icon,
-    }
-    if config.initial is not None:
-        data["initial"] = config.initial
-    if config.unit:
-        data["unit_of_measurement"] = config.unit
-
-    try:
-        response = await http_client.post(helpers_url, json=data)
-        if response.status_code in (200, 201):
-            logger.info(f"Создан input_number: {object_id}")
-            return True
-        else:
-            logger.warning(
-                f"input_number {object_id} не создан автоматически (код {response.status_code}). "
-                f"Добавьте в configuration.yaml"
-            )
-            return False
-    except httpx.HTTPError as e:
-        logger.warning(f"Не удалось создать input_number {object_id}: {e}")
-        return False
-
-
-async def create_input_select(client, object_id: str, config: InputSelectConfig) -> bool:
-    """
-    Создать input_select helper.
-
-    Args:
-        client: SupervisorAPIClient
-        object_id: ID без префикса
-        config: Конфигурация
-
-    Returns:
-        True если успешно создан или уже существует.
-    """
-    entity_id = f"input_select.{object_id}"
-
-    if await entity_exists(client, entity_id):
-        logger.debug(f"input_select {object_id} уже существует")
-        return True
-
-    http_client = await client._get_client()
-    helpers_url = "/core/api/config/input_select"
-
-    data = {
-        "name": config.name,
-        "options": config.options,
-        "icon": config.icon,
-    }
-    if config.initial:
-        data["initial"] = config.initial
-
-    try:
-        response = await http_client.post(helpers_url, json=data)
-        if response.status_code in (200, 201):
-            logger.info(f"Создан input_select: {object_id}")
-            return True
-        else:
-            logger.warning(f"input_select {object_id} не создан автоматически. " f"Добавьте в configuration.yaml")
-            return False
-    except httpx.HTTPError as e:
-        logger.warning(f"Не удалось создать input_select {object_id}: {e}")
-        return False
-
-
-async def create_input_boolean(client, object_id: str, config: InputBooleanConfig) -> bool:
-    """
-    Создать input_boolean helper.
-
-    Args:
-        client: SupervisorAPIClient
-        object_id: ID без префикса
-        config: Конфигурация
-
-    Returns:
-        True если успешно создан или уже существует.
-    """
-    entity_id = f"input_boolean.{object_id}"
-
-    if await entity_exists(client, entity_id):
-        logger.debug(f"input_boolean {object_id} уже существует")
-        return True
-
-    http_client = await client._get_client()
-    helpers_url = "/core/api/config/input_boolean"
-
-    data = {
-        "name": config.name,
-        "icon": config.icon,
-        "initial": config.initial,
-    }
-
-    try:
-        response = await http_client.post(helpers_url, json=data)
-        if response.status_code in (200, 201):
-            logger.info(f"Создан input_boolean: {object_id}")
-            return True
-        else:
-            logger.warning(f"input_boolean {object_id} не создан автоматически. " f"Добавьте в configuration.yaml")
-            return False
-    except httpx.HTTPError as e:
-        logger.warning(f"Не удалось создать input_boolean {object_id}: {e}")
-        return False
-
-
 async def validate_and_create_helpers() -> dict[str, int]:
     """
-    Валидация и создание всех input_helpers.
+    Проверка наличия input_helpers.
+
+    ПРИМЕЧАНИЕ: Home Assistant REST API не поддерживает создание input helpers.
+    Пользователь должен создать их через UI или configuration.yaml.
 
     Returns:
-        Статистика: {"created": N, "existing": N, "failed": N}
+        Статистика: {"created": 0, "existing": N, "failed": 0}
     """
     client = get_supervisor_client()
 
     if not client.is_available:
-        logger.warning("Supervisor API недоступен, пропускаем создание input helpers")
+        logger.debug("Supervisor API недоступен, пропускаем проверку input helpers")
         return {"created": 0, "existing": 0, "failed": 0}
 
-    logger.info("Проверяем и создаём input helpers...")
-
     stats = {"created": 0, "existing": 0, "failed": 0}
+    missing_helpers: list[str] = []
 
-    # input_number
-    for object_id, config in INPUT_NUMBERS.items():
+    # Проверяем input_number
+    for object_id in INPUT_NUMBERS:
         entity_id = f"input_number.{object_id}"
         if await entity_exists(client, entity_id):
             stats["existing"] += 1
-        elif await create_input_number(client, object_id, config):
-            stats["created"] += 1
         else:
-            stats["failed"] += 1
+            missing_helpers.append(entity_id)
 
-    # input_select
-    for object_id, config in INPUT_SELECTS.items():
+    # Проверяем input_select
+    for object_id in INPUT_SELECTS:
         entity_id = f"input_select.{object_id}"
         if await entity_exists(client, entity_id):
             stats["existing"] += 1
-        elif await create_input_select(client, object_id, config):
-            stats["created"] += 1
         else:
-            stats["failed"] += 1
+            missing_helpers.append(entity_id)
 
-    # input_boolean
-    for object_id, config in INPUT_BOOLEANS.items():
+    # Проверяем input_boolean
+    for object_id in INPUT_BOOLEANS:
         entity_id = f"input_boolean.{object_id}"
         if await entity_exists(client, entity_id):
             stats["existing"] += 1
-        elif await create_input_boolean(client, object_id, config):
-            stats["created"] += 1
         else:
-            stats["failed"] += 1
+            missing_helpers.append(entity_id)
 
-    logger.info(
-        f"Input helpers: создано {stats['created']}, " f"существует {stats['existing']}, " f"ошибок {stats['failed']}"
-    )
+    # Логируем результат
+    if missing_helpers:
+        logger.debug(
+            f"Input helpers не найдены ({len(missing_helpers)}). "
+            f"Создайте их через UI: Настройки → Устройства и службы → Вспомогательные"
+        )
+    else:
+        logger.debug(f"Input helpers: все {stats['existing']} существуют")
 
     return stats
 
@@ -795,17 +661,9 @@ async def initialize_ha_entities() -> dict[str, Any]:
     try:
         blueprint_validation = await validate_blueprints()
         result["blueprints_valid"] = blueprint_validation.get("valid", 0)
-        result["blueprints_invalid"] = blueprint_validation.get("invalid", 0)
-        # Логируем детали валидации только при наличии проблем
-        invalid_details = {
-            name: details
-            for name, details in blueprint_validation.get("details", {}).items()
-            if details.get("errors") and "OK" not in details["errors"]
-        }
-        if invalid_details:
-            logger.warning(f"Невалидные blueprint-ы: {list(invalid_details.keys())}")
+        result["blueprints_invalid"] = blueprint_validation.get("invalid", 0) + blueprint_validation.get("missing", 0)
     except Exception as e:
-        logger.error(f"Ошибка при валидации blueprint-ов: {e}")
+        logger.debug(f"Ошибка при валидации blueprint-ов: {e}")
 
     # 5. Создание автоматизаций из blueprint-ов
     try:
@@ -817,20 +675,10 @@ async def initialize_ha_entities() -> dict[str, Any]:
         logger.error(f"Ошибка при создании автоматизаций: {e}")
 
     logger.info("=== Инициализация Home Assistant entities завершена ===")
-    logger.info(
+    logger.debug(
         f"Результат: "
-        f"сенсоров удалено={result['sensors_removed']}, "
-        f"helpers создано={result['helpers_created']}, "
-        f"helpers существует={result['helpers_existing']}, "
-        f"helpers ошибок={result['helpers_failed']}, "
-        f"blueprints установлено={result['blueprints_installed']}, "
-        f"blueprints пропущено={result['blueprints_skipped']}, "
-        f"blueprints ошибок={result['blueprints_failed']}, "
-        f"blueprints валидных={result['blueprints_valid']}, "
-        f"blueprints невалидных={result['blueprints_invalid']}, "
-        f"автоматизаций создано={result['automations_created']}, "
-        f"автоматизаций пропущено={result['automations_skipped']}, "
-        f"автоматизаций ошибок={result['automations_failed']}"
+        f"helpers={result['helpers_existing']}, "
+        f"blueprints={result['blueprints_valid']}/{result['blueprints_valid'] + result['blueprints_invalid']}"
     )
 
     return result
@@ -838,70 +686,22 @@ async def initialize_ha_entities() -> dict[str, Any]:
 
 async def install_blueprints() -> dict[str, int]:
     """
-    Автоматическая установка blueprint-ов в Home Assistant.
+    Установка blueprint-ов в Home Assistant.
 
-    Копирует файлы blueprint-ов из исходной директории в
-    конфигурационную директорию Home Assistant.
+    ПРИМЕЧАНИЕ: Add-on не может записывать файлы в /config (read-only filesystem).
+    Blueprint-ы должны быть установлены вручную через UI или скопированы в
+    /config/blueprints/automation/crypto_inspect/ вручную.
 
     Returns:
-        Статистика установки: {"installed": N, "skipped": N, "failed": N}
+        Статистика: всегда {"installed": 0, "skipped": 0, "failed": 0}
     """
     stats = {"installed": 0, "skipped": 0, "failed": 0}
 
-    # Проверяем доступность Supervisor API
-    client = get_supervisor_client()
-    if not client.is_available:
-        logger.warning("Supervisor API недоступен, пропускаем установку blueprint-ов")
-        return stats
-
-    logger.info("Начинаем установку blueprint-ов...")
-
-    # Создаем целевую директорию если она не существует
-    try:
-        BLUEPRINTS_TARGET_DIR.mkdir(parents=True, exist_ok=True)
-        logger.debug(f"Директория blueprint-ов создана: {BLUEPRINTS_TARGET_DIR}")
-    except Exception as e:
-        logger.error(f"Не удалось создать директорию blueprint-ов: {e}")
-        stats["failed"] = len(REQUIRED_BLUEPRINTS)
-        return stats
-
-    # Копируем каждый blueprint
-    for blueprint_file in REQUIRED_BLUEPRINTS:
-        source_path = BLUEPRINTS_SOURCE_DIR / blueprint_file
-        target_path = BLUEPRINTS_TARGET_DIR / blueprint_file
-
-        # Проверяем существование исходного файла
-        if not source_path.exists():
-            logger.warning(f"Исходный файл blueprint не найден: {source_path}")
-            stats["failed"] += 1
-            continue
-
-        # Проверяем нужно ли обновить
-        if target_path.exists():
-            try:
-                source_mtime = source_path.stat().st_mtime
-                target_mtime = target_path.stat().st_mtime
-                if source_mtime <= target_mtime:
-                    logger.debug(f"Blueprint уже актуален: {blueprint_file}")
-                    stats["skipped"] += 1
-                    continue
-            except Exception:
-                pass  # Если не можем проверить время, копируем заново
-
-        # Копируем файл
-        try:
-            shutil.copy2(source_path, target_path)
-            logger.info(f"Установлен blueprint: {blueprint_file}")
-            stats["installed"] += 1
-        except Exception as e:
-            logger.error(f"Не удалось скопировать blueprint {blueprint_file}: {e}")
-            stats["failed"] += 1
-
-    logger.info(
-        f"Установка blueprint-ов завершена: "
-        f"установлено={stats['installed']}, "
-        f"пропущено={stats['skipped']}, "
-        f"ошибок={stats['failed']}"
+    # Add-on не может записывать в /config (read-only filesystem)
+    # Blueprint-ы доступны в /blueprints директории add-on
+    logger.debug(
+        f"Blueprint-ы доступны в {BLUEPRINTS_SOURCE_DIR}. "
+        f"Скопируйте их вручную в {BLUEPRINTS_TARGET_DIR}"
     )
 
     return stats
@@ -911,85 +711,34 @@ async def validate_blueprints() -> dict[str, Any]:
     """
     Проверка корректности установленных blueprint-ов.
 
-    Проверяет:
-    1. Существование файлов
-    2. Корректность YAML формата
-    3. Наличие обязательных полей blueprint
-    4. Совместимость с текущей версией
+    ПРИМЕЧАНИЕ: Blueprint-ы устанавливаются пользователем вручную.
+    Эта функция только проверяет их наличие в целевой директории.
 
     Returns:
         Результаты валидации
     """
     results = {"total": len(REQUIRED_BLUEPRINTS), "valid": 0, "invalid": 0, "missing": 0, "details": {}}
 
-    logger.info("Начинаем валидацию blueprint-ов...")
-
+    # Проверяем наличие blueprint-ов в целевой директории
     for blueprint_file in REQUIRED_BLUEPRINTS:
         target_path = BLUEPRINTS_TARGET_DIR / blueprint_file
         blueprint_name = blueprint_file.replace(".yaml", "")
 
-        result = {"exists": False, "valid_format": False, "has_blueprint_section": False, "errors": []}
-
-        # Проверяем существование файла
-        if not target_path.exists():
-            result["errors"].append("Файл не найден")
-            results["missing"] += 1
-            results["details"][blueprint_name] = result
-            continue
-
-        result["exists"] = True
-
-        # Проверяем формат YAML
-        try:
-            with open(target_path, encoding="utf-8") as f:
-                content = yaml.safe_load(f)
-            result["valid_format"] = True
-        except yaml.YAMLError as e:
-            result["errors"].append(f"Ошибка YAML: {str(e)}")
-            results["invalid"] += 1
-            results["details"][blueprint_name] = result
-            continue
-        except Exception as e:
-            result["errors"].append(f"Ошибка чтения файла: {str(e)}")
-            results["invalid"] += 1
-            results["details"][blueprint_name] = result
-            continue
-
-        # Проверяем наличие секции blueprint
-        if not isinstance(content, dict) or "blueprint" not in content:
-            result["errors"].append("Отсутствует секция 'blueprint'")
-            results["invalid"] += 1
-            results["details"][blueprint_name] = result
-            continue
-
-        blueprint_section = content["blueprint"]
-        result["has_blueprint_section"] = True
-
-        # Проверяем обязательные поля в секции blueprint
-        required_fields = ["name", "domain"]
-        for field in required_fields:
-            if field not in blueprint_section:
-                result["errors"].append(f"Отсутствует обязательное поле: {field}")
-
-        # Проверяем что domain = automation
-        if blueprint_section.get("domain") != "automation":
-            result["errors"].append("Неверный домен (должен быть 'automation')")
-
-        # Если есть ошибки, помечаем как невалидный
-        if result["errors"]:
-            results["invalid"] += 1
-        else:
+        if target_path.exists():
             results["valid"] += 1
-            result["errors"] = ["OK"]
+            results["details"][blueprint_name] = {"exists": True, "errors": []}
+        else:
+            results["missing"] += 1
+            results["details"][blueprint_name] = {"exists": False, "errors": ["Файл не найден"]}
 
-        results["details"][blueprint_name] = result
-
-    logger.info(
-        f"Валидация завершена: "
-        f"валидных={results['valid']}, "
-        f"невалидных={results['invalid']}, "
-        f"отсутствующих={results['missing']}"
-    )
+    # Логируем результат
+    if results["missing"] > 0:
+        logger.debug(
+            f"Blueprint-ы не установлены ({results['missing']}/{results['total']}). "
+            f"Скопируйте из {BLUEPRINTS_SOURCE_DIR} в {BLUEPRINTS_TARGET_DIR}"
+        )
+    else:
+        logger.debug(f"Blueprint-ы: все {results['valid']} установлены")
 
     return results
 

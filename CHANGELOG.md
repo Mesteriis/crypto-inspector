@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.23 - HA Init Graceful Degradation
+- **Date**: 2026-01-20
+- **Fixed**: Removed input_helpers creation via REST API (not supported by HA).
+- **Fixed**: Removed blueprint file copying (read-only filesystem in add-on).
+- **Logging**: Changed all HA init warnings to DEBUG level.
+- **Note**: Input helpers and blueprints must be created manually via HA UI.
+
 ## 0.2.22 - HA Automation Fix
 - **Date**: 2026-01-20
 - **Fixed**: Removed automation creation via REST API (not supported by HA).
