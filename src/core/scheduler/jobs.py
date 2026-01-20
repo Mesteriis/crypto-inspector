@@ -854,6 +854,9 @@ async def divergence_job() -> None:
     and update HA sensors.
     """
     from service.analysis.divergences import DivergenceDetector
+    from service.analysis.technical import TechnicalAnalyzer
+    from service.candlestick import fetch_candlesticks
+    from service.candlestick.models import CandleInterval
     from service.ha import get_sensors_manager
     from service.ha_integration import notify
 
@@ -861,6 +864,7 @@ async def divergence_job() -> None:
     logger.info(f"[{current_time}] Starting divergence detection job")
 
     detector = DivergenceDetector()
+    ta = TechnicalAnalyzer()
     sensors = get_sensors_manager()
     symbols = get_currency_list()
     base_symbols = [s.split("/")[0] for s in symbols]  # BTC/USDT -> BTC
@@ -870,35 +874,86 @@ async def divergence_job() -> None:
         divergence_data = {}  # Dictionary for all symbols
 
         for symbol in base_symbols:
-            divergences = await detector.detect_divergences(symbol)
-            active_count += len(divergences)
-
-            # Find most significant divergence for this symbol
-            if divergences:
-                # Prioritize by timeframe (4h, 1d are more significant)
-                best = max(divergences, key=lambda d: d.timeframe in ["4h", "1d"])
-                sensor_value = f"{best.divergence_type.capitalize()} {best.timeframe}"
-
-                # Notify on significant divergences
-                await notify(
-                    message=(
-                        f"{symbol}: {best.divergence_type} дивергенция на {best.timeframe}\n"
-                        f"Индикатор: {best.indicator}\n"
-                        f"Уверенность: {best.confidence:.0%}"
-                    ),
-                    title=f"📊 Дивергенция {symbol}",
-                    notification_id=f"divergence_{symbol.lower()}_{best.timeframe}",
+            try:
+                # Fetch candle data for 4h timeframe (most useful for divergences)
+                candles = await fetch_candlesticks(
+                    symbol=f"{symbol}/USDT",
+                    interval=CandleInterval.HOUR_4,
+                    limit=100,
                 )
-            else:
-                sensor_value = "None"
 
-            # Add to dictionary
-            divergence_data[symbol] = sensor_value
-            logger.info(f"{symbol} divergences: {len(divergences)}")
+                if len(candles) < 50:
+                    divergence_data[symbol] = "Insufficient data"
+                    continue
+
+                # Convert to list of close prices and calculate indicators
+                closes = [float(c.close_price) for c in candles]
+                rsi_values = []
+                macd_values = []
+
+                # Calculate RSI and MACD for each candle (rolling window)
+                for i in range(14, len(closes)):
+                    rsi = ta.calc_rsi(closes[: i + 1])
+                    if rsi is not None:
+                        rsi_values.append(rsi)
+
+                for i in range(35, len(closes)):  # MACD needs 26+9 bars
+                    _, _, hist = ta.calc_macd(closes[: i + 1])
+                    if hist is not None:
+                        macd_values.append(hist)
+
+                # Align arrays
+                min_len = min(len(closes) - 35, len(rsi_values), len(macd_values))
+                if min_len < 20:
+                    divergence_data[symbol] = "Insufficient data"
+                    continue
+
+                aligned_prices = closes[-min_len:]
+                aligned_rsi = rsi_values[-min_len:]
+                aligned_macd = macd_values[-min_len:]
+
+                # Detect divergences
+                divergences = detector.detect(
+                    symbol=symbol,
+                    prices=aligned_prices,
+                    rsi_values=aligned_rsi,
+                    macd_values=aligned_macd,
+                    timeframe="4h",
+                )
+                active_count += len(divergences)
+
+                # Find most significant divergence for this symbol
+                if divergences:
+                    # Prioritize by strength
+                    best = max(divergences, key=lambda d: d.strength.value)
+                    sensor_value = f"{best.div_type.value} {best.timeframe}"
+
+                    # Notify on significant divergences (strong only)
+                    if best.strength.value >= 2:  # MODERATE or STRONG
+                        await notify(
+                            message=(
+                                f"{symbol}: {best.div_type.value} дивергенция на {best.timeframe}\n"
+                                f"Индикатор: {best.indicator}\n"
+                                f"Сила: {best.strength.value}"
+                            ),
+                            title=f"📊 Дивергенция {symbol}",
+                            notification_id=f"divergence_{symbol.lower()}_{best.timeframe}",
+                        )
+                else:
+                    sensor_value = "None"
+
+                # Add to dictionary
+                divergence_data[symbol] = sensor_value
+                logger.debug(f"{symbol} divergences: {len(divergences)}")
+
+            except Exception as e:
+                logger.warning(f"Failed to analyze {symbol}: {e}")
+                divergence_data[symbol] = "Error"
 
         # Update with dictionary format
         await sensors._publish_state("divergences", divergence_data)
         await sensors.publish_sensor("divergences_active", active_count)
+        logger.info(f"Divergence job complete: {active_count} active divergences")
 
     except Exception as e:
         logger.error(f"Divergence job failed: {e}")
