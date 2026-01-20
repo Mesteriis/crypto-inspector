@@ -3,7 +3,7 @@
 
 name: "Crypto Inspect"
 description: "Сбор и анализ данных криптовалютных свечей"
-version: "0.2.15"
+version: "0.2.16"
 slug: "crypto_inspect"
 url: "https://github.com/Mesteriis/crypto-inspector"
 init: false
@@ -14,7 +14,7 @@ homeassistant_api: true
 ingress: true
 ingress_port: 0
 host_network: true
-panel_icon: "mdi:chart-line"
+panel_icon: "mdi:bitcoin"
 panel_title: "Crypto Inspect"
 
 services:
@@ -76,6 +76,9 @@ schema:
   bybit_api_key: password?
   bybit_api_secret: password?
   bybit_testnet: bool?
+
+  # === API Server ===
+  api_enabled: bool?
 
   # === MCP Server ===
   mcp_enabled: bool?
