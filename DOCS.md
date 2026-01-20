@@ -10,6 +10,377 @@ Crypto Inspect - это профессиональный криптовалют�
 2. Настройте Bybit API ключи (опционально)
 3. Запустите add-on
 4. Сенсоры появятся автоматически в Home Assistant
+5. Настройте input helpers и blueprints (см. ниже)
+
+---
+
+## Ручная настройка Input Helpers и Blueprints
+
+Home Assistant не поддерживает автоматическое создание input helpers и blueprints через REST API.
+Ниже инструкции по ручной настройке.
+
+### 📁 Установка Blueprints
+
+**Исходные файлы:** `/addon_configs/local_crypto_inspect/blueprints/` или в репозитории: [`blueprints/`](https://github.com/Mesteriis/crypto-inspector/tree/main/blueprints)
+
+**Куда копировать:** `/config/blueprints/automation/crypto_inspect/`
+
+**Список blueprint-ов:**
+
+| Файл | Описание |
+|------|----------|
+| `price_alert.yaml` | Ценовые алерты |
+| `fear_greed_alert.yaml` | Алерты Fear & Greed Index |
+| `dca_reminder.yaml` | Напоминания о DCA |
+| `technical_signal.yaml` | Технические сигналы |
+| `morning_briefing.yaml` | Утренний брифинг |
+| `evening_briefing.yaml` | Вечерний брифинг |
+| `daily_digest.yaml` | Ежедневный дайджест |
+| `weekly_summary.yaml` | Недельный обзор |
+| `whale_alert.yaml` | Алерты китов |
+| `risk_alert.yaml` | Риск-алерты |
+| `rsi_alert.yaml` | RSI алерты |
+| `drawdown_alert.yaml` | Алерты просадки |
+| `gas_price_alert.yaml` | Алерты цены газа |
+| `goal_milestone.yaml` | Достижение целей |
+| `portfolio_milestone.yaml` | Milestone портфеля |
+| `ai_report.yaml` | AI отчёт |
+| `market_phase_change.yaml` | Смена фазы рынка |
+| `adaptive_notifications.yaml` | Адаптивные уведомления |
+
+**Создание автоматизации из blueprint:**
+1. Настройки → Автоматизации → Создать автоматизацию
+2. Выберите "Использовать blueprint"
+3. Выберите нужный blueprint из папки `crypto_inspect`
+4. Заполните параметры и сохраните
+
+---
+
+### ⚙️ Настройка Input Helpers
+
+Добавьте в `configuration.yaml` или создайте через UI (Настройки → Устройства и службы → Вспомогательные):
+
+```yaml
+# /config/configuration.yaml
+
+# ============================================
+# CRYPTO INSPECT - INPUT HELPERS
+# ============================================
+
+input_number:
+  # DCA настройки
+  crypto_dca_weekly_amount:
+    name: "DCA недельный бюджет"
+    min: 10
+    max: 10000
+    step: 10
+    initial: 100
+    unit_of_measurement: "€"
+    icon: mdi:cash
+  crypto_dca_btc_weight:
+    name: "DCA вес BTC"
+    min: 0
+    max: 100
+    step: 5
+    initial: 50
+    unit_of_measurement: "%"
+    icon: mdi:bitcoin
+    mode: slider
+  crypto_dca_eth_weight:
+    name: "DCA вес ETH"
+    min: 0
+    max: 100
+    step: 5
+    initial: 30
+    unit_of_measurement: "%"
+    icon: mdi:ethereum
+    mode: slider
+  crypto_dca_alt_weight:
+    name: "DCA вес Alts"
+    min: 0
+    max: 100
+    step: 5
+    initial: 20
+    unit_of_measurement: "%"
+    icon: mdi:currency-usd
+    mode: slider
+
+  # RSI пороги
+  crypto_rsi_oversold:
+    name: "RSI перепроданность"
+    min: 10
+    max: 50
+    step: 1
+    initial: 30
+    icon: mdi:chart-line
+    mode: slider
+  crypto_rsi_overbought:
+    name: "RSI перекупленность"
+    min: 50
+    max: 90
+    step: 1
+    initial: 70
+    icon: mdi:chart-line
+    mode: slider
+
+  # Fear & Greed пороги
+  crypto_fg_extreme_fear:
+    name: "F&G экстремальный страх"
+    min: 0
+    max: 50
+    step: 1
+    initial: 20
+    icon: mdi:emoticon-cry
+    mode: slider
+  crypto_fg_extreme_greed:
+    name: "F&G экстремальная жадность"
+    min: 50
+    max: 100
+    step: 1
+    initial: 80
+    icon: mdi:emoticon-happy
+    mode: slider
+
+  # Whale Alert пороги
+  crypto_whale_btc_threshold:
+    name: "Порог кита BTC"
+    min: 10
+    max: 10000
+    step: 10
+    initial: 100
+    unit_of_measurement: "BTC"
+    icon: mdi:whale
+  crypto_whale_eth_threshold:
+    name: "Порог кита ETH"
+    min: 100
+    max: 100000
+    step: 100
+    initial: 1000
+    unit_of_measurement: "ETH"
+    icon: mdi:whale
+
+  # Ценовые алерты
+  crypto_btc_price_alert_low:
+    name: "BTC алерт (низ)"
+    min: 1000
+    max: 500000
+    step: 1000
+    initial: 80000
+    unit_of_measurement: "USDT"
+    icon: mdi:arrow-down-circle
+  crypto_btc_price_alert_high:
+    name: "BTC алерт (верх)"
+    min: 1000
+    max: 500000
+    step: 1000
+    initial: 120000
+    unit_of_measurement: "USDT"
+    icon: mdi:arrow-up-circle
+  crypto_eth_price_alert_low:
+    name: "ETH алерт (низ)"
+    min: 100
+    max: 50000
+    step: 100
+    initial: 2500
+    unit_of_measurement: "USDT"
+    icon: mdi:arrow-down-circle
+  crypto_eth_price_alert_high:
+    name: "ETH алерт (верх)"
+    min: 100
+    max: 50000
+    step: 100
+    initial: 5000
+    unit_of_measurement: "USDT"
+    icon: mdi:arrow-up-circle
+
+  # Конвертор валют
+  converter_amount:
+    name: "Сумма конвертации"
+    min: 1
+    max: 1000000
+    step: 1
+    initial: 100
+    icon: mdi:calculator
+
+  # Очистка данных
+  crypto_cleanup_keep_days:
+    name: "Хранить данные (дней)"
+    min: 1
+    max: 365
+    step: 1
+    initial: 30
+    unit_of_measurement: "дн."
+    icon: mdi:calendar-range
+  crypto_cleanup_min_candles:
+    name: "Мин. свечей для хранения"
+    min: 100
+    max: 10000
+    step: 100
+    initial: 1000
+    icon: mdi:database
+
+  # Риск-менеджмент
+  crypto_max_drawdown_alert:
+    name: "Макс. просадка для алерта"
+    min: 5
+    max: 50
+    step: 1
+    initial: 20
+    unit_of_measurement: "%"
+    icon: mdi:trending-down
+    mode: slider
+  crypto_position_size_max:
+    name: "Макс. размер позиции"
+    min: 1
+    max: 100
+    step: 1
+    initial: 10
+    unit_of_measurement: "%"
+    icon: mdi:resize
+    mode: slider
+
+input_select:
+  crypto_chart_coin:
+    name: "Монета для графика"
+    options:
+      - BTC
+      - ETH
+      - SOL
+      - TON
+      - AR
+    initial: BTC
+    icon: mdi:bitcoin
+  crypto_main_coin:
+    name: "Основная монета"
+    options:
+      - BTC
+      - ETH
+      - SOL
+      - TON
+      - AR
+    initial: BTC
+    icon: mdi:star
+  crypto_compare_coin:
+    name: "Монета для сравнения"
+    options:
+      - Нет
+      - BTC
+      - ETH
+      - SOL
+      - TON
+      - AR
+    initial: Нет
+    icon: mdi:compare
+  crypto_currency:
+    name: "Валюта отображения"
+    options:
+      - EUR
+      - USD
+      - RUB
+      - USDT
+    initial: EUR
+    icon: mdi:currency-eur
+  crypto_ta_coin:
+    name: "Монета для TA"
+    options:
+      - BTC
+      - ETH
+      - SOL
+      - TON
+      - AR
+    initial: BTC
+    icon: mdi:chart-line
+  crypto_ta_timeframe:
+    name: "Таймфрейм TA"
+    options:
+      - 15m
+      - 1h
+      - 4h
+      - 1d
+      - 1w
+    initial: 1h
+    icon: mdi:clock-outline
+  crypto_notification_language:
+    name: "Язык уведомлений"
+    options:
+      - Russian
+      - English
+    initial: Russian
+    icon: mdi:translate
+  crypto_sensor_language:
+    name: "Язык сенсоров"
+    options:
+      - Russian
+      - English
+    initial: Russian
+    icon: mdi:translate-variant
+  crypto_notification_mode:
+    name: "Режим уведомлений"
+    options:
+      - all
+      - smart
+      - digest_only
+      - critical_only
+      - silent
+    initial: smart
+    icon: mdi:bell-cog
+  converter_currency:
+    name: "Исходная валюта"
+    options:
+      - EUR
+      - USD
+      - RUB
+      - UAH
+      - BTC
+      - ETH
+      - USDT
+    initial: EUR
+    icon: mdi:swap-horizontal
+
+input_boolean:
+  crypto_alerts_enabled:
+    name: "Алерты включены"
+    initial: true
+    icon: mdi:bell
+  crypto_dca_reminders_enabled:
+    name: "DCA напоминания"
+    initial: true
+    icon: mdi:calendar-check
+  crypto_whale_alerts_enabled:
+    name: "Whale алерты"
+    initial: true
+    icon: mdi:whale
+  crypto_morning_briefing_enabled:
+    name: "Утренний брифинг"
+    initial: true
+    icon: mdi:weather-sunny
+  crypto_evening_briefing_enabled:
+    name: "Вечерний брифинг"
+    initial: true
+    icon: mdi:weather-night
+  crypto_ai_analysis_enabled:
+    name: "AI анализ"
+    initial: false
+    icon: mdi:robot
+  crypto_risk_alerts_enabled:
+    name: "Риск-алерты"
+    initial: true
+    icon: mdi:shield-alert
+  crypto_technical_signals_enabled:
+    name: "Технические сигналы"
+    initial: true
+    icon: mdi:chart-line
+  crypto_cleanup_history_trigger:
+    name: "Очистить историю"
+    initial: false
+    icon: mdi:delete-clock
+  crypto_cleanup_database_trigger:
+    name: "Очистить базу данных"
+    initial: false
+    icon: mdi:database-remove
+```
+
+После добавления перезагрузите Home Assistant: **Инструменты разработчика → Перезагрузить YAML → Input Numbers / Input Selects / Input Booleans**
 
 ## Конфигурация
 
