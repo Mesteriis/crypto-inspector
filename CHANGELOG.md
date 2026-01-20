@@ -12,7 +12,7 @@
 - Progressive disclosure dashboards (Summary → Detailed → Power User)
 
 ### Sensors
-- 100+ MQTT sensors with automatic Home Assistant discovery
+- 100+ sensors via Supervisor REST API (auto-discovery)
 - Dictionary format for multi-currency data (prices, changes, RSI, etc.)
 - Traditional finance sensors (Gold, S&P500, NASDAQ, EUR/USD, Oil)
 - AI prediction sensors (trends, forecasts, confidence levels)
@@ -30,7 +30,7 @@
 ## 0.2.0 - UX Enhancement Suite & Sensor Refactoring
 
 ### New Features
-- **100+ MQTT Sensors** with automatic Home Assistant discovery
+- **100+ Sensors** via Supervisor REST API with auto-discovery
 - **Lazy Investor Mode**: "Do Nothing OK" indicator, market phases, DCA signals
 - **Smart Summary System**: Market Pulse, Today's Action, Portfolio Health
 - **Briefing System**: Morning/Evening briefings with bilingual support (EN/RU)

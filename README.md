@@ -1916,9 +1916,9 @@ automation:
 
 ### Сенсоры не появляются
 
-1. Проверьте что MQTT настроен в HA
-2. Перезапустите add-on
-3. Проверьте логи: `Settings → Add-ons → Crypto Inspect → Logs`
+1. Перезапустите add-on
+2. Проверьте логи: `Settings → Add-ons → Crypto Inspect → Logs`
+3. Убедитесь что add-on работает (зеленый статус)
 
 ### Bybit не подключается
 

@@ -19,7 +19,6 @@ panel_title: "Crypto Inspect"
 
 services:
   - mysql:want
-  - mqtt:want
 
 ports:
   9999/tcp: 9999
