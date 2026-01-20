@@ -358,8 +358,50 @@ async def scheduler_lifespan(app: FastAPI) -> AsyncGenerator[None]:
     for job in jobs:
         logger.info(f"  Job registered: {job.name} (id={job.id}, trigger={job.trigger})")
 
+    # Run initial jobs to populate sensors (avoid 'unknown' state)
+    await _run_startup_jobs()
+
     yield
 
     # Shutdown the scheduler
     sched.shutdown(wait=False)
     logger.info("Scheduler shutdown")
+
+
+async def _run_startup_jobs() -> None:
+    """
+    Run critical jobs at startup to populate sensors.
+
+    This prevents sensors from showing 'unknown' until scheduled run.
+    """
+    import asyncio
+
+    from core.scheduler.jobs import (
+        gas_tracker_job,
+        investor_analysis_job,
+        profit_taking_job,
+        unlocks_job,
+        volatility_job,
+    )
+
+    logger.info("Running startup jobs to initialize sensors...")
+
+    # Run jobs in parallel with timeout
+    startup_jobs = [
+        ("gas_tracker", gas_tracker_job),
+        ("investor_analysis", investor_analysis_job),
+        ("volatility", volatility_job),
+        ("profit_taking", profit_taking_job),
+        ("unlocks", unlocks_job),
+    ]
+
+    for name, job_func in startup_jobs:
+        try:
+            await asyncio.wait_for(job_func(), timeout=30.0)
+            logger.debug(f"Startup job '{name}' completed")
+        except asyncio.TimeoutError:
+            logger.warning(f"Startup job '{name}' timed out")
+        except Exception as e:
+            logger.warning(f"Startup job '{name}' failed: {e}")
+
+    logger.info("Startup jobs completed")
