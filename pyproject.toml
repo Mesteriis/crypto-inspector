@@ -1,6 +1,6 @@
 [project]
 name = "crypto-inspect"
-version = "0.2.21"
+version = "0.2.22"
 description = "Crypto inspection application"
 requires-python = ">=3.11"
 dependencies = [

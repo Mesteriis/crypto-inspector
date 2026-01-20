@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.22 - HA Automation Fix
+- **Date**: 2026-01-20
+- **Fixed**: Removed automation creation via REST API (not supported by HA).
+- **Note**: Automations should be created manually via UI: Settings → Automations → Create from Blueprint → Crypto Inspect.
+
 ## 0.2.21 - Logging Improvements
 - **Date**: 2026-01-20
 - **Logging**: Changed candlestick fetch operations from INFO to DEBUG level to reduce log noise.

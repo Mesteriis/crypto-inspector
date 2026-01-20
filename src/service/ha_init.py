@@ -998,183 +998,20 @@ async def create_automations_from_blueprints() -> dict[str, int]:
     """
     Создание автоматизаций на основе установленных blueprint-ов.
 
-    Использует дефолтные параметры для создания базовых автоматизаций.
+    ПРИМЕЧАНИЕ: Home Assistant REST API не поддерживает создание автоматизаций.
+    Автоматизации создаются пользователем вручную через UI на основе blueprint-ов.
 
     Returns:
-        Статистика создания: {"created": N, "skipped": N, "failed": N}
+        Статистика: всегда {"created": 0, "skipped": 0, "failed": 0}
     """
     stats = {"created": 0, "skipped": 0, "failed": 0}
 
-    client = get_supervisor_client()
-    if not client.is_available:
-        logger.warning("Supervisor API недоступен, пропускаем создание автоматизаций")
-        return stats
-
-    logger.info("Начинаем создание автоматизаций из blueprint-ов...")
-
-    # Получаем список мобильных устройств для уведомлений
-    mobile_devices = await _get_mobile_devices(client)
-    if not mobile_devices:
-        logger.warning("Мобильные устройства не найдены, некоторые автоматизации могут не работать")
-
-    # Создаем автоматизации для каждого blueprint с дефолтными параметрами
-    for blueprint_file, default_config in DEFAULT_AUTOMATION_CONFIGS.items():
-        blueprint_name = blueprint_file.replace(".yaml", "")
-        automation_id = f"crypto_inspect_{blueprint_name}_default"
-
-        # Проверяем существует ли уже такая автоматизация
-        if await _automation_exists(client, automation_id):
-            logger.debug(f"Автоматизация уже существует: {automation_id}")
-            stats["skipped"] += 1
-            continue
-
-        # Обновляем конфигурацию с реальными данными
-        config = default_config.copy()
-        if config.get("notify_device") is None and mobile_devices:
-            config["notify_device"] = mobile_devices[0]  # Используем первое доступное устройство
-
-        # Создаем автоматизацию
-        success = await _create_automation_from_blueprint(client, automation_id, blueprint_name, config)
-
-        if success:
-            logger.info(f"Создана автоматизация: {automation_id}")
-            stats["created"] += 1
-        else:
-            logger.error(f"Не удалось создать автоматизацию: {automation_id}")
-            stats["failed"] += 1
-
-    logger.info(
-        f"Создание автоматизаций завершено: "
-        f"создано={stats['created']}, "
-        f"пропущено={stats['skipped']}, "
-        f"ошибок={stats['failed']}"
+    # Home Assistant REST API не поддерживает создание автоматизаций
+    # Пользователь должен создать их вручную через UI:
+    # Настройки → Автоматизации → Создать из Blueprint → Crypto Inspect
+    logger.debug(
+        "Автоматизации создаются пользователем вручную через UI на основе blueprint-ов. "
+        "Настройки → Автоматизации → Создать из Blueprint → Crypto Inspect"
     )
 
     return stats
-
-
-async def _get_mobile_devices(client) -> list[str]:
-    """Получить список мобильных устройств."""
-    try:
-        http_client = await client._get_client()
-        response = await http_client.get("/core/api/devices")
-        response.raise_for_status()
-
-        devices = response.json()
-        mobile_devices = []
-
-        for device in devices:
-            if device.get("disabled_by") is None:  # Не отключенное устройство
-                integrations = device.get("config_entries", [])
-                # Ищем устройства с мобильной интеграцией
-                for config_entry in integrations:
-                    # Здесь можно добавить более точную проверку интеграции
-                    if "mobile_app" in str(config_entry).lower():
-                        mobile_devices.append(device["id"])
-                        break
-
-        return mobile_devices
-    except Exception as e:
-        logger.error(f"Ошибка получения списка мобильных устройств: {e}")
-        return []
-
-
-async def _automation_exists(client, automation_id: str) -> bool:
-    """Проверить существует ли автоматизация."""
-    try:
-        http_client = await client._get_client()
-        response = await http_client.get(f"/core/api/automations/{automation_id}")
-        return response.status_code == 200
-    except Exception:
-        return False
-
-
-async def _create_automation_from_blueprint(client, automation_id: str, blueprint_name: str, config: dict) -> bool:
-    """Создать автоматизацию на основе blueprint."""
-    try:
-        http_client = await client._get_client()
-
-        # Формируем конфигурацию автоматизации
-        automation_config = {
-            "alias": f"Crypto Inspect - {blueprint_name.title()} (Auto)",
-            "description": f"Автоматически созданная автоматизация из blueprint: {blueprint_name}",
-            "mode": "single",
-            "use_blueprint": {"path": f"crypto_inspect/{blueprint_name}.yaml", "input": config},
-        }
-
-        # Отправляем запрос на создание
-        response = await http_client.post("/core/api/automations", json=automation_config)
-
-        return response.status_code in (200, 201)
-
-    except Exception as e:
-        logger.error(f"Ошибка создания автоматизации {automation_id}: {e}")
-        return False
-
-    """
-    Генерирует YAML-конфигурацию для отсутствующих input helpers.
-
-    Полезно если автоматическое создание не сработало.
-
-    Returns:
-        YAML строка для configuration.yaml
-    """
-    client = get_supervisor_client()
-    yaml_parts = []
-
-    # input_number
-    missing_numbers = []
-    for object_id, config in INPUT_NUMBERS.items():
-        entity_id = f"input_number.{object_id}"
-        if not await entity_exists(client, entity_id):
-            lines = [f"  {object_id}:"]
-            lines.append(f'    name: "{config.name}"')
-            lines.append(f"    min: {config.min_value}")
-            lines.append(f"    max: {config.max_value}")
-            lines.append(f"    step: {config.step}")
-            if config.initial is not None:
-                lines.append(f"    initial: {config.initial}")
-            if config.unit:
-                lines.append(f'    unit_of_measurement: "{config.unit}"')
-            lines.append(f"    icon: {config.icon}")
-            missing_numbers.append("\n".join(lines))
-
-    if missing_numbers:
-        yaml_parts.append("input_number:")
-        yaml_parts.extend(missing_numbers)
-
-    # input_select
-    missing_selects = []
-    for object_id, config in INPUT_SELECTS.items():
-        entity_id = f"input_select.{object_id}"
-        if not await entity_exists(client, entity_id):
-            lines = [f"  {object_id}:"]
-            lines.append(f'    name: "{config.name}"')
-            lines.append("    options:")
-            for opt in config.options:
-                lines.append(f"      - {opt}")
-            if config.initial:
-                lines.append(f"    initial: {config.initial}")
-            lines.append(f"    icon: {config.icon}")
-            missing_selects.append("\n".join(lines))
-
-    if missing_selects:
-        yaml_parts.append("\ninput_select:")
-        yaml_parts.extend(missing_selects)
-
-    # input_boolean
-    missing_booleans = []
-    for object_id, config in INPUT_BOOLEANS.items():
-        entity_id = f"input_boolean.{object_id}"
-        if not await entity_exists(client, entity_id):
-            lines = [f"  {object_id}:"]
-            lines.append(f'    name: "{config.name}"')
-            lines.append(f"    initial: {'true' if config.initial else 'false'}")
-            lines.append(f"    icon: {config.icon}")
-            missing_booleans.append("\n".join(lines))
-
-    if missing_booleans:
-        yaml_parts.append("\ninput_boolean:")
-        yaml_parts.extend(missing_booleans)
-
-    return "\n".join(yaml_parts)
