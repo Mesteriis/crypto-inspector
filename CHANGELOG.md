@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.26 - Sensor Initialization & Startup Improvements
+- **Date**: 2026-01-20
+- **Fixed**: Divergence job now uses correct `DivergenceDetector.detect()` API.
+- **Feature**: Run startup jobs immediately to populate sensors (no more 'unknown' state).
+- **Feature**: Set informative initial values for disabled features:
+  - AI sensors show "AI disabled" when `AI_ENABLED=false`
+  - Bybit sensors show 0 with "not_configured" status when no credentials
+  - Goal sensors show "Goal disabled" when `GOAL_ENABLED=false`
+  - Other sensors show "Loading..." until startup jobs complete
+
 ## 0.2.25 - Fix Sensor Registration (152 sensors)
 - **Date**: 2026-01-20
 - **Fixed**: Changed sensor registration to use `HAIntegrationManager.register_sensors()` instead of legacy `ha_integration.register_sensors()`.
