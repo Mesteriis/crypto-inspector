@@ -1,29 +1,90 @@
 # Standalone Dockerfile (non-Home Assistant)
-FROM python:3.13-slim
+# syntax=docker/dockerfile:1.4
 
-WORKDIR /app
+# =============================================================================
+# Stage 1: Builder - Install dependencies
+# =============================================================================
+FROM python:3.13-slim AS builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gfortran \
+    pkg-config \
+    libopenblas-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONPATH=/app/src
+# Set uv environment
+ENV UV_NO_PROGRESS=1 \
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy
+
+WORKDIR /app
 
 # Copy dependency files
-COPY pyproject.toml uv.lock* ./
+COPY pyproject.toml uv.lock ./
 
-# Install dependencies
-RUN uv sync --frozen --no-dev
+# Install dependencies with cache mount
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev \
+    && find /app/.venv -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true \
+    && find /app/.venv -type f -name "*.pyc" -delete 2>/dev/null || true \
+    && find /app/.venv -type f -name "*.pyo" -delete 2>/dev/null || true \
+    && find /app/.venv -type f -name "*.pyi" -delete 2>/dev/null || true \
+    && rm -rf /app/.venv/share/doc \
+    && rm -rf /app/.venv/share/man \
+    && rm -rf /app/.venv/lib/python*/site-packages/torch/test 2>/dev/null || true
+
+# =============================================================================
+# Stage 2: Runtime - Minimal production image
+# =============================================================================
+FROM python:3.13-slim AS runtime
+
+# Labels
+LABEL maintainer="Crypto Inspect" \
+    org.opencontainers.image.title="Crypto Inspect Standalone" \
+    org.opencontainers.image.description="Cryptocurrency data collector"
+
+# Install only runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libopenblas0 \
+    libgomp1 \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean \
+    && rm -rf /tmp/* /var/tmp/*
+
+WORKDIR /app
+
+# Copy virtual environment from builder
+COPY --from=builder /app/.venv /app/.venv
+
+# Set environment variables
+ENV VIRTUAL_ENV=/app/.venv \
+    PATH="/app/.venv/bin:$PATH" \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app/src \
+    PYTHONFAULTHANDLER=1
 
 # Copy application code
-COPY src ./src
-COPY alembic ./alembic
-COPY alembic.ini ./
+COPY --chown=root:root src ./src
+COPY --chown=root:root alembic ./alembic
+COPY --chown=root:root alembic.ini ./
+
+# Create data directory
+RUN mkdir -p /data && chmod 755 /data
 
 # Expose port
 EXPOSE 8000
 
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:8000/api/health || exit 1
+
 # Run the application
-CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

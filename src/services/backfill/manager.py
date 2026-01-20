@@ -104,13 +104,14 @@ class BackfillManager:
 
     def _get_currency_list(self) -> list[str]:
         """Get the dynamic currency list from Home Assistant input_select helper.
-        
+
         This is the single source of truth for currency selections across the application.
-        
+
         Returns:
             List of currency symbols (e.g., ["BTC/USDT", "ETH/USDT"])
         """
         from services.ha_sensors import get_currency_list as get_dynamic_currency_list
+
         return get_dynamic_currency_list()
 
     def _is_first_run(self) -> bool:

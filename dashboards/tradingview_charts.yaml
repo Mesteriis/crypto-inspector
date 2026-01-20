@@ -133,7 +133,7 @@ sections:
               BTC: ${{ '{:,.0f}'.format(highs.get('BTC/USDT', 0) | float) }}
             icon: mdi:arrow-top-right
             icon_color: green
-          
+
           - type: custom:mushroom-template-card
             primary: "24h Low"
             secondary: |
@@ -141,7 +141,7 @@ sections:
               BTC: ${{ '{:,.0f}'.format(lows.get('BTC/USDT', 0) | float) }}
             icon: mdi:arrow-bottom-left
             icon_color: red
-          
+
           - type: custom:mushroom-template-card
             primary: "24h Volume"
             secondary: |
@@ -149,24 +149,24 @@ sections:
               BTC: ${{ '{:,.0f}M'.format((volumes.get('BTC/USDT', 0) | float) / 1000000) }}
             icon: mdi:chart-bar
             icon_color: blue
-      
+
       - type: horizontal-stack
         cards:
           - type: custom:mushroom-entity-card
             entity: sensor.crypto_inspect_ta_trend
             name: Market Trend
             icon: mdi:trending-up
-          
+
           - type: custom:mushroom-entity-card
             entity: sensor.crypto_inspect_btc_dominance
             name: BTC Dominance
             icon: mdi:currency-btc
-          
+
           - type: custom:mushroom-entity-card
             entity: sensor.crypto_inspect_fear_greed
             name: Fear & Greed
             icon: mdi:emoticon-neutral
-  
+
   # ---------------------------------------------------------------------------------
   # NOTES
   # ---------------------------------------------------------------------------------

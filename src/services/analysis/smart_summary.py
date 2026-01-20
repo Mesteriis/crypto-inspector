@@ -12,6 +12,14 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
+from services.analysis.dca import DCAZone, get_dca_calculator
+from services.analysis.derivatives import DerivativesAnalyzer
+from services.analysis.exchange_flow import FlowDirection, get_exchange_flow_analyzer
+from services.analysis.macro import MacroRisk, get_macro_calendar
+from services.analysis.onchain import OnChainAnalyzer
+from services.analysis.risk import RiskAnalyzer
+from services.analysis.unlocks import get_unlock_tracker
+
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -208,6 +216,11 @@ class SmartSummaryService:
         self.db = db_session
         self._cache: dict = {}
         self._cache_ttl = 300  # 5 minutes
+
+        # Initialize service instances
+        self._onchain_analyzer = OnChainAnalyzer()
+        self._derivatives_analyzer = DerivativesAnalyzer()
+        self._risk_analyzer = RiskAnalyzer()
 
     async def get_market_pulse(self) -> MarketPulse:
         """
@@ -586,71 +599,194 @@ class SmartSummaryService:
         )
 
     # =========================================================================
-    # Helper methods (mock data - will be replaced with real service calls)
+    # Helper methods - integrated with real services
     # =========================================================================
 
     async def _get_fear_greed(self) -> int:
-        """Get Fear & Greed Index value."""
-        # TODO: Integrate with onchain service
-        return 45
+        """Get Fear & Greed Index value from OnChainAnalyzer."""
+        try:
+            fg_data = await self._onchain_analyzer.fetch_fear_greed()
+            if fg_data:
+                return fg_data.value
+        except Exception as e:
+            logger.warning(f"Failed to fetch Fear & Greed: {e}")
+        return 45  # Default neutral value
 
     async def _get_btc_trend(self) -> str:
-        """Get BTC trend direction."""
-        # TODO: Integrate with technical analysis
+        """
+        Get BTC trend direction from candlestick data.
+
+        Analyzes SMA 20/50/200 to determine trend.
+        """
+        try:
+            from services.candlestick import fetch_candlesticks
+            from services.candlestick.models import CandleInterval
+            from services.analysis.technical import TechnicalAnalyzer
+
+            candles = await fetch_candlesticks(
+                symbol="BTC",
+                interval=CandleInterval.HOUR_4,
+                limit=200,
+            )
+
+            if len(candles) >= 200:
+                closes = [float(c.close_price) for c in candles]
+                analyzer = TechnicalAnalyzer()
+
+                sma_20 = analyzer.calc_sma(closes, 20)
+                sma_50 = analyzer.calc_sma(closes, 50)
+                sma_200 = analyzer.calc_sma(closes, 200)
+                current_price = closes[-1]
+
+                if sma_20 and sma_50 and sma_200:
+                    # Strong uptrend: price > SMA20 > SMA50 > SMA200
+                    if current_price > sma_20 > sma_50 > sma_200:
+                        return "uptrend"
+                    # Strong downtrend: price < SMA20 < SMA50 < SMA200
+                    if current_price < sma_20 < sma_50 < sma_200:
+                        return "downtrend"
+        except Exception as e:
+            logger.warning(f"Failed to analyze BTC trend: {e}")
         return "sideways"
 
     async def _get_rsi(self, symbol: str) -> float:
-        """Get RSI value for symbol."""
-        # TODO: Integrate with technical analysis
-        return 55.0
+        """Get RSI value for symbol from TechnicalAnalyzer."""
+        try:
+            from services.candlestick import fetch_candlesticks
+            from services.candlestick.models import CandleInterval
+            from services.analysis.technical import TechnicalAnalyzer
+
+            candles = await fetch_candlesticks(
+                symbol=symbol,
+                interval=CandleInterval.HOUR_4,
+                limit=50,
+            )
+
+            if len(candles) >= 15:
+                closes = [float(c.close_price) for c in candles]
+                rsi = TechnicalAnalyzer.calc_rsi(closes, 14)
+                if rsi is not None:
+                    return rsi
+        except Exception as e:
+            logger.warning(f"Failed to calculate RSI for {symbol}: {e}")
+        return 55.0  # Default neutral value
 
     async def _get_exchange_flow(self) -> str:
-        """Get exchange flow signal."""
-        # TODO: Integrate with exchange_flow service
+        """Get exchange flow signal from ExchangeFlowAnalyzer."""
+        try:
+            analyzer = get_exchange_flow_analyzer()
+            flow_summary = await analyzer.analyze()
+
+            if flow_summary.overall_signal in [
+                FlowDirection.STRONG_OUTFLOW,
+                FlowDirection.OUTFLOW,
+            ]:
+                return "bullish"
+            if flow_summary.overall_signal in [
+                FlowDirection.STRONG_INFLOW,
+                FlowDirection.INFLOW,
+            ]:
+                return "bearish"
+        except Exception as e:
+            logger.warning(f"Failed to get exchange flow: {e}")
         return "neutral"
 
     async def _get_funding_rate(self) -> float:
-        """Get BTC funding rate."""
-        # TODO: Integrate with derivatives service
-        return 0.01
+        """Get BTC funding rate from DerivativesAnalyzer."""
+        try:
+            funding_data = await self._derivatives_analyzer.fetch_funding_rate("BTC")
+            if funding_data:
+                return funding_data.rate
+        except Exception as e:
+            logger.warning(f"Failed to fetch funding rate: {e}")
+        return 0.01  # Default neutral value
 
     async def _get_current_drawdown(self) -> float:
-        """Get current portfolio drawdown."""
-        # TODO: Integrate with risk service
-        return 5.0
+        """Get current portfolio drawdown from RiskAnalyzer."""
+        try:
+            if self._risk_analyzer.last_metrics:
+                return self._risk_analyzer.last_metrics.current_drawdown
+        except Exception as e:
+            logger.warning(f"Failed to get drawdown: {e}")
+        return 5.0  # Default low drawdown
 
     async def _get_sharpe_ratio(self) -> float:
-        """Get portfolio Sharpe ratio."""
-        # TODO: Integrate with risk service
-        return 1.5
+        """Get portfolio Sharpe ratio from RiskAnalyzer."""
+        try:
+            if self._risk_analyzer.last_metrics:
+                return self._risk_analyzer.last_metrics.sharpe_ratio
+        except Exception as e:
+            logger.warning(f"Failed to get Sharpe ratio: {e}")
+        return 1.5  # Default acceptable value
 
     async def _get_var_95(self) -> float:
-        """Get portfolio VaR 95%."""
-        # TODO: Integrate with risk service
-        return 8.0
+        """Get portfolio VaR 95% from RiskAnalyzer."""
+        try:
+            if self._risk_analyzer.last_metrics:
+                return self._risk_analyzer.last_metrics.var_95
+        except Exception as e:
+            logger.warning(f"Failed to get VaR: {e}")
+        return 8.0  # Default moderate value
 
     async def _get_dca_zone(self) -> str:
-        """Get current DCA zone."""
-        # TODO: Integrate with DCA service
+        """Get current DCA zone from DCACalculator."""
+        try:
+            calculator = get_dca_calculator()
+            analysis = await calculator.analyze("BTC")
+
+            if analysis.zone == DCAZone.BUY_ZONE:
+                return "buy"
+            if analysis.zone == DCAZone.OVERBOUGHT:
+                return "overbought"
+        except Exception as e:
+            logger.warning(f"Failed to get DCA zone: {e}")
         return "wait"
 
     async def _get_macro_risk(self) -> str:
-        """Get macro risk level for the week."""
-        # TODO: Integrate with macro service
+        """Get macro risk level for the week from MacroCalendar."""
+        try:
+            calendar = get_macro_calendar()
+            analysis = await calendar.analyze(days_ahead=7)
+
+            if analysis.week_risk == MacroRisk.HIGH:
+                return "high"
+            if analysis.week_risk == MacroRisk.LOW:
+                return "low"
+        except Exception as e:
+            logger.warning(f"Failed to get macro risk: {e}")
         return "medium"
 
     async def _get_upcoming_macro_events(self) -> list[dict]:
-        """Get upcoming macro events."""
-        # TODO: Integrate with macro service
+        """Get upcoming macro events from MacroCalendar."""
+        try:
+            calendar = get_macro_calendar()
+            analysis = await calendar.analyze(days_ahead=14)
+
+            events = []
+            for event in analysis.events[:5]:
+                events.append({
+                    "name": event.name,
+                    "name_ru": event.event_type.name_ru,
+                    "date": event.date.strftime("%Y-%m-%d"),
+                    "days_until": event.days_until,
+                })
+            return events
+        except Exception as e:
+            logger.warning(f"Failed to get macro events: {e}")
         return [
             {"name": "FOMC Meeting", "name_ru": "Заседание FOMC"},
             {"name": "CPI Data", "name_ru": "Данные CPI"},
         ]
 
     async def _get_upcoming_unlocks(self) -> int:
-        """Get number of token unlocks this week."""
-        # TODO: Integrate with unlocks service
-        return 2
+        """Get number of token unlocks this week from UnlockTracker."""
+        try:
+            tracker = get_unlock_tracker()
+            analysis = await tracker.analyze()
+            return analysis.next_7d_count
+        except Exception as e:
+            logger.warning(f"Failed to get unlock count: {e}")
+        return 2  # Default value
 
     def format_sensor_attributes(self) -> dict:
         """

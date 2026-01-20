@@ -141,7 +141,7 @@ async def _run_backfill_background(manager) -> None:
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """Application lifespan manager."""
     logger.info(f"Starting {settings.APP_NAME}...")
-    
+
     # Log service configuration
     services_info = []
     if settings.API_ENABLED:
@@ -150,7 +150,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         services_info.append(f"MCP (port {settings.MCP_PORT})")
     if settings.STREAMING_ENABLED:
         services_info.append("WebSocket Streaming")
-    
+
     if services_info:
         logger.info(f"Enabled services: {', '.join(services_info)}")
     else:

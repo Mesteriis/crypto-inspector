@@ -32,6 +32,10 @@ dependencies = [
     "pandas>=2.0.0",
 ]
 
+[tool.uv]
+# Use CPU-only PyTorch to reduce image size by ~2-3GB
+extra-index-url = ["https://download.pytorch.org/whl/cpu"]
+
 [project.optional-dependencies]
 dev = [
     "pytest>=8.3.0",

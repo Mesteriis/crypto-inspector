@@ -1,0 +1,88 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv
+venv
+ENV
+env
+.eggs
+*.egg-info
+*.egg
+dist
+build
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+htmlcov
+.tox
+.nox
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# Documentation
+*.md
+!CHANGELOG.md
+docs
+DOCS.md
+
+# CI/CD
+.github
+github
+.gitlab-ci.yml
+.pre-commit-config.yaml
+codecov.yml
+Makefile
+
+# Tests
+tests
+pytest.ini
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+!Dockerfile
+
+# Scripts (not needed in image)
+scripts
+
+# Examples and images
+examples
+img
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+!icon.png
+!logo.png
+
+# Config files not needed in runtime
+*.ini
+!alembic.ini
+*.yaml
+!config.yaml
+!build.yaml
+blueprints
+dashboards
+
+# Misc
+.env*
+!.env.example
+*.log
+*.tmp
+.DS_Store
+Thumbs.db

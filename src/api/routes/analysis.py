@@ -37,15 +37,15 @@ def get_symbols() -> list[str]:
 
 def get_currency_list() -> list[str]:
     """Get the dynamic currency list from Home Assistant input_select helper.
-    
+
     This is the single source of truth for currency selections across the application.
     Returns coin symbols without exchange suffix (e.g., ["BTC", "ETH"]).
-    
+
     Returns:
         List of currency symbols (e.g., ["BTC", "ETH"])
     """
     from services.ha_sensors import get_currency_list as get_dynamic_currency_list
-    
+
     # Get full currency pairs and extract base symbols
     full_pairs = get_dynamic_currency_list()
     return [pair.split("/")[0] for pair in full_pairs if "/" in pair]

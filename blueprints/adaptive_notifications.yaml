@@ -1,5 +1,5 @@
 # ==============================================================================
-# Crypto Inspect - Adaptive Notifications Blueprint  
+# Crypto Inspect - Adaptive Notifications Blueprint
 # ==============================================================================
 # Intelligent notification system adapting to market conditions
 # ==============================================================================
@@ -16,7 +16,7 @@ blueprint:
       selector:
         device:
           integration: mobile_app
-    
+
     volatility_threshold:
       name: Volatility threshold (%)
       description: Minimum volatility for triggering notifications
@@ -43,7 +43,7 @@ action:
       message: >-
         {% set volatilities = state_attr('sensor.crypto_inspect_adaptive_volatilities', 'data') %}
         {% set threshold = !input volatility_threshold %}
-        
+
         {% if volatilities %}
         High volatility detected:
         {% for currency, data in volatilities.items() %}

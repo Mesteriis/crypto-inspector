@@ -55,6 +55,7 @@ def _register_jobs(sched: AsyncIOScheduler) -> None:
         bybit_sync_job,
         candlestick_sync_job,
         correlation_job,
+        currency_list_monitor_job,
         dca_job,
         divergence_job,
         exchange_flow_job,
@@ -72,7 +73,6 @@ def _register_jobs(sched: AsyncIOScheduler) -> None:
         unlocks_job,
         volatility_job,
         whale_monitor_job,
-        currency_list_monitor_job,
     )
 
     # Candlestick sync job - runs every 5 minutes at :00, :05, :10, etc.

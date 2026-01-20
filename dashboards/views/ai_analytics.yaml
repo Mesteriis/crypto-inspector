@@ -11,11 +11,11 @@ views:
       - type: markdown
         content: >
           # 🤖 AI Аналитика
-          
+
           Интеллектуальный анализ криптовалютного рынка с помощью машинного обучения
-          
+
           Последнее обновление: {{ states('sensor.crypto_inspect_last_sync') }}
-      
+
       # Основные AI метрики
       - type: horizontal-stack
         cards:
@@ -30,7 +30,7 @@ views:
               yellow: 60
               red: 0
             theme: dark
-    
+
           - type: gauge
             name: Трендовый Индекс
             entity: sensor.crypto_inspect_ai_trends
@@ -42,7 +42,7 @@ views:
               yellow: 0
               red: -50
             theme: dark
-    
+
           - type: gauge
             name: Рыночное Настроение
             entity: sensor.crypto_inspect_ai_market_sentiment
@@ -54,7 +54,7 @@ views:
               yellow: 40
               red: 0
             theme: dark
-      
+
       # AI прогнозы цен
       - type: entities
         title: 📈 AI Прогнозы Цен (24ч)
@@ -69,7 +69,7 @@ views:
             name: Последний анализ
           - entity: sensor.crypto_inspect_ai_provider
             name: Провайдер
-      
+
       # Детализированные прогнозы по валютам
       - type: conditional
         conditions:
@@ -89,7 +89,7 @@ views:
             {% else %}
             Нет данных о прогнозах
             {% endif %}
-      
+
       # AI тренды по валютам
       - type: conditional
         conditions:
@@ -109,7 +109,7 @@ views:
             {% else %}
             Нет данных о трендах
             {% endif %}
-      
+
       # Рекомендации AI
       - type: conditional
         conditions:
@@ -121,11 +121,11 @@ views:
           content: >
             {% set recommendation = states('sensor.crypto_inspect_ai_recommendation') %}
             {% set sentiment = states('sensor.crypto_inspect_ai_market_sentiment') %}
-            
+
             **Общая рекомендация:** {{ recommendation }}
-            
+
             **Рыночное настроение:** {{ sentiment }}%
-            
+
             {% if recommendation == 'BUY' %}
             🟢 **Покупать** - благоприятные условия для входа
             {% elif recommendation == 'SELL' %}
@@ -135,7 +135,7 @@ views:
             {% else %}
             ⚪ **Наблюдать** - ждать более четких сигналов
             {% endif %}
-      
+
       # История AI анализа
       - type: history-graph
         title: 📉 История AI Анализа
@@ -147,7 +147,7 @@ views:
             name: Рыночное настроение
           - entity: sensor.crypto_inspect_fear_greed
             name: Индекс страха и жадности
-      
+
       # Статус AI сервиса
       - type: entities
         title: 🛠️ Статус AI Сервиса
@@ -160,7 +160,7 @@ views:
             name: Статус синхронизации
           - entity: sensor.crypto_inspect_database_size
             name: Размер базы данных
-      
+
       # Предупреждения и уведомления
       - type: conditional
         conditions:
@@ -171,5 +171,5 @@ views:
           title: ⚠️ Предупреждение
           content: >
             **Низкая уверенность AI**
-            
+
             Уровень уверенности AI составляет менее 60%. Рекомендуется принимать решения с осторожностью и учитывать дополнительные факторы.

@@ -7,7 +7,6 @@
 """
 
 import logging
-import os
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -382,7 +381,7 @@ BLUEPRINTS_TARGET_DIR = Path("/config/blueprints/automation/crypto_inspect")
 # Список обязательных blueprint-ов
 REQUIRED_BLUEPRINTS = [
     "price_alert.yaml",
-    "fear_greed_alert.yaml", 
+    "fear_greed_alert.yaml",
     "dca_reminder.yaml",
     "technical_signal.yaml",
     "morning_briefing.yaml",
@@ -401,23 +400,11 @@ DEFAULT_AUTOMATION_CONFIGS = {
         "symbol": "BTC",
         "condition": "below",
         "target_price": 80000,
-        "notify_device": None  # Будет определено динамически
+        "notify_device": None,  # Будет определено динамически
     },
-    "fear_greed_alert.yaml": {
-        "threshold": 20,
-        "condition": "below",
-        "notify_device": None
-    },
-    "dca_reminder.yaml": {
-        "day_of_week": "mon",
-        "time": "09:00:00",
-        "notify_device": None
-    },
-    "technical_signal.yaml": {
-        "symbol": "BTC",
-        "indicators": ["rsi", "macd"],
-        "notify_device": None
-    }
+    "fear_greed_alert.yaml": {"threshold": 20, "condition": "below", "notify_device": None},
+    "dca_reminder.yaml": {"day_of_week": "mon", "time": "09:00:00", "notify_device": None},
+    "technical_signal.yaml": {"symbol": "BTC", "indicators": ["rsi", "macd"], "notify_device": None},
 }
 
 
@@ -834,7 +821,8 @@ async def initialize_ha_entities() -> dict[str, Any]:
         result["blueprints_invalid"] = blueprint_validation.get("invalid", 0)
         # Логируем детали валидации только при наличии проблем
         invalid_details = {
-            name: details for name, details in blueprint_validation.get("details", {}).items()
+            name: details
+            for name, details in blueprint_validation.get("details", {}).items()
             if details.get("errors") and "OK" not in details["errors"]
         }
         if invalid_details:
@@ -882,15 +870,15 @@ async def install_blueprints() -> dict[str, int]:
         Статистика установки: {"installed": N, "skipped": N, "failed": N}
     """
     stats = {"installed": 0, "skipped": 0, "failed": 0}
-    
+
     # Проверяем доступность Supervisor API
     client = get_supervisor_client()
     if not client.is_available:
         logger.warning("Supervisor API недоступен, пропускаем установку blueprint-ов")
         return stats
-    
+
     logger.info("Начинаем установку blueprint-ов...")
-    
+
     # Создаем целевую директорию если она не существует
     try:
         BLUEPRINTS_TARGET_DIR.mkdir(parents=True, exist_ok=True)
@@ -899,18 +887,18 @@ async def install_blueprints() -> dict[str, int]:
         logger.error(f"Не удалось создать директорию blueprint-ов: {e}")
         stats["failed"] = len(REQUIRED_BLUEPRINTS)
         return stats
-    
+
     # Копируем каждый blueprint
     for blueprint_file in REQUIRED_BLUEPRINTS:
         source_path = BLUEPRINTS_SOURCE_DIR / blueprint_file
         target_path = BLUEPRINTS_TARGET_DIR / blueprint_file
-        
+
         # Проверяем существование исходного файла
         if not source_path.exists():
             logger.warning(f"Исходный файл blueprint не найден: {source_path}")
             stats["failed"] += 1
             continue
-        
+
         # Проверяем нужно ли обновить
         if target_path.exists():
             try:
@@ -922,7 +910,7 @@ async def install_blueprints() -> dict[str, int]:
                     continue
             except Exception:
                 pass  # Если не можем проверить время, копируем заново
-        
+
         # Копируем файл
         try:
             shutil.copy2(source_path, target_path)
@@ -931,14 +919,14 @@ async def install_blueprints() -> dict[str, int]:
         except Exception as e:
             logger.error(f"Не удалось скопировать blueprint {blueprint_file}: {e}")
             stats["failed"] += 1
-    
+
     logger.info(
         f"Установка blueprint-ов завершена: "
         f"установлено={stats['installed']}, "
         f"пропущено={stats['skipped']}, "
         f"ошибок={stats['failed']}"
     )
-    
+
     return stats
 
 
@@ -955,39 +943,28 @@ async def validate_blueprints() -> dict[str, Any]:
     Returns:
         Результаты валидации
     """
-    results = {
-        "total": len(REQUIRED_BLUEPRINTS),
-        "valid": 0,
-        "invalid": 0,
-        "missing": 0,
-        "details": {}
-    }
-    
+    results = {"total": len(REQUIRED_BLUEPRINTS), "valid": 0, "invalid": 0, "missing": 0, "details": {}}
+
     logger.info("Начинаем валидацию blueprint-ов...")
-    
+
     for blueprint_file in REQUIRED_BLUEPRINTS:
         target_path = BLUEPRINTS_TARGET_DIR / blueprint_file
         blueprint_name = blueprint_file.replace(".yaml", "")
-        
-        result = {
-            "exists": False,
-            "valid_format": False,
-            "has_blueprint_section": False,
-            "errors": []
-        }
-        
+
+        result = {"exists": False, "valid_format": False, "has_blueprint_section": False, "errors": []}
+
         # Проверяем существование файла
         if not target_path.exists():
             result["errors"].append("Файл не найден")
             results["missing"] += 1
             results["details"][blueprint_name] = result
             continue
-        
+
         result["exists"] = True
-        
+
         # Проверяем формат YAML
         try:
-            with open(target_path, 'r', encoding='utf-8') as f:
+            with open(target_path, encoding="utf-8") as f:
                 content = yaml.safe_load(f)
             result["valid_format"] = True
         except yaml.YAMLError as e:
@@ -1000,43 +977,43 @@ async def validate_blueprints() -> dict[str, Any]:
             results["invalid"] += 1
             results["details"][blueprint_name] = result
             continue
-        
+
         # Проверяем наличие секции blueprint
         if not isinstance(content, dict) or "blueprint" not in content:
             result["errors"].append("Отсутствует секция 'blueprint'")
             results["invalid"] += 1
             results["details"][blueprint_name] = result
             continue
-        
+
         blueprint_section = content["blueprint"]
         result["has_blueprint_section"] = True
-        
+
         # Проверяем обязательные поля в секции blueprint
         required_fields = ["name", "domain"]
         for field in required_fields:
             if field not in blueprint_section:
                 result["errors"].append(f"Отсутствует обязательное поле: {field}")
-        
+
         # Проверяем что domain = automation
         if blueprint_section.get("domain") != "automation":
             result["errors"].append("Неверный домен (должен быть 'automation')")
-        
+
         # Если есть ошибки, помечаем как невалидный
         if result["errors"]:
             results["invalid"] += 1
         else:
             results["valid"] += 1
             result["errors"] = ["OK"]
-        
+
         results["details"][blueprint_name] = result
-    
+
     logger.info(
         f"Валидация завершена: "
         f"валидных={results['valid']}, "
         f"невалидных={results['invalid']}, "
         f"отсутствующих={results['missing']}"
     )
-    
+
     return results
 
 
@@ -1050,57 +1027,52 @@ async def create_automations_from_blueprints() -> dict[str, int]:
         Статистика создания: {"created": N, "skipped": N, "failed": N}
     """
     stats = {"created": 0, "skipped": 0, "failed": 0}
-    
+
     client = get_supervisor_client()
     if not client.is_available:
         logger.warning("Supervisor API недоступен, пропускаем создание автоматизаций")
         return stats
-    
+
     logger.info("Начинаем создание автоматизаций из blueprint-ов...")
-    
+
     # Получаем список мобильных устройств для уведомлений
     mobile_devices = await _get_mobile_devices(client)
     if not mobile_devices:
         logger.warning("Мобильные устройства не найдены, некоторые автоматизации могут не работать")
-    
+
     # Создаем автоматизации для каждого blueprint с дефолтными параметрами
     for blueprint_file, default_config in DEFAULT_AUTOMATION_CONFIGS.items():
         blueprint_name = blueprint_file.replace(".yaml", "")
         automation_id = f"crypto_inspect_{blueprint_name}_default"
-        
+
         # Проверяем существует ли уже такая автоматизация
         if await _automation_exists(client, automation_id):
             logger.debug(f"Автоматизация уже существует: {automation_id}")
             stats["skipped"] += 1
             continue
-        
+
         # Обновляем конфигурацию с реальными данными
         config = default_config.copy()
         if config.get("notify_device") is None and mobile_devices:
             config["notify_device"] = mobile_devices[0]  # Используем первое доступное устройство
-        
+
         # Создаем автоматизацию
-        success = await _create_automation_from_blueprint(
-            client, 
-            automation_id, 
-            blueprint_name, 
-            config
-        )
-        
+        success = await _create_automation_from_blueprint(client, automation_id, blueprint_name, config)
+
         if success:
             logger.info(f"Создана автоматизация: {automation_id}")
             stats["created"] += 1
         else:
             logger.error(f"Не удалось создать автоматизацию: {automation_id}")
             stats["failed"] += 1
-    
+
     logger.info(
         f"Создание автоматизаций завершено: "
         f"создано={stats['created']}, "
         f"пропущено={stats['skipped']}, "
         f"ошибок={stats['failed']}"
     )
-    
+
     return stats
 
 
@@ -1110,10 +1082,10 @@ async def _get_mobile_devices(client) -> list[str]:
         http_client = await client._get_client()
         response = await http_client.get("/core/api/devices")
         response.raise_for_status()
-        
+
         devices = response.json()
         mobile_devices = []
-        
+
         for device in devices:
             if device.get("disabled_by") is None:  # Не отключенное устройство
                 integrations = device.get("config_entries", [])
@@ -1123,7 +1095,7 @@ async def _get_mobile_devices(client) -> list[str]:
                     if "mobile_app" in str(config_entry).lower():
                         mobile_devices.append(device["id"])
                         break
-        
+
         return mobile_devices
     except Exception as e:
         logger.error(f"Ошибка получения списка мобильных устройств: {e}")
@@ -1140,35 +1112,24 @@ async def _automation_exists(client, automation_id: str) -> bool:
         return False
 
 
-async def _create_automation_from_blueprint(
-    client, 
-    automation_id: str, 
-    blueprint_name: str, 
-    config: dict
-) -> bool:
+async def _create_automation_from_blueprint(client, automation_id: str, blueprint_name: str, config: dict) -> bool:
     """Создать автоматизацию на основе blueprint."""
     try:
         http_client = await client._get_client()
-        
+
         # Формируем конфигурацию автоматизации
         automation_config = {
             "alias": f"Crypto Inspect - {blueprint_name.title()} (Auto)",
             "description": f"Автоматически созданная автоматизация из blueprint: {blueprint_name}",
             "mode": "single",
-            "use_blueprint": {
-                "path": f"crypto_inspect/{blueprint_name}.yaml",
-                "input": config
-            }
+            "use_blueprint": {"path": f"crypto_inspect/{blueprint_name}.yaml", "input": config},
         }
-        
+
         # Отправляем запрос на создание
-        response = await http_client.post(
-            "/core/api/automations",
-            json=automation_config
-        )
-        
+        response = await http_client.post("/core/api/automations", json=automation_config)
+
         return response.status_code in (200, 201)
-        
+
     except Exception as e:
         logger.error(f"Ошибка создания автоматизации {automation_id}: {e}")
         return False

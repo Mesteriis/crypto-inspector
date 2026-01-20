@@ -1,5 +1,4 @@
-"""
-API routes for Home Assistant sensor data.
+"""API routes for Home Assistant sensor data.
 
 Provides a single endpoint that returns all sensor data
 for easy REST sensor integration.
@@ -12,6 +11,7 @@ from typing import Any
 from fastapi import APIRouter
 
 from services.candlestick.buffer import get_candle_buffer
+from services.candlestick.websocket.manager import get_stream_manager
 
 logger = logging.getLogger(__name__)
 
@@ -58,11 +58,33 @@ async def get_price_sensors() -> dict[str, Any]:
     Get latest prices for all tracked symbols.
 
     Returns dict with symbol as key, price data as value.
+    Data is sourced from WebSocket streams via CandleStreamManager.
     """
-    # TODO: Implement price cache from WebSocket data
+    stream_manager = get_stream_manager()
+
+    if not stream_manager:
+        return {
+            "status": "unavailable",
+            "prices": {},
+            "message": "Stream manager not initialized",
+            "last_update": datetime.now(UTC).isoformat(),
+        }
+
+    status = stream_manager.get_status()
+    prices: dict[str, Any] = {}
+
+    for symbol, data in status.get("symbols", {}).items():
+        prices[symbol] = {
+            "price": data.get("last_candle_price"),
+            "source": data.get("source"),
+            "connected": data.get("connected", False),
+        }
+
     return {
-        "status": "available",
-        "prices": {},
+        "status": "available" if prices else "no_data",
+        "prices": prices,
+        "symbols_count": len(prices),
+        "rest_polling_active": status.get("rest_polling_active", False),
         "last_update": datetime.now(UTC).isoformat(),
     }
 

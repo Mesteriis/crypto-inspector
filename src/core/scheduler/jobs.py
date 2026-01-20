@@ -31,14 +31,15 @@ def get_symbols() -> list[str]:
 
 def get_currency_list() -> list[str]:
     """Get the dynamic currency list from Home Assistant input_select helper.
-    
+
     This is the single source of truth for currency selections across the application.
     Falls back to environment variable or defaults if helper is not available.
-    
+
     Returns:
         List of currency symbols (e.g., ["BTC/USDT", "ETH/USDT"])
     """
     from services.ha_sensors import get_currency_list as get_dynamic_currency_list
+
     return get_dynamic_currency_list()
 
 
@@ -1323,7 +1324,7 @@ async def profit_taking_job() -> None:
 async def currency_list_monitor_job() -> None:
     """
     Currency List Monitor job.
-    
+
     Runs every 10 minutes to check for changes in the dynamic currency list.
     Handles automatic cleanup of removed currencies and loading of new currencies.
     Updates notification systems and consolidated sensors.
@@ -1331,28 +1332,28 @@ async def currency_list_monitor_job() -> None:
     from services.currency_manager import get_currency_manager
     from services.ha_sensors import get_sensors_manager
     from services.unified_sensors import get_unified_sensor_manager
-    
+
     logger.info("Starting currency list monitor job")
-    
+
     try:
         # Get managers
         currency_manager = get_currency_manager()
         sensors_manager = get_sensors_manager()
         unified_manager = get_unified_sensor_manager(sensors_manager)
-        
+
         # Initialize currency manager if needed
-        if not hasattr(currency_manager, '_initialized'):
+        if not hasattr(currency_manager, "_initialized"):
             await currency_manager.initialize()
             currency_manager._initialized = True
-        
+
         # Check for currency list changes
         await currency_manager.check_for_changes()
-        
+
         # Update consolidated sensors
         await unified_manager.update_consolidated_sensors()
-        
+
         logger.info("Currency list monitor job completed")
-        
+
     except Exception as e:
         logger.error(f"Currency list monitor job failed: {e}")
 
