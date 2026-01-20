@@ -706,7 +706,7 @@ wheels = [
 
 [[package]]
 name = "crypto-inspect"
-version = "0.2.17"
+version = "0.2.19"
 source = { editable = "." }
 dependencies = [
     { name = "aiosqlite" },
