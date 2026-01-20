@@ -38,7 +38,7 @@ def get_currency_list() -> list[str]:
     Returns:
         List of currency symbols (e.g., ["BTC/USDT", "ETH/USDT"])
     """
-    from services.ha_sensors import get_currency_list as get_dynamic_currency_list
+    from service.ha import get_currency_list as get_dynamic_currency_list
 
     return get_dynamic_currency_list()
 
@@ -136,8 +136,8 @@ async def fetch_and_save_candlesticks(
     Returns:
         True if successful, False otherwise.
     """
-    from services.candlestick.fetcher import CandlestickFetcher
-    from services.candlestick.models import CandleInterval
+    from service.candlestick.fetcher import CandlestickFetcher
+    from service.candlestick.models import CandleInterval
 
     try:
         # Convert string to enum
@@ -158,7 +158,7 @@ async def fetch_and_save_candlesticks(
         # Save to database using raw SQL to avoid circular imports
         from sqlalchemy import text
 
-        from db.session import async_session_maker
+        from models.session import async_session_maker
 
         async with async_session_maker() as session:
             for candle in result.candlesticks:
@@ -229,7 +229,7 @@ async def candlestick_sync_job() -> None:
     symbols and appropriate intervals based on current time.
     Sends notifications to Home Assistant on completion.
     """
-    from services.ha_integration import notify_error, notify_sync_complete
+    from service.ha_integration import notify_error, notify_sync_complete
 
     start_time = time.time()
     now = datetime.now()
@@ -310,13 +310,13 @@ async def market_analysis_job() -> None:
     Runs every 4 hours to fetch on-chain metrics, derivatives data,
     and calculate composite scores. Sends alerts for significant signals.
     """
-    from services.analysis import (
+    from service.analysis import (
         CycleDetector,
         DerivativesAnalyzer,
         OnChainAnalyzer,
         ScoringEngine,
     )
-    from services.ha_integration import notify
+    from service.ha_integration import notify
 
     start_time = time.time()
     now = datetime.now()
@@ -423,17 +423,17 @@ async def investor_analysis_job() -> None:
 
     Runs every hour to:
     - Calculate investor status (do nothing ok, market phase, etc.)
-    - Update MQTT sensors for Home Assistant
+    - Update HA sensors for Home Assistant
     - Send alerts if critical conditions detected
     """
-    from services.analysis import (
+    from service.analysis import (
         CycleDetector,
         DerivativesAnalyzer,
         OnChainAnalyzer,
         get_investor_analyzer,
     )
-    from services.ha_integration import notify
-    from services.ha_sensors import get_sensors_manager
+    from service.ha import get_sensors_manager
+    from service.ha_integration import notify
 
     start_time = time.time()
     now = datetime.now()
@@ -514,7 +514,7 @@ async def investor_analysis_job() -> None:
             f"tension={status.tension_score}, red_flags={len(status.red_flags)}"
         )
 
-        # Update MQTT sensors
+        # Update HA sensors
         try:
             status_dict = status.to_dict()
             await sensors.update_investor_status(status_dict)
@@ -531,9 +531,9 @@ async def investor_analysis_job() -> None:
                 btc_dominance=btc_dominance,
                 derivatives_data=derivatives_dict,
             )
-            logger.info("Updated MQTT sensors")
+            logger.info("Updated HA sensors")
         except Exception as e:
-            logger.warning(f"Failed to update MQTT sensors: {e}")
+            logger.warning(f"Failed to update HA sensors: {e}")
 
         # Check for alerts
         alert = analyzer.get_alert_if_needed(status)
@@ -586,10 +586,10 @@ async def altseason_job() -> None:
     Altcoin Season Index job.
 
     Runs every 6 hours to fetch altcoin performance vs BTC
-    and update MQTT sensors.
+    and update HA sensors.
     """
-    from services.analysis.altseason import AltseasonAnalyzer
-    from services.ha_sensors import get_sensors_manager
+    from service.analysis.altseason import AltseasonAnalyzer
+    from service.ha import get_sensors_manager
 
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     logger.info(f"[{current_time}] Starting altseason analysis job")
@@ -601,7 +601,7 @@ async def altseason_job() -> None:
         data = await analyzer.analyze()
         logger.info(f"Altseason: index={data.altseason_index}, status={data.status}")
 
-        # Update MQTT sensors
+        # Update HA sensors
         await sensors.publish_sensor("altseason_index", data.altseason_index)
         await sensors.publish_sensor("altseason_status", data.status)
 
@@ -616,10 +616,10 @@ async def stablecoin_job() -> None:
     Stablecoin Flow job.
 
     Runs every 4 hours to track stablecoin market caps
-    and update MQTT sensors.
+    and update HA sensors.
     """
-    from services.analysis.stablecoins import StablecoinAnalyzer
-    from services.ha_sensors import get_sensors_manager
+    from service.analysis.stablecoins import StablecoinAnalyzer
+    from service.ha import get_sensors_manager
 
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     logger.info(f"[{current_time}] Starting stablecoin analysis job")
@@ -631,7 +631,7 @@ async def stablecoin_job() -> None:
         data = await analyzer.analyze()
         logger.info(f"Stablecoins: total={data.total_market_cap / 1e9:.1f}B, flow_24h={data.flow_24h_percent:.2f}%")
 
-        # Update MQTT sensors
+        # Update HA sensors
         await sensors.publish_sensor("stablecoin_total", round(data.total_market_cap / 1e9, 2))
         await sensors.publish_sensor("stablecoin_flow_24h", round(data.flow_24h_percent, 2))
         await sensors.publish_sensor("stablecoin_dominance", round(data.dominance_percent, 2))
@@ -647,10 +647,10 @@ async def gas_tracker_job() -> None:
     ETH Gas Tracker job.
 
     Runs every 5 minutes to fetch current gas prices
-    and update MQTT sensors.
+    and update HA sensors.
     """
-    from services.analysis.gas import GasTracker
-    from services.ha_sensors import get_sensors_manager
+    from service.analysis.gas import GasTracker
+    from service.ha import get_sensors_manager
 
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     logger.info(f"[{current_time}] Starting gas tracker job")
@@ -662,7 +662,7 @@ async def gas_tracker_job() -> None:
         data = await tracker.get_gas_prices()
         logger.info(f"Gas prices: slow={data.slow}, standard={data.standard}, fast={data.fast}, status={data.status}")
 
-        # Update MQTT sensors
+        # Update HA sensors
         await sensors.publish_sensor("eth_gas_slow", data.slow)
         await sensors.publish_sensor("eth_gas_standard", data.standard)
         await sensors.publish_sensor("eth_gas_fast", data.fast)
@@ -679,11 +679,11 @@ async def whale_monitor_job() -> None:
     Whale Activity Monitor job.
 
     Runs every 15 minutes to fetch large transactions
-    and update MQTT sensors.
+    and update HA sensors.
     """
-    from services.analysis.whales import WhaleTracker
-    from services.ha_integration import notify
-    from services.ha_sensors import get_sensors_manager
+    from service.analysis.whales import WhaleTracker
+    from service.ha import get_sensors_manager
+    from service.ha_integration import notify
 
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     logger.info(f"[{current_time}] Starting whale monitor job")
@@ -695,7 +695,7 @@ async def whale_monitor_job() -> None:
         data = await tracker.analyze()
         logger.info(f"Whales: transactions_24h={data.transactions_24h}, net_flow=${data.net_flow_usd:,.0f}")
 
-        # Update MQTT sensors
+        # Update HA sensors
         await sensors.publish_sensor("whale_alerts_24h", data.transactions_24h)
         await sensors.publish_sensor("whale_net_flow", data._format_usd(data.net_flow_usd))
         await sensors.publish_sensor("whale_signal", data.signal.value)
@@ -722,11 +722,11 @@ async def exchange_flow_job() -> None:
     Exchange Flow job.
 
     Runs every 4 hours to track BTC/ETH exchange flows
-    and update MQTT sensors.
+    and update HA sensors.
     """
-    from services.analysis.exchange_flow import ExchangeFlowTracker
-    from services.ha_integration import notify
-    from services.ha_sensors import get_sensors_manager
+    from service.analysis.exchange_flow import ExchangeFlowTracker
+    from service.ha import get_sensors_manager
+    from service.ha_integration import notify
 
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     logger.info(f"[{current_time}] Starting exchange flow job")
@@ -738,7 +738,7 @@ async def exchange_flow_job() -> None:
         data = await tracker.get_exchange_flow()
         logger.info(f"Exchange flow: netflow={data.btc_netflow}, signal={data.signal}")
 
-        # Update MQTT sensors with dictionary format
+        # Update HA sensors with dictionary format
         await sensors._publish_state("exchange_netflows", {"BTC": round(data.btc_netflow, 2)})
         await sensors.publish_sensor("exchange_flow_signal", data.signal)
 
@@ -761,11 +761,11 @@ async def liquidation_job() -> None:
     Liquidation Levels job.
 
     Runs every hour to fetch liquidation clusters
-    and update MQTT sensors.
+    and update HA sensors.
     """
-    from services.analysis.liquidations import LiquidationTracker
-    from services.ha_integration import notify
-    from services.ha_sensors import get_sensors_manager
+    from service.analysis.liquidations import LiquidationTracker
+    from service.ha import get_sensors_manager
+    from service.ha_integration import notify
 
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     logger.info(f"[{current_time}] Starting liquidation analysis job")
@@ -780,7 +780,7 @@ async def liquidation_job() -> None:
             f"short_nearest={data.short_nearest}, risk={data.risk_level}"
         )
 
-        # Update MQTT sensors with dictionary format
+        # Update HA sensors with dictionary format
         await sensors._publish_state(
             "liq_levels",
             {
@@ -813,10 +813,10 @@ async def portfolio_job() -> None:
     Portfolio Tracker job.
 
     Runs every 5 minutes to update portfolio values
-    and MQTT sensors.
+    and HA sensors.
     """
-    from services.ha_sensors import get_sensors_manager
-    from services.portfolio import get_portfolio_manager
+    from service.ha import get_sensors_manager
+    from service.portfolio import get_portfolio_manager
 
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     logger.info(f"[{current_time}] Starting portfolio update job")
@@ -833,7 +833,7 @@ async def portfolio_job() -> None:
         status = await portfolio.calculate()
         logger.info(f"Portfolio: value={status.total_value:.2f}, pnl={status.total_pnl_percent:.2f}%")
 
-        # Update MQTT sensors
+        # Update HA sensors
         await sensors.publish_sensor("portfolio_value", round(status.total_value, 2))
         await sensors.publish_sensor("portfolio_pnl", round(status.total_pnl_percent, 2))
         await sensors.publish_sensor("portfolio_pnl_24h", round(status.change_24h_pct or 0, 2))
@@ -851,11 +851,11 @@ async def divergence_job() -> None:
     Divergence Detection job.
 
     Runs every hour to detect RSI/MACD divergences
-    and update MQTT sensors.
+    and update HA sensors.
     """
-    from services.analysis.divergences import DivergenceDetector
-    from services.ha_integration import notify
-    from services.ha_sensors import get_sensors_manager
+    from service.analysis.divergences import DivergenceDetector
+    from service.ha import get_sensors_manager
+    from service.ha_integration import notify
 
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     logger.info(f"[{current_time}] Starting divergence detection job")
@@ -911,8 +911,8 @@ async def signal_history_job() -> None:
     Runs every hour to update signal outcomes
     and recalculate win rates.
     """
-    from services.analysis.signal_history import get_signal_tracker
-    from services.ha_sensors import get_sensors_manager
+    from service.analysis.signal_history import get_signal_tracker
+    from service.ha import get_sensors_manager
 
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     logger.info(f"[{current_time}] Starting signal history update job")
@@ -931,7 +931,7 @@ async def signal_history_job() -> None:
             f"today={stats.signals_today}, last={stats.last_signal_description}"
         )
 
-        # Update MQTT sensors
+        # Update HA sensors
         await sensors.publish_sensor("signals_win_rate", round(stats.win_rate, 1))
         await sensors.publish_sensor("signals_today", stats.signals_today)
         await sensors.publish_sensor("signals_last", stats.last_signal_description or "Нет сигналов")
@@ -947,9 +947,9 @@ async def price_alerts_job() -> None:
     Runs every minute to check price alerts
     and trigger notifications.
     """
-    from services.alerts import get_alert_manager
-    from services.ha_integration import notify
-    from services.ha_sensors import get_sensors_manager
+    from service.alerts import get_alert_manager
+    from service.ha import get_sensors_manager
+    from service.ha_integration import notify
 
     logger.debug("Checking price alerts")
 
@@ -995,10 +995,10 @@ async def bybit_sync_job() -> None:
     Bybit sync job.
 
     Runs every 5 minutes to sync Bybit account data
-    and update MQTT sensors.
+    and update HA sensors.
     """
-    from services.exchange import get_bybit_portfolio
-    from services.ha_sensors import get_sensors_manager
+    from service.exchange import get_bybit_portfolio
+    from service.ha import get_sensors_manager
 
     logger.info("Starting Bybit sync job")
 
@@ -1018,14 +1018,14 @@ async def bybit_sync_job() -> None:
             __import__("services.exchange.bybit_portfolio", fromlist=["PnlPeriod"]).PnlPeriod.WEEK
         )
 
-        # Update MQTT sensors - Wallet
+        # Update HA sensors - Wallet
         await sensors.publish_sensor("bybit_balance", round(account.total_equity, 2))
         await sensors.publish_sensor("bybit_pnl_24h", round(pnl_24h.total_pnl, 2))
         await sensors.publish_sensor("bybit_pnl_7d", round(pnl_7d.total_pnl, 2))
         await sensors.publish_sensor("bybit_positions", len(account.positions))
         await sensors.publish_sensor("bybit_unrealized_pnl", round(account.total_unrealized_pnl, 2))
 
-        # Update MQTT sensors - Earn (Flexible Savings + OnChain)
+        # Update HA sensors - Earn (Flexible Savings + OnChain)
         earn_balance = sum(p.usd_value for p in account.earn_positions)
         earn_count = len(account.earn_positions)
         avg_apy = sum(p.estimated_apy for p in account.earn_positions) / earn_count if earn_count > 0 else 0
@@ -1057,10 +1057,10 @@ async def dca_job() -> None:
     DCA Calculator job.
 
     Runs every hour to calculate optimal DCA levels
-    and update MQTT sensors.
+    and update HA sensors.
     """
-    from services.analysis.dca import get_dca_calculator
-    from services.ha_sensors import get_sensors_manager
+    from service.analysis.dca import get_dca_calculator
+    from service.ha import get_sensors_manager
 
     logger.info("Starting DCA calculator job")
 
@@ -1087,10 +1087,10 @@ async def correlation_job() -> None:
     Correlation Tracker job.
 
     Runs every 4 hours to calculate asset correlations
-    and update MQTT sensors.
+    and update HA sensors.
     """
-    from services.analysis.correlation import get_correlation_tracker
-    from services.ha_sensors import get_sensors_manager
+    from service.analysis.correlation import get_correlation_tracker
+    from service.ha import get_sensors_manager
 
     logger.info("Starting correlation tracker job")
 
@@ -1119,10 +1119,10 @@ async def volatility_job() -> None:
     Volatility Tracker job.
 
     Runs every hour to track market volatility
-    and update MQTT sensors.
+    and update HA sensors.
     """
-    from services.analysis.volatility import get_volatility_tracker
-    from services.ha_sensors import get_sensors_manager
+    from service.analysis.volatility import get_volatility_tracker
+    from service.ha import get_sensors_manager
 
     logger.info("Starting volatility tracker job")
 
@@ -1150,11 +1150,11 @@ async def unlocks_job() -> None:
     Token Unlock Tracker job.
 
     Runs every 6 hours to track token unlock events
-    and update MQTT sensors.
+    and update HA sensors.
     """
-    from services.analysis.unlocks import get_unlock_tracker
-    from services.ha_integration import notify
-    from services.ha_sensors import get_sensors_manager
+    from service.analysis.unlocks import get_unlock_tracker
+    from service.ha import get_sensors_manager
+    from service.ha_integration import notify
 
     logger.info("Starting unlock tracker job")
 
@@ -1191,11 +1191,11 @@ async def macro_job() -> None:
     Macro Calendar job.
 
     Runs every 12 hours to track economic events
-    and update MQTT sensors.
+    and update HA sensors.
     """
-    from services.analysis.macro import get_macro_calendar
-    from services.ha_integration import notify
-    from services.ha_sensors import get_sensors_manager
+    from service.analysis.macro import get_macro_calendar
+    from service.ha import get_sensors_manager
+    from service.ha_integration import notify
 
     logger.info("Starting macro calendar job")
 
@@ -1231,11 +1231,11 @@ async def arbitrage_job() -> None:
     Arbitrage Scanner job.
 
     Runs every 2 minutes to scan for arbitrage opportunities
-    and update MQTT sensors.
+    and update HA sensors.
     """
-    from services.analysis.arbitrage import get_arbitrage_scanner
-    from services.ha_integration import notify
-    from services.ha_sensors import get_sensors_manager
+    from service.analysis.arbitrage import get_arbitrage_scanner
+    from service.ha import get_sensors_manager
+    from service.ha_integration import notify
 
     logger.debug("Running arbitrage scanner")
 
@@ -1281,11 +1281,11 @@ async def profit_taking_job() -> None:
     Profit Taking Advisor job.
 
     Runs every hour to calculate take profit levels
-    and update MQTT sensors.
+    and update HA sensors.
     """
-    from services.analysis.profit_taking import get_profit_advisor
-    from services.ha_integration import notify
-    from services.ha_sensors import get_sensors_manager
+    from service.analysis.profit_taking import get_profit_advisor
+    from service.ha import get_sensors_manager
+    from service.ha_integration import notify
 
     logger.info("Starting profit taking advisor job")
 
@@ -1329,9 +1329,9 @@ async def currency_list_monitor_job() -> None:
     Handles automatic cleanup of removed currencies and loading of new currencies.
     Updates notification systems and consolidated sensors.
     """
-    from services.currency_manager import get_currency_manager
-    from services.ha_sensors import get_sensors_manager
-    from services.unified_sensors import get_unified_sensor_manager
+    from service.currency_manager import get_currency_manager
+    from service.ha import get_sensors_manager
+    from service.unified_sensors import get_unified_sensor_manager
 
     logger.info("Starting currency list monitor job")
 
@@ -1368,8 +1368,8 @@ async def traditional_finance_job() -> None:
     - Forex (EUR/USD, GBP/USD, DXY)
     - Commodities (Oil Brent, WTI, Natural Gas)
     """
-    from services.analysis.traditional import get_traditional_tracker
-    from services.ha_sensors import get_sensors_manager
+    from service.analysis.traditional import get_traditional_tracker
+    from service.ha import get_sensors_manager
 
     logger.info("Starting traditional finance job")
 

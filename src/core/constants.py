@@ -10,8 +10,7 @@ from datetime import date
 # VERSION
 # =============================================================================
 
-APP_VERSION = "0.2.16"
-MQTT_DEVICE_SW_VERSION = APP_VERSION
+APP_VERSION = "0.2.17"
 
 # =============================================================================
 # RETRY CONFIGURATION

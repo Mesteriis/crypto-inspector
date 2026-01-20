@@ -8,81 +8,23 @@ from decimal import Decimal
 from typing import Any
 
 from fastapi import APIRouter, Query
-from pydantic import BaseModel
 
-from services.alerts.notification_manager import (
+from schemas.api.briefing import (
+    BriefingResponse,
+    DigestResponse,
+    NotificationStatsResponse,
+)
+from service.alerts.notification_manager import (
     NotificationManager,
     NotificationMode,
 )
-from services.analysis.briefing import BriefingService
+from service.analysis.briefing import BriefingService
 
 router = APIRouter(prefix="/briefing", tags=["briefing"])
 
 # Service instances
 _briefing_service = BriefingService()
 _notification_manager = NotificationManager()
-
-
-# =============================================================================
-# Response Models
-# =============================================================================
-
-
-class BriefingSectionResponse(BaseModel):
-    """Briefing section response."""
-
-    header: str
-    header_en: str
-    header_ru: str
-    content: str
-    content_en: str
-    content_ru: str
-    emoji: str
-
-
-class BriefingResponse(BaseModel):
-    """Briefing response."""
-
-    type: str
-    title: str
-    title_en: str
-    title_ru: str
-    greeting: str
-    greeting_en: str
-    greeting_ru: str
-    sections: list[BriefingSectionResponse]
-    message: str  # Formatted message
-    message_ru: str
-
-
-class DigestResponse(BaseModel):
-    """Daily digest response."""
-
-    type: str
-    title: str
-    title_ru: str
-    summary: str
-    summary_ru: str
-    total_alerts: int
-    critical_count: int
-    important_count: int
-    info_count: int
-    message: str
-    message_ru: str
-
-
-class NotificationStatsResponse(BaseModel):
-    """Notification statistics response."""
-
-    pending_total: int
-    pending_critical: int
-    pending_important: int
-    pending_info: int
-    sent_today: int
-    digest_ready: bool
-    current_mode: str
-    current_mode_en: str
-    current_mode_ru: str
 
 
 # =============================================================================
@@ -164,7 +106,7 @@ async def get_briefing_sensor_data() -> dict[str, Any]:
     Get briefing data formatted for Home Assistant sensors.
 
     Returns:
-        Dict ready for MQTT sensor updates.
+        Dict ready for HA sensor updates.
     """
     return _briefing_service.format_sensor_attributes()
 
@@ -272,6 +214,6 @@ async def get_notification_sensor_data() -> dict[str, Any]:
     Get notification data formatted for Home Assistant sensors.
 
     Returns:
-        Dict ready for MQTT sensor updates.
+        Dict ready for HA sensor updates.
     """
     return _notification_manager.format_sensor_attributes()
