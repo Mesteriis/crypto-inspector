@@ -5,6 +5,10 @@
 # Runs the Crypto Inspect application
 # ==============================================================================
 
+# Use Python from virtual environment
+export PATH="/app/.venv/bin:$PATH"
+export VIRTUAL_ENV="/app/.venv"
+
 bashio::log.info "Starting Crypto Inspect add-on..."
 
 # === Основные настройки с дефолтами ===
@@ -126,7 +130,7 @@ cd /app
 
 bashio::log.info "Initializing database..."
 if [[ "${DB_TYPE}" == "sqlite" ]]; then
-    python3 -c "
+    /app/.venv/bin/python -c "
 from models.base import Base
 from sqlalchemy import create_engine
 engine = create_engine('sqlite:////data/crypto_inspect.db')
@@ -135,11 +139,11 @@ print('SQLite tables created')
 "
 else
     bashio::log.info "Running Alembic migrations..."
-    alembic upgrade head || bashio::log.warning "Migration skipped"
+    /app/.venv/bin/alembic upgrade head || bashio::log.warning "Migration skipped"
 fi
 
 bashio::log.info "Starting server on port ${API_PORT}..."
-exec python3 -m uvicorn main:app \
+exec /app/.venv/bin/python -m uvicorn main:app \
     --host 0.0.0.0 \
     --port "${API_PORT}" \
     --log-level "${LOG_LEVEL}"
