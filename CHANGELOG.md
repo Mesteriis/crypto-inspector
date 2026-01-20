@@ -1,69 +1,43 @@
 # Changelog
 
 ## 0.2.17 - Documentation & Maintenance
+- **Date**: 2026-01-20
+- **Documentation**: Comprehensive README.md (1900+ lines) and DOCS.md (2000+ lines).
+- **Features**: 30+ automation blueprints, Lovelace card examples, MCP Server guide.
+- **Sensors**: Refactored to Supervisor REST API (removed MQTT dependency).
+- **Architecture**: Consolidated all configurations into `pyproject.toml`.
 
-### Documentation
-- Comprehensive README.md with 1900+ lines of documentation
-- Full DOCS.md with 2000+ lines for Home Assistant Add-on Store
-- 30+ ready-to-use automation examples with bilingual support (RU/EN)
-- Lovelace card examples for all sensor categories
-- MCP Server integration guide for AI agents (Claude, Gemini, OpenAI)
-- TradingView and ApexCharts integration examples
-- Progressive disclosure dashboards (Summary → Detailed → Power User)
+## 0.2.16 - Enhanced Dashboard & Localization
+- **Date**: 2026-01-20
+- **Sensors**: Complete bilingual localization (RU/EN) for all Home Assistant sensors.
+- **Configuration**: Curated default list of 10 coins (Majors, L1, AI infrastructure).
+- **UI**: Enhanced sensor dashboard coverage and improved documentation.
 
-### Sensors
-- 100+ sensors via Supervisor REST API (auto-discovery)
-- Dictionary format for multi-currency data (prices, changes, RSI, etc.)
-- Traditional finance sensors (Gold, S&P500, NASDAQ, EUR/USD, Oil)
-- AI prediction sensors (trends, forecasts, confidence levels)
-- Smart correlation and economic calendar sensors
+## 0.2.2 - Standalone Support & Infrastructure
+- **Date**: 2026-01-18
+- **Docker**: Added standalone Dockerfile support for non-HA environments.
+- **Testing**: Massive test suite expansion (added 325 tests), increasing coverage to 45%.
+- **Infrastructure**: Migrated to s6-overlay v3 for better process management.
+- **CI/CD**: Improved release workflows for both standalone and HA Add-on builds.
+- **GitHub**: Added GitHub Pages with a card gallery for dashboard visualization.
 
-## 0.2.1 - Bugfixes & Improvements
+## 0.2.1 - Bugfixes & Polish
+- **Date**: 2026-01-18
+- **Fixed**: Resolved `datetime.utcnow()` deprecation warnings and import issues.
+- **Refactoring**: Cleaned up `PYTHONPATH` imports and improved API compatibility.
+- **Assets**: Added custom icons for the application.
+- **Workflows**: Initial setup of linting and formatting with Ruff.
 
-### Fixed
-- Fixed `TestPeriod` → `BacktestPeriod` naming in e2e test framework
-- Updated sw_version references in HA integration
+## 0.2.0 - UX Enhancement Suite
+- **Date**: 2026-01-18
+- **Sensors**: 100+ sensors via Supervisor REST API with auto-discovery.
+- **Modules**: Added Lazy Investor Mode, Smart Summary, and Briefing systems.
+- **Analysis**: Integrated ChatGPT/Ollama, Portfolio Analytics, and On-Chain data.
+- **Dashboard**: Added `crypto_master.yaml` and progressive disclosure views.
+- **Architecture**: Migrated legacy `crypto_analyzer/` to modern `src/services/` structure.
 
-### Changed
-- Minor code cleanup and refactoring
-
-## 0.2.0 - UX Enhancement Suite & Sensor Refactoring
-
-### New Features
-- **100+ Sensors** via Supervisor REST API with auto-discovery
-- **Lazy Investor Mode**: "Do Nothing OK" indicator, market phases, DCA signals
-- **Smart Summary System**: Market Pulse, Today's Action, Portfolio Health
-- **Briefing System**: Morning/Evening briefings with bilingual support (EN/RU)
-- **Goal Tracking**: Financial goals with progress tracking and ETA
-- **Alert System**: Smart notifications with priority levels and digest mode
-- **AI Integration**: ChatGPT and Ollama support for market analysis
-- **MCP Server**: Model Context Protocol for AI agent integration
-- **Portfolio Analytics**: Sharpe, Sortino, VaR, drawdown metrics
-- **Technical Analysis**: RSI, MACD, Bollinger Bands, MTF trends
-- **On-Chain Data**: Whale tracking, exchange flows, liquidations
-- **DCA Backtesting**: Compare Fixed DCA vs Smart DCA vs Lump Sum
-- **Blueprints**: 12 ready-to-use Home Assistant automations
-
-### Dashboard System
-- **crypto_master.yaml**: Comprehensive 700+ line dashboard with all sensors
-- **Progressive Dashboards**: Summary → Detailed → Power User views
-- **Custom Cards**: Fear & Greed gauge, RSI indicators, risk dashboard
-- **TradingView Charts**: Embedded chart integration
-
-### Architecture Improvements
-- Refactored currency-specific sensors to generic dictionary format
-- Migrated all components from `crypto_analyzer/` to `src/services/`
-- Added 15+ API routes for all features
-- Scheduled jobs with APScheduler for data refresh
-
-### Removed
-- Deleted legacy `crypto_analyzer/` folder (fully migrated to `src/`)
-
-## 0.1.0
-
-- Initial release
-- Candlestick data collection from multiple exchanges
-- Support for Binance, Coinbase, Kraken, Bybit, KuCoin, OKX
-- SQLite and PostgreSQL database support
-- Home Assistant Ingress integration
-- Configurable exchanges, symbols, and intervals
+## 0.1.0 - Initial Release
+- **Date**: 2026-01-17
+- **Core**: Multi-exchange candlestick collection (Binance, Bybit, etc.).
+- **Storage**: SQLite and PostgreSQL support.
+- **HA**: Initial Home Assistant Ingress integration and basic config.
