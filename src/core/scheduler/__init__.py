@@ -478,15 +478,18 @@ async def _set_initial_sensor_values() -> None:
         ("do_nothing_ok", True),
         ("investor_phase", "Loading..."),
         ("calm_indicator", 50),
-        ("red_flags", "🟢 0"),
+        ("red_flags", 0),  # CountSensor expects int
         # Technical
         ("divergences", {}),
         ("divergences_active", 0),
-        # Gas
-        ("gas_fast", 0),
-        ("gas_standard", 0),
-        ("gas_slow", 0),
-        ("gas_status", "Loading..."),
+        # Gas (correct sensor names with eth_ prefix)
+        ("eth_gas_fast", 0),
+        ("eth_gas_standard", 0),
+        ("eth_gas_slow", 0),
+        ("eth_gas_status", "Loading..."),
+        # Profit taking
+        ("greed_level", 0),  # PercentSensor expects 0-100
+        ("profit_action", "Loading..."),
     ]
 
     for sensor_id, value in default_sensors:

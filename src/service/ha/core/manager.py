@@ -294,11 +294,12 @@ class HAIntegrationManager:
         calm = status_data.get("calm_score", 50)
         await self.publish_sensor("calm_indicator", calm, {"last_updated": timestamp})
 
-        # red_flags
+        # red_flags - CountSensor expects int value
         flags = status_data.get("red_flags_count", 0)
         flags_list = status_data.get("red_flags", [])
         emoji = "🟢" if flags == 0 else ("🟡" if flags <= 2 else "🔴")
-        await self.publish_sensor("red_flags", f"{emoji} {flags}", {
+        await self.publish_sensor("red_flags", flags, {
+            "status_emoji": emoji,
             "count": flags,
             "flags": flags_list,
             "last_updated": timestamp,

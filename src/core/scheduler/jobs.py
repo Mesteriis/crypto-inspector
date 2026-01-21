@@ -1358,7 +1358,8 @@ async def profit_taking_job() -> None:
             await sensors._publish_state("tp_levels", {"BTC": tp_data})
 
         await sensors.publish_sensor("profit_action", analysis.action.name_ru)
-        await sensors.publish_sensor("greed_level", analysis.greed_level.name_ru)
+        # greed_level is a PercentSensor (0-100), send numeric greed_score
+        await sensors.publish_sensor("greed_level", analysis.greed_score)
 
         # Alert on scale out signals
         if analysis.action.value in ["scale_out_50", "take_profit"]:
