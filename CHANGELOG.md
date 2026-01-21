@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.27 - Fast Startup Fix
+- **Date**: 2026-01-21
+- **Fixed**: Removed heavy external API calls from startup to prevent slow boot and restarts.
+- **Changed**: Startup now only sets placeholder values ("Loading...", "Disabled").
+- **Note**: Actual sensor data comes from scheduled jobs (first run within 5-15 min).
+
 ## 0.2.26 - Sensor Initialization & Startup Improvements
 - **Date**: 2026-01-20
 - **Fixed**: Divergence job now uses correct `DivergenceDetector.detect()` API.
