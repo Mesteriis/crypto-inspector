@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.28 - Sensor Validation Fixes
+- **Date**: 2026-01-21
+- **Fixed**: `red_flags` now sends int value (CountSensor), emoji moved to attributes.
+- **Fixed**: `greed_level` sends `greed_score` (0-100) instead of text (PercentSensor).
+- **Fixed**: Gas sensor names corrected to `eth_gas_*` prefix.
+- **Fixed**: Eliminates "Invalid count value" and "Invalid percentage value" validation errors.
+
 ## 0.2.27 - Fast Startup Fix
 - **Date**: 2026-01-21
 - **Fixed**: Removed heavy external API calls from startup to prevent slow boot and restarts.
