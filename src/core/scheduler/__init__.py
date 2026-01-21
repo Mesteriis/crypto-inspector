@@ -370,61 +370,19 @@ async def scheduler_lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
 async def _run_startup_jobs() -> None:
     """
-    Run critical jobs at startup to populate sensors.
+    Initialize sensors at startup.
 
-    This prevents sensors from showing 'unknown' until scheduled run.
-    First sets initial values based on feature flags, then runs enabled jobs.
+    Sets initial placeholder values immediately. Actual data comes from scheduled jobs.
+    This is lightweight and doesn't make external API calls to avoid slow startup.
     """
-    import asyncio
-
     from core.config import settings
 
-    logger.info("Initializing sensor values based on feature flags...")
+    logger.info("Initializing sensor values...")
 
-    # Set initial values for all sensors first
+    # Set initial values for all sensors (no external API calls)
     await _set_initial_sensor_values()
 
-    logger.info("Running startup jobs for enabled features...")
-
-    # Only run jobs for features that are enabled
-    startup_jobs = []
-
-    # Gas tracker - always enabled (no feature flag)
-    from core.scheduler.jobs import gas_tracker_job
-
-    startup_jobs.append(("gas_tracker", gas_tracker_job))
-
-    # Investor analysis - always enabled
-    from core.scheduler.jobs import investor_analysis_job
-
-    startup_jobs.append(("investor_analysis", investor_analysis_job))
-
-    # Volatility - always enabled
-    from core.scheduler.jobs import volatility_job
-
-    startup_jobs.append(("volatility", volatility_job))
-
-    # Profit taking - always enabled
-    from core.scheduler.jobs import profit_taking_job
-
-    startup_jobs.append(("profit_taking", profit_taking_job))
-
-    # Unlocks - always enabled
-    from core.scheduler.jobs import unlocks_job
-
-    startup_jobs.append(("unlocks", unlocks_job))
-
-    # Run jobs sequentially with timeout
-    for name, job_func in startup_jobs:
-        try:
-            await asyncio.wait_for(job_func(), timeout=30.0)
-            logger.debug(f"Startup job '{name}' completed")
-        except asyncio.TimeoutError:
-            logger.warning(f"Startup job '{name}' timed out")
-        except Exception as e:
-            logger.warning(f"Startup job '{name}' failed: {e}")
-
-    logger.info("Startup jobs completed")
+    logger.info("Sensor initialization completed")
 
 
 async def _set_initial_sensor_values() -> None:
