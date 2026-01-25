@@ -32,11 +32,12 @@ class PriceForecaster:
     def _initialize_models(self) -> None:
         """Initialize all available forecasting models."""
         # Initialize models with lazy loading
+        # Order matters - first available becomes fallback default
         model_classes = {
-            MLModels.CHRONOS_BOLT: ChronosBoltForecaster,
-            MLModels.STATSFORECAST_ARIMA: StatsForecastForecaster,
-            MLModels.NEURALPROPHET: NeuralProphetForecaster,
-            MLModels.ENSEMBLE: EnsembleForecaster,
+            MLModels.STATSFORECAST_ARIMA: StatsForecastForecaster,  # Most reliable, no external deps
+            MLModels.NEURALPROPHET: NeuralProphetForecaster,  # Local ML
+            MLModels.CHRONOS_BOLT: ChronosBoltForecaster,  # Requires HuggingFace download
+            MLModels.ENSEMBLE: EnsembleForecaster,  # Combines all available
         }
 
         for model_name, model_class in model_classes.items():
@@ -46,6 +47,14 @@ class PriceForecaster:
             except Exception as e:
                 logger.warning(f"Failed to initialize {model_name}: {e}")
                 # Will be created on-demand if needed
+        
+        # Set fallback default if primary default is unavailable
+        if self.default_model not in self._models and self._models:
+            fallback = list(self._models.keys())[0]
+            logger.warning(f"Default model {self.default_model} unavailable, using {fallback}")
+            self.default_model = fallback
+        
+        logger.info(f"ML Forecaster ready with {len(self._models)} models: {list(self._models.keys())}")
 
     def _get_model(self, model_name: str) -> BaseForecaster:
         """Get or create model instance."""

@@ -122,7 +122,13 @@ export INGRESS_PATH=$(bashio::addon.ingress_entry)
 
 # === Инициализация ===
 mkdir -p /data
+mkdir -p /data/huggingface  # Cache for ML models
 cd /app
+
+# HuggingFace cache directory for ML models (Chronos, etc.)
+export HF_HOME="/data/huggingface"
+export TRANSFORMERS_CACHE="/data/huggingface"
+export TORCH_HOME="/data/huggingface/torch"
 
 bashio::log.info "Initializing database..."
 if [[ "${DB_TYPE}" == "sqlite" ]]; then
