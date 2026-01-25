@@ -706,7 +706,7 @@ wheels = [
 
 [[package]]
 name = "crypto-inspect"
-version = "0.2.31"
+version = "0.2.34"
 source = { editable = "." }
 dependencies = [
     { name = "aiosqlite" },
@@ -723,6 +723,7 @@ dependencies = [
     { name = "numpy" },
     { name = "optuna" },
     { name = "pandas" },
+    { name = "plotly" },
     { name = "psycopg2-binary" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
@@ -767,6 +768,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=1.26.0" },
     { name = "optuna", specifier = ">=3.5.0" },
     { name = "pandas", specifier = ">=2.0.0" },
+    { name = "plotly", specifier = ">=6.5.2" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=3.6.0" },
     { name = "psycopg2-binary", specifier = ">=2.9.10" },
     { name = "pydantic", specifier = ">=2.10.0" },

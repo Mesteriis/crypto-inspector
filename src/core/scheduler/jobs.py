@@ -796,7 +796,7 @@ async def exchange_flow_job() -> None:
     Exchange Flow job.
 
     Runs every 4 hours to track BTC/ETH exchange flows
-    and update HA sensors.
+    and update HA sensors for all currencies.
     """
     from service.analysis.exchange_flow import get_exchange_flow_analyzer
     from service.ha import get_sensors_manager
@@ -810,15 +810,20 @@ async def exchange_flow_job() -> None:
 
     try:
         data = await analyzer.analyze()
-        btc_flow = data.btc_flow
         logger.info(f"Exchange flow: signal={data.overall_signal.value}")
 
-        # Update HA sensors with dictionary format
-        if btc_flow:
-            await sensors.publish_sensor("exchange_netflows", {"BTC": round(btc_flow.net_flow_24h, 2)})
+        # Update HA sensors with dictionary format for ALL currencies
+        netflows: dict[str, float] = {}
+        if data.btc_flow:
+            netflows["BTC"] = round(data.btc_flow.net_flow_24h, 2)
+        if data.eth_flow:
+            netflows["ETH"] = round(data.eth_flow.net_flow_24h, 2)
+
+        await sensors.publish_sensor("exchange_netflows", netflows)
         await sensors.publish_sensor("exchange_flow_signal", data.overall_signal.value)
 
         # Alert on significant outflows (bullish signal)
+        btc_flow = data.btc_flow
         if btc_flow and btc_flow.net_flow_24h < -5000:
             await notify(
                 message=f"BTC отток с бирж: {abs(btc_flow.net_flow_24h):.0f} BTC\nСигнал: {data.overall_signal.value}",
@@ -1397,7 +1402,7 @@ async def volatility_job() -> None:
     Volatility Tracker job.
 
     Runs every hour to track market volatility
-    and update HA sensors.
+    and update HA sensors for all currencies.
     """
     from service.analysis.volatility import get_volatility_tracker
     from service.ha import get_sensors_manager
@@ -1406,16 +1411,48 @@ async def volatility_job() -> None:
 
     tracker = get_volatility_tracker()
     sensors = get_sensors_manager()
+    symbols = await get_currency_list_async()
+    base_symbols = [s.split("/")[0] for s in symbols]
 
     try:
-        data = await tracker.analyze("BTC")
+        volatility_data: dict[str, float] = {}
+        highest_percentile = 0
+        overall_status = "Низкая"
 
-        # Update with dictionary format for multi-currency support
-        await sensors.publish_sensor("volatility_30d", {"BTC": round(data.volatility_30d, 2)})
-        await sensors.publish_sensor("volatility_percentile", data.percentile)
-        await sensors.publish_sensor("volatility_status", data.status.name_ru)
+        for symbol in base_symbols:
+            try:
+                # Map symbol to CoinGecko ID
+                coin_id_map = {
+                    "BTC": "bitcoin",
+                    "ETH": "ethereum",
+                    "SOL": "solana",
+                    "TON": "the-open-network",
+                    "AR": "arweave",
+                    "RENDER": "render-token",
+                    "TAO": "bittensor",
+                    "FET": "fetch-ai",
+                    "NEAR": "near",
+                    "INJ": "injective-protocol",
+                }
+                coin_id = coin_id_map.get(symbol, symbol.lower())
+                data = await tracker.analyze(coin_id)
+                volatility_data[symbol] = round(data.volatility_30d, 2)
+                
+                if data.percentile > highest_percentile:
+                    highest_percentile = data.percentile
+                    overall_status = data.status.name_ru
 
-        logger.info(f"Volatility: {data.volatility_30d:.1f}%, percentile={data.percentile}")
+            except Exception as e:
+                logger.warning(f"Volatility analysis failed for {symbol}: {e}")
+                volatility_data[symbol] = 0
+
+            await asyncio.sleep(0.3)  # Rate limiting
+
+        await sensors.publish_sensor("volatility_30d", volatility_data)
+        await sensors.publish_sensor("volatility_percentile", highest_percentile)
+        await sensors.publish_sensor("volatility_status", overall_status)
+
+        logger.info(f"Volatility updated for {len(volatility_data)} symbols")
 
     except Exception as e:
         logger.error(f"Volatility job failed: {e}")
@@ -1509,7 +1546,7 @@ async def arbitrage_job() -> None:
     Arbitrage Scanner job.
 
     Runs every 2 minutes to scan for arbitrage opportunities
-    and update HA sensors.
+    and update HA sensors for all currencies.
     """
     from service.analysis.arbitrage import get_arbitrage_scanner
     from service.ha import get_sensors_manager
@@ -1523,10 +1560,13 @@ async def arbitrage_job() -> None:
     try:
         analysis = await scanner.analyze()
 
-        # Use dictionary format for multi-currency support
-        arb_spreads = {}
-        if analysis.best_spread:
-            arb_spreads["BTC"] = round(analysis.best_spread.spread_pct, 3)
+        # Build dict of spreads for all symbols from analysis
+        arb_spreads: dict[str, float] = {}
+        for spread in analysis.spreads:
+            # Convert BTCUSDT -> BTC
+            coin = spread.symbol.replace("USDT", "")
+            arb_spreads[coin] = round(spread.spread_pct, 3)
+
         await sensors.publish_sensor("arb_spreads", arb_spreads)
 
         # Best funding arb
