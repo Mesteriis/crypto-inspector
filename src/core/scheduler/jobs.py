@@ -981,6 +981,9 @@ async def divergence_job() -> None:
         prices_data: dict[str, float] = {}
         changes_data: dict[str, float] = {}
         signal_data: dict[str, str] = {}
+        volumes_data: dict[str, float] = {}
+        highs_data: dict[str, float] = {}
+        lows_data: dict[str, float] = {}
 
         for symbol in base_symbols:
             try:
@@ -1006,8 +1009,15 @@ async def divergence_job() -> None:
                 closes = [float(c.close_price) for c in candles]
                 highs = [float(c.high_price) for c in candles]
                 lows = [float(c.low_price) for c in candles]
+                volumes = [float(c.volume) for c in candles]
                 rsi_values = []
                 macd_values = []
+                
+                # Calculate 24h high/low/volume (last 6 candles = 24h for 4h timeframe)
+                last_24h_candles = 6
+                highs_data[symbol] = max(highs[-last_24h_candles:]) if len(highs) >= last_24h_candles else max(highs)
+                lows_data[symbol] = min(lows[-last_24h_candles:]) if len(lows) >= last_24h_candles else min(lows)
+                volumes_data[symbol] = sum(volumes[-last_24h_candles:]) if len(volumes) >= last_24h_candles else sum(volumes)
 
                 # Calculate RSI and MACD for each candle (rolling window)
                 for i in range(14, len(closes)):
@@ -1176,6 +1186,9 @@ async def divergence_job() -> None:
         # Update price sensors
         await sensors.publish_sensor("prices", prices_data)
         await sensors.publish_sensor("changes_24h", changes_data)
+        await sensors.publish_sensor("volumes_24h", volumes_data)
+        await sensors.publish_sensor("highs_24h", highs_data)
+        await sensors.publish_sensor("lows_24h", lows_data)
 
         logger.info(
             f"Divergence job complete: {active_count} divergences, "
