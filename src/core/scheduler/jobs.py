@@ -1288,8 +1288,13 @@ async def bybit_sync_job() -> None:
         pnl_24h = await portfolio.calculate_pnl(PnlPeriod.DAY)
         pnl_7d = await portfolio.calculate_pnl(PnlPeriod.WEEK)
 
+        # Calculate Earn PnL (total accumulated from all earn positions)
+        earn_total_pnl = sum(p.total_pnl for p in account.earn_positions)
+        earn_claimable = sum(p.claimable_yield for p in account.earn_positions)
+
         # Update HA sensors - Wallet
         await sensors.publish_sensor("bybit_balance", round(account.total_equity, 2))
+        # Include earn PnL in total PnL
         await sensors.publish_sensor("bybit_pnl_24h", round(pnl_24h.total_pnl, 2))
         await sensors.publish_sensor("bybit_pnl_7d", round(pnl_7d.total_pnl, 2))
         await sensors.publish_sensor("bybit_positions", len(account.positions))
@@ -1311,11 +1316,14 @@ async def bybit_sync_job() -> None:
             },
         )
         await sensors.publish_sensor("bybit_earn_apy", round(avg_apy, 2))
+        await sensors.publish_sensor("bybit_earn_pnl", round(earn_total_pnl, 2))
+        await sensors.publish_sensor("bybit_earn_claimable", round(earn_claimable, 6))
         await sensors.publish_sensor("bybit_total_portfolio", round(total_portfolio, 2))
 
         logger.info(
             f"Bybit sync: wallet=${account.total_equity:.2f}, earn=${earn_balance:.2f}, "
-            f"total=${total_portfolio:.2f}, positions={len(account.positions)}, earn_positions={earn_count}"
+            f"total=${total_portfolio:.2f}, earn_pnl=${earn_total_pnl:.2f}, "
+            f"positions={len(account.positions)}, earn_positions={earn_count}"
         )
 
     except Exception as e:

@@ -143,3 +143,35 @@ class BybitTotalPortfolioSensor(ScalarSensor):
         value_type="float",
         min_value=0,
     )
+
+
+@register_sensor(category="bybit")
+class BybitEarnPnlSensor(ScalarSensor):
+    """Bybit Earn total PnL."""
+
+    config = SensorConfig(
+        sensor_id="bybit_earn_pnl",
+        name="Earn Total PnL",
+        name_ru="Общий PnL Earn",
+        icon="mdi:cash-plus",
+        unit="USDT",
+        description="Total accumulated PnL from Earn positions",
+        description_ru="Общий накопленный доход от Earn позиций",
+        value_type="float",
+    )
+
+
+@register_sensor(category="bybit")
+class BybitEarnClaimableSensor(ScalarSensor):
+    """Bybit Earn claimable yield."""
+
+    config = SensorConfig(
+        sensor_id="bybit_earn_claimable",
+        name="Earn Claimable",
+        name_ru="Доступно к выводу",
+        icon="mdi:cash-check",
+        unit="",
+        description="Claimable yield from Earn positions",
+        description_ru="Доступный для вывода доход от Earn",
+        value_type="float",
+    )
