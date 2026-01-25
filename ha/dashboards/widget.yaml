@@ -1,0 +1,103 @@
+# =============================================================================
+# CRYPTO INSPECT - EMBEDDABLE WIDGET
+# =============================================================================
+# Compact card for embedding in any dashboard
+# Shows key metrics with link to full dashboard
+# =============================================================================
+# Usage: Include this file in your dashboard or copy the card
+# =============================================================================
+
+# Single card - copy this into any dashboard:
+type: custom:universal-card
+title: "Crypto Inspect"
+subtitle: |
+  {% set phase = states('sensor.crypto_inspect_investor_phase') %}
+  {% set fg = states('sensor.crypto_inspect_fear_greed') %}
+  {{ phase if phase not in ['unknown','unavailable'] else '—' }} • F&G: {{ fg if fg not in ['unknown','unavailable'] else '—' }}
+icon: mdi:bitcoin
+theme: glass
+
+tap_action:
+  action: navigate
+  navigation_path: /lovelace/crypto
+
+badges:
+  - entity: sensor.crypto_inspect_do_nothing_ok
+    icon: mdi:meditation
+    color: |
+      {% set v = states('sensor.crypto_inspect_do_nothing_ok') %}
+      {{ 'green' if v in ['Yes', 'Да', 'true'] else 'orange' }}
+  - entity: sensor.crypto_inspect_calm_indicator
+    icon: mdi:shield
+  - entity: sensor.crypto_inspect_red_flags
+    icon: mdi:flag
+    color: |
+      {{ 'red' if states('sensor.crypto_inspect_red_flags')|int(0) > 0 else 'green' }}
+
+grid:
+  columns: 4
+  gap: 8px
+
+body:
+  cards:
+    # BTC Price
+    - type: custom:mushroom-template-card
+      primary: "BTC"
+      secondary: |
+        {% set p = states('sensor.crypto_inspect_prices') %}
+        {% if p not in ['unknown','unavailable',''] %}
+          {% set d = p|from_json %}
+          ${{ '{:,.0f}'.format(d.get('BTC/USDT',d.get('BTCUSDT',0))|float) }}
+        {% else %}—{% endif %}
+      icon: mdi:bitcoin
+      icon_color: orange
+      layout: vertical
+      tap_action:
+        action: more-info
+        entity: sensor.crypto_inspect_prices
+    
+    # Fear & Greed
+    - type: custom:mushroom-template-card
+      primary: "F&G"
+      secondary: |
+        {% set fg = states('sensor.crypto_inspect_fear_greed') %}
+        {{ fg if fg not in ['unknown','unavailable'] else '—' }}
+      icon: mdi:emoticon-neutral
+      icon_color: |
+        {% set v = states('sensor.crypto_inspect_fear_greed')|int(50) %}
+        {% if v <= 25 %}red{% elif v <= 45 %}orange{% elif v <= 55 %}grey{% elif v <= 75 %}green{% else %}blue{% endif %}
+      layout: vertical
+    
+    # DCA Signal
+    - type: custom:mushroom-template-card
+      primary: "DCA"
+      secondary: |
+        {% set s = states('sensor.crypto_inspect_dca_signal') %}
+        {{ s if s not in ['unknown','unavailable'] else '—' }}
+      icon: mdi:cash-plus
+      icon_color: |
+        {% set s = states('sensor.crypto_inspect_dca_signal')|lower %}
+        {% if 'buy' in s %}green{% elif 'wait' in s %}orange{% else %}grey{% endif %}
+      layout: vertical
+    
+    # Alerts
+    - type: custom:mushroom-template-card
+      primary: "Alerts"
+      secondary: |
+        {% set a = states('sensor.crypto_inspect_active_alerts_count')|int(0) %}
+        {% set f = states('sensor.crypto_inspect_red_flags')|int(0) %}
+        {{ a }} / {{ f }}🚩
+      icon: mdi:bell
+      icon_color: |
+        {% set a = states('sensor.crypto_inspect_active_alerts_count')|int(0) %}
+        {{ 'red' if a > 0 else 'green' }}
+      layout: vertical
+
+footer:
+  - type: custom:mushroom-chips-card
+    chips:
+      - type: action
+        icon: mdi:open-in-new
+        tap_action:
+          action: navigate
+          navigation_path: /lovelace/crypto
