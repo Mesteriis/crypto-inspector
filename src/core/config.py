@@ -50,33 +50,57 @@ def resolve_secret(value: str | None, secrets: dict) -> str | None:
 
 
 def load_ha_configuration() -> dict:
-    """Load crypto_inspect config from Home Assistant configuration.yaml.
+    """Load crypto_inspect config from Home Assistant.
 
-    Reads the crypto_inspect: section and resolves !secret references.
-    Priority: configuration.yaml > options.json > env > defaults
+    Reads from:
+    1. /config/crypto_inspect.yaml (preferred, separate file)
+    2. /config/configuration.yaml crypto_inspect: section (fallback)
+    
+    Resolves !secret references from secrets.yaml.
+    Priority: crypto_inspect.yaml > configuration.yaml > options.json > env > defaults
     """
+    secrets = load_ha_secrets()
+    
+    # Custom YAML loader to handle !secret tags
+    class SecretLoader(yaml.SafeLoader):
+        pass
+
+    def secret_constructor(loader, node):
+        return f"!secret {loader.construct_scalar(node)}"
+
+    def skip_constructor(loader, node):  # noqa: ARG001
+        return None
+
+    SecretLoader.add_constructor("!secret", secret_constructor)
+    SecretLoader.add_constructor("!include", skip_constructor)
+    SecretLoader.add_constructor("!include_dir_list", skip_constructor)
+    SecretLoader.add_constructor("!include_dir_merge_list", skip_constructor)
+    SecretLoader.add_constructor("!include_dir_named", skip_constructor)
+    SecretLoader.add_constructor("!include_dir_merge_named", skip_constructor)
+
+    # Try separate crypto_inspect.yaml first (no HA validation warnings)
+    crypto_config_path = Path("/config/crypto_inspect.yaml")
+    if crypto_config_path.exists():
+        try:
+            content = crypto_config_path.read_text()
+            config = yaml.load(content, Loader=SecretLoader) or {}
+            
+            # Resolve secrets
+            resolved = {}
+            for key, value in config.items():
+                resolved[key] = resolve_secret(value, secrets)
+            
+            logger.info(f"Loaded {len(resolved)} settings from crypto_inspect.yaml")
+            return resolved
+        except (yaml.YAMLError, OSError) as e:
+            logger.warning(f"Failed to load crypto_inspect.yaml: {e}")
+
+    # Fallback: read from configuration.yaml crypto_inspect: section
     config_path = Path("/config/configuration.yaml")
     if not config_path.exists():
         return {}
 
     try:
-        # Custom loader to handle !secret tags
-        class SecretLoader(yaml.SafeLoader):
-            pass
-
-        def secret_constructor(loader, node):
-            return f"!secret {loader.construct_scalar(node)}"
-
-        def skip_constructor(loader, node):  # noqa: ARG001
-            return None
-
-        SecretLoader.add_constructor("!secret", secret_constructor)
-        SecretLoader.add_constructor("!include", skip_constructor)
-        SecretLoader.add_constructor("!include_dir_list", skip_constructor)
-        SecretLoader.add_constructor("!include_dir_merge_list", skip_constructor)
-        SecretLoader.add_constructor("!include_dir_named", skip_constructor)
-        SecretLoader.add_constructor("!include_dir_merge_named", skip_constructor)
-
         content = config_path.read_text()
         config = yaml.load(content, Loader=SecretLoader) or {}
 
@@ -84,8 +108,7 @@ def load_ha_configuration() -> dict:
         if not crypto_config:
             return {}
 
-        # Load secrets and resolve references
-        secrets = load_ha_secrets()
+        # Resolve secrets
         resolved = {}
         for key, value in crypto_config.items():
             resolved[key] = resolve_secret(value, secrets)
