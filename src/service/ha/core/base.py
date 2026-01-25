@@ -177,12 +177,16 @@ class BaseSensor(ABC):
         Returns:
             Dictionary with sensor metadata for HA
         """
+        # Unique ID for HA entity registry management
+        unique_id = f"crypto_inspect_{self.config.sensor_id}"
+        
         data = {
             "friendly_name": self.config.name,
             "icon": self.config.icon,
             "description": self.config.description,
             "description_ru": self.config.description_ru,
             "name_ru": self.config.name_ru,
+            "unique_id": unique_id,
         }
 
         if self.config.unit:

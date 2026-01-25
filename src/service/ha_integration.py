@@ -183,10 +183,12 @@ class SupervisorAPIClient:
             True if successful
         """
         entity_id = f"sensor.crypto_inspect_{sensor_id}"
+        unique_id = f"crypto_inspect_{sensor_id}"
 
         attrs = {
             "friendly_name": friendly_name,
             "icon": icon,
+            "unique_id": unique_id,
         }
         if unit:
             attrs["unit_of_measurement"] = unit
