@@ -23,6 +23,9 @@ class SupervisorPublisher:
     DEVICE_ID = "crypto_inspect"
     DEVICE_NAME = "Crypto Inspect"
     ENTITY_PREFIX = "sensor.crypto_inspect_"
+    
+    # Store background tasks to prevent garbage collection
+    _background_tasks: set = set()
 
     def __init__(self, client: SupervisorAPIClient | None = None):
         """Initialize publisher.
@@ -110,8 +113,10 @@ class SupervisorPublisher:
         Returns:
             True if published successfully (or saved to DB when HA not available)
         """
-        # Always save to database (non-blocking)
-        asyncio.create_task(self._save_sensor_state(sensor_id, state))
+        # Save to database (non-blocking but with task retention)
+        task = asyncio.create_task(self._save_sensor_state(sensor_id, state))
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
 
         if not self.is_available:
             logger.debug(f"Supervisor API not available, skipping HA publish for {sensor_id}")

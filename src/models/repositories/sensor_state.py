@@ -2,6 +2,7 @@
 
 import json
 import logging
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import select
@@ -47,6 +48,7 @@ class SensorStateRepository:
                 set_={
                     "name": name,
                     "value": value_str,
+                    "updated_at": datetime.now(UTC),
                 },
             )
             await self.session.execute(stmt)
