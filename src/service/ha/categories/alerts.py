@@ -152,3 +152,31 @@ class AdaptiveAdaptationFactorsSensor(DictSensor):
         description='Current adaptation factors. Format: {"BTC": 1.2, "ETH": 0.8}',
         description_ru='Текущие факторы адаптации. Формат: {"BTC": 1.2, "ETH": 0.8}',
     )
+
+
+@register_sensor(category="alerts")
+class PriceAlertSensor(StatusSensor):
+    """Price alert status."""
+
+    config = SensorConfig(
+        sensor_id="price_alert",
+        name="Price Alert",
+        name_ru="Ценовой алерт",
+        icon="mdi:cash-alert",
+        description="Last price alert details",
+        description_ru="Детали последнего ценового алерта",
+    )
+
+
+@register_sensor(category="alerts")
+class FearGreedAlertSensor(StatusSensor):
+    """Fear & Greed alert status."""
+
+    config = SensorConfig(
+        sensor_id="fear_greed_alert",
+        name="Fear & Greed Alert",
+        name_ru="Алерт страха и жадности",
+        icon="mdi:emoticon-angry",
+        description="Fear & Greed index alert",
+        description_ru="Алерт индекса страха и жадности",
+    )

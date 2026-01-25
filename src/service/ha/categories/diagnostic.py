@@ -68,3 +68,93 @@ class DatabaseSizeSensor(ScalarSensor):
         value_type="float",
         min_value=0,
     )
+
+
+@register_sensor(category="diagnostic")
+class DatabaseStatusSensor(StatusSensor):
+    """Database connection status."""
+
+    config = SensorConfig(
+        sensor_id="database_status",
+        name="Database Status",
+        name_ru="Статус базы данных",
+        icon="mdi:database-check",
+        entity_category="diagnostic",
+        description="Database connection status",
+        description_ru="Статус подключения к базе данных",
+    )
+
+
+@register_sensor(category="diagnostic")
+class ApiStatusSensor(StatusSensor):
+    """API server status."""
+
+    config = SensorConfig(
+        sensor_id="api_status",
+        name="API Status",
+        name_ru="Статус API",
+        icon="mdi:api",
+        entity_category="diagnostic",
+        description="API server status",
+        description_ru="Статус API сервера",
+    )
+
+
+@register_sensor(category="diagnostic")
+class SchedulerStatusSensor(StatusSensor):
+    """Scheduler status."""
+
+    config = SensorConfig(
+        sensor_id="scheduler_status",
+        name="Scheduler Status",
+        name_ru="Статус планировщика",
+        icon="mdi:clock-check",
+        entity_category="diagnostic",
+        description="Background scheduler status",
+        description_ru="Статус фонового планировщика",
+    )
+
+
+@register_sensor(category="diagnostic")
+class VersionSensor(StatusSensor):
+    """System version."""
+
+    config = SensorConfig(
+        sensor_id="version",
+        name="Version",
+        name_ru="Версия",
+        icon="mdi:tag",
+        entity_category="diagnostic",
+        description="Crypto Inspect version",
+        description_ru="Версия Crypto Inspect",
+    )
+
+
+@register_sensor(category="diagnostic")
+class NotificationServiceSensor(StatusSensor):
+    """Notification service status."""
+
+    config = SensorConfig(
+        sensor_id="notification_service",
+        name="Notification Service",
+        name_ru="Служба уведомлений",
+        icon="mdi:bell-cog",
+        entity_category="diagnostic",
+        description="Notification service status",
+        description_ru="Статус службы уведомлений",
+    )
+
+
+@register_sensor(category="diagnostic")
+class CryptoCurrencyListSensor(StatusSensor):
+    """List of tracked cryptocurrencies."""
+
+    config = SensorConfig(
+        sensor_id="crypto_currency_list",
+        name="Tracked Currencies",
+        name_ru="Отслеживаемые валюты",
+        icon="mdi:format-list-bulleted",
+        entity_category="diagnostic",
+        description="List of tracked cryptocurrencies",
+        description_ru="Список отслеживаемых криптовалют",
+    )

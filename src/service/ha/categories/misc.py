@@ -319,3 +319,49 @@ class GoalStatusSensor(StatusSensor):
         description="Status: in progress/reached/postponed",
         description_ru="Статус: в процессе/достигнута/отложена",
     )
+
+
+# === System ===
+
+
+@register_sensor(category="misc")
+class ReadySensor(StatusSensor):
+    """System ready status."""
+
+    config = SensorConfig(
+        sensor_id="ready",
+        name="System Ready",
+        name_ru="Система готова",
+        icon="mdi:check-circle",
+        description="System initialization status",
+        description_ru="Статус инициализации системы",
+    )
+
+
+@register_sensor(category="misc")
+class StopLossRecommendationSensor(StatusSensor):
+    """Stop loss recommendation."""
+
+    config = SensorConfig(
+        sensor_id="stop_loss_recommendation",
+        name="Stop Loss",
+        name_ru="Стоп-лосс",
+        icon="mdi:shield-off",
+        description="Recommended stop loss action",
+        description_ru="Рекомендация по стоп-лоссу",
+    )
+
+
+@register_sensor(category="misc")
+class UnlocksNextEventSensor(StatusSensor):
+    """Next unlock event (alias)."""
+
+    config = SensorConfig(
+        sensor_id="unlocks_next_event",
+        name="Next Unlock",
+        name_ru="Следующий анлок",
+        icon="mdi:calendar-lock",
+        description="Next token unlock event",
+        description_ru="Ближайшая разблокировка токенов",
+    )
+

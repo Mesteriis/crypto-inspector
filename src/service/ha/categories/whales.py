@@ -45,3 +45,17 @@ class WhaleLastAlertSensor(StatusSensor):
         description="Last large transaction",
         description_ru="Последняя крупная транзакция",
     )
+
+
+@register_sensor(category="whales")
+class WhaleSignalSensor(StatusSensor):
+    """Whale activity signal."""
+
+    config = SensorConfig(
+        sensor_id="whale_signal",
+        name="Whale Signal",
+        name_ru="Сигнал китов",
+        icon="mdi:fish",
+        description="Overall whale activity signal",
+        description_ru="Общий сигнал активности китов",
+    )

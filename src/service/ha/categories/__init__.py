@@ -19,6 +19,7 @@ from service.ha.categories import (
     investor,
     market,
     misc,
+    ml,
     portfolio,
     price,
     risk,
@@ -51,4 +52,5 @@ __all__ = [
     "risk",
     "backtest",
     "misc",
+    "ml",
 ]

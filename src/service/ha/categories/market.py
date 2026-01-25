@@ -137,3 +137,19 @@ class StablecoinDominanceSensor(PercentSensor):
         description="Share of stablecoins in the market (%)",
         description_ru="Доля стейблкоинов на рынке (%)",
     )
+
+
+@register_sensor(category="market")
+class StablecoinFlow24hSensor(PercentSensor):
+    """Stablecoin 24h flow percentage."""
+
+    config = SensorConfig(
+        sensor_id="stablecoin_flow_24h",
+        name="Stablecoin Flow 24h",
+        name_ru="Поток стейблкоинов 24ч",
+        icon="mdi:swap-horizontal",
+        unit="%",
+        description="24h stablecoin flow percentage",
+        description_ru="Поток стейблкоинов за 24ч (%)",
+    )
+

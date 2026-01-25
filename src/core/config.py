@@ -1,7 +1,9 @@
 import json
+import logging
 import os
 from pathlib import Path
 
+import yaml
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from core.constants import (
@@ -10,6 +12,8 @@ from core.constants import (
     RETRY_DELAY_SECONDS,
     Timeouts,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def load_ha_options() -> dict:
@@ -23,8 +27,80 @@ def load_ha_options() -> dict:
     return {}
 
 
+def load_ha_secrets() -> dict:
+    """Load secrets from Home Assistant secrets.yaml."""
+    secrets_path = Path("/config/secrets.yaml")
+    if secrets_path.exists():
+        try:
+            content = secrets_path.read_text()
+            return yaml.safe_load(content) or {}
+        except (yaml.YAMLError, OSError) as e:
+            logger.warning(f"Failed to load secrets.yaml: {e}")
+    return {}
+
+
+def resolve_secret(value: str | None, secrets: dict) -> str | None:
+    """Resolve !secret reference to actual value."""
+    if not value or not isinstance(value, str):
+        return value
+    if value.startswith("!secret "):
+        secret_key = value[8:].strip()
+        return secrets.get(secret_key)
+    return value
+
+
+def load_ha_configuration() -> dict:
+    """Load crypto_inspect config from Home Assistant configuration.yaml.
+
+    Reads the crypto_inspect: section and resolves !secret references.
+    Priority: configuration.yaml > options.json > env > defaults
+    """
+    config_path = Path("/config/configuration.yaml")
+    if not config_path.exists():
+        return {}
+
+    try:
+        # Custom loader to handle !secret tags
+        class SecretLoader(yaml.SafeLoader):
+            pass
+
+        def secret_constructor(loader, node):
+            return f"!secret {loader.construct_scalar(node)}"
+
+        def skip_constructor(loader, node):  # noqa: ARG001
+            return None
+
+        SecretLoader.add_constructor("!secret", secret_constructor)
+        SecretLoader.add_constructor("!include", skip_constructor)
+        SecretLoader.add_constructor("!include_dir_list", skip_constructor)
+        SecretLoader.add_constructor("!include_dir_merge_list", skip_constructor)
+        SecretLoader.add_constructor("!include_dir_named", skip_constructor)
+        SecretLoader.add_constructor("!include_dir_merge_named", skip_constructor)
+
+        content = config_path.read_text()
+        config = yaml.load(content, Loader=SecretLoader) or {}
+
+        crypto_config = config.get("crypto_inspect", {})
+        if not crypto_config:
+            return {}
+
+        # Load secrets and resolve references
+        secrets = load_ha_secrets()
+        resolved = {}
+        for key, value in crypto_config.items():
+            resolved[key] = resolve_secret(value, secrets)
+
+        logger.info(f"Loaded {len(resolved)} settings from configuration.yaml")
+        return resolved
+
+    except (yaml.YAMLError, OSError) as e:
+        logger.warning(f"Failed to load configuration.yaml: {e}")
+        return {}
+
+
 # Load HA options once at module level
 _ha_options = load_ha_options()
+_ha_config = load_ha_configuration()
 
 
 class Settings(BaseSettings):
@@ -104,62 +180,76 @@ class Settings(BaseSettings):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # Override with HA options if available (priority: HA options > env > default)
-        if _ha_options:
-            if _ha_options.get("bybit_api_key"):
-                self.BYBIT_API_KEY = _ha_options["bybit_api_key"]
-            if _ha_options.get("bybit_api_secret"):
-                self.BYBIT_API_SECRET = _ha_options["bybit_api_secret"]
-            if "bybit_testnet" in _ha_options:
-                self.BYBIT_TESTNET = _ha_options["bybit_testnet"]
-            # API settings
-            if "api_enabled" in _ha_options:
-                self.API_ENABLED = _ha_options["api_enabled"]
-            if "api_port" in _ha_options:
-                self.API_PORT = _ha_options["api_port"]
+        # Priority: configuration.yaml > options.json > env > default
+        # First apply options.json (add-on UI settings)
+        self._apply_config(_ha_options)
+        # Then apply configuration.yaml (overrides options.json)
+        self._apply_config(_ha_config)
 
-            # MCP settings
-            if "mcp_enabled" in _ha_options:
-                self.MCP_ENABLED = _ha_options["mcp_enabled"]
-            if "mcp_port" in _ha_options:
-                self.MCP_PORT = _ha_options["mcp_port"]
-            # Backfill settings
-            if "backfill_enabled" in _ha_options:
-                self.BACKFILL_ENABLED = _ha_options["backfill_enabled"]
-            if "backfill_crypto_years" in _ha_options:
-                self.BACKFILL_CRYPTO_YEARS = _ha_options["backfill_crypto_years"]
-            if "backfill_traditional_years" in _ha_options:
-                self.BACKFILL_TRADITIONAL_YEARS = _ha_options["backfill_traditional_years"]
-            # AI settings
-            if "ai_enabled" in _ha_options:
-                self.AI_ENABLED = _ha_options["ai_enabled"]
-            if "ai_provider" in _ha_options:
-                self.AI_PROVIDER = _ha_options["ai_provider"]
-            if _ha_options.get("openai_api_key"):
-                self.OPENAI_API_KEY = _ha_options["openai_api_key"]
-            if _ha_options.get("ollama_host"):
-                self.OLLAMA_HOST = _ha_options["ollama_host"]
-            if _ha_options.get("ollama_model"):
-                self.OLLAMA_MODEL = _ha_options["ollama_model"]
-            if "ai_analysis_interval_hours" in _ha_options:
-                self.AI_ANALYSIS_INTERVAL_HOURS = _ha_options["ai_analysis_interval_hours"]
-            if _ha_options.get("ai_language"):
-                self.AI_LANGUAGE = _ha_options["ai_language"]
-            # UX Feature settings
-            if "goal_enabled" in _ha_options:
-                self.GOAL_ENABLED = _ha_options["goal_enabled"]
-            if "goal_target_value" in _ha_options:
-                self.GOAL_TARGET_VALUE = _ha_options["goal_target_value"]
-            if _ha_options.get("goal_name"):
-                self.GOAL_NAME = _ha_options["goal_name"]
-            if _ha_options.get("goal_name_ru"):
-                self.GOAL_NAME_RU = _ha_options["goal_name_ru"]
-            if "briefing_morning_enabled" in _ha_options:
-                self.BRIEFING_MORNING_ENABLED = _ha_options["briefing_morning_enabled"]
-            if "briefing_evening_enabled" in _ha_options:
-                self.BRIEFING_EVENING_ENABLED = _ha_options["briefing_evening_enabled"]
-            if _ha_options.get("notification_mode"):
-                self.NOTIFICATION_MODE = _ha_options["notification_mode"]
+    def _apply_config(self, config: dict) -> None:
+        """Apply configuration from dict (options.json or configuration.yaml)."""
+        if not config:
+            return
+
+        # Bybit settings
+        if config.get("bybit_api_key"):
+            self.BYBIT_API_KEY = config["bybit_api_key"]
+        if config.get("bybit_api_secret"):
+            self.BYBIT_API_SECRET = config["bybit_api_secret"]
+        if "bybit_testnet" in config:
+            self.BYBIT_TESTNET = config["bybit_testnet"]
+
+        # API settings
+        if "api_enabled" in config:
+            self.API_ENABLED = config["api_enabled"]
+        if "api_port" in config:
+            self.API_PORT = config["api_port"]
+
+        # MCP settings
+        if "mcp_enabled" in config:
+            self.MCP_ENABLED = config["mcp_enabled"]
+        if "mcp_port" in config:
+            self.MCP_PORT = config["mcp_port"]
+
+        # Backfill settings
+        if "backfill_enabled" in config:
+            self.BACKFILL_ENABLED = config["backfill_enabled"]
+        if "backfill_crypto_years" in config:
+            self.BACKFILL_CRYPTO_YEARS = config["backfill_crypto_years"]
+        if "backfill_traditional_years" in config:
+            self.BACKFILL_TRADITIONAL_YEARS = config["backfill_traditional_years"]
+
+        # AI settings
+        if "ai_enabled" in config:
+            self.AI_ENABLED = config["ai_enabled"]
+        if "ai_provider" in config:
+            self.AI_PROVIDER = config["ai_provider"]
+        if config.get("openai_api_key"):
+            self.OPENAI_API_KEY = config["openai_api_key"]
+        if config.get("ollama_host"):
+            self.OLLAMA_HOST = config["ollama_host"]
+        if config.get("ollama_model"):
+            self.OLLAMA_MODEL = config["ollama_model"]
+        if "ai_analysis_interval_hours" in config:
+            self.AI_ANALYSIS_INTERVAL_HOURS = config["ai_analysis_interval_hours"]
+        if config.get("ai_language"):
+            self.AI_LANGUAGE = config["ai_language"]
+
+        # UX Feature settings
+        if "goal_enabled" in config:
+            self.GOAL_ENABLED = config["goal_enabled"]
+        if "goal_target_value" in config:
+            self.GOAL_TARGET_VALUE = config["goal_target_value"]
+        if config.get("goal_name"):
+            self.GOAL_NAME = config["goal_name"]
+        if config.get("goal_name_ru"):
+            self.GOAL_NAME_RU = config["goal_name_ru"]
+        if "briefing_morning_enabled" in config:
+            self.BRIEFING_MORNING_ENABLED = config["briefing_morning_enabled"]
+        if "briefing_evening_enabled" in config:
+            self.BRIEFING_EVENING_ENABLED = config["briefing_evening_enabled"]
+        if config.get("notification_mode"):
+            self.NOTIFICATION_MODE = config["notification_mode"]
 
     def get_streaming_symbols(self) -> list[str]:
         """Parse streaming symbols from dynamic currency list or config.

@@ -221,3 +221,52 @@ class NaturalGasSensor(ScalarSensor):
         value_type="float",
         min_value=0,
     )
+
+
+@register_sensor(category="traditional")
+class VixIndexSensor(ScalarSensor):
+    """VIX volatility index."""
+
+    config = SensorConfig(
+        sensor_id="vix_index",
+        name="VIX Index",
+        name_ru="Индекс VIX",
+        icon="mdi:chart-bell-curve-cumulative",
+        description="CBOE Volatility Index",
+        description_ru="Индекс волатильности CBOE",
+        value_type="float",
+        min_value=0,
+    )
+
+
+@register_sensor(category="traditional")
+class TreasuryYield2ySensor(ScalarSensor):
+    """2-year US Treasury yield."""
+
+    config = SensorConfig(
+        sensor_id="treasury_yield_2y",
+        name="Treasury Yield 2Y",
+        name_ru="Доходность 2г",
+        icon="mdi:percent",
+        unit="%",
+        description="2-year US Treasury yield",
+        description_ru="Доходность 2-летних облигаций США",
+        value_type="float",
+    )
+
+
+@register_sensor(category="traditional")
+class TreasuryYield10ySensor(ScalarSensor):
+    """10-year US Treasury yield."""
+
+    config = SensorConfig(
+        sensor_id="treasury_yield_10y",
+        name="Treasury Yield 10Y",
+        name_ru="Доходность 10л",
+        icon="mdi:percent",
+        unit="%",
+        description="10-year US Treasury yield",
+        description_ru="Доходность 10-летних облигаций США",
+        value_type="float",
+    )
+

@@ -278,52 +278,136 @@ class HAIntegrationManager:
         """
         timestamp = datetime.now(UTC).isoformat()
 
-        # do_nothing_ok
-        do_nothing = status_data.get("do_nothing_ok", False)
-        await self.publish_sensor("do_nothing_ok", do_nothing, {"last_updated": timestamp})
+        # do_nothing_ok - handle nested dict format from to_dict()
+        do_nothing = status_data.get("do_nothing_ok", {})
+        if isinstance(do_nothing, dict):
+            do_nothing_val = do_nothing.get("value", False)
+            do_nothing_attrs = {
+                "state": do_nothing.get("state", ""),
+                "reason": do_nothing.get("reason", ""),
+                "reason_ru": do_nothing.get("reason_ru", ""),
+                "last_updated": timestamp,
+            }
+        else:
+            do_nothing_val = bool(do_nothing)
+            do_nothing_attrs = {"last_updated": timestamp}
+        await self.publish_sensor("do_nothing_ok", do_nothing_val, do_nothing_attrs)
 
-        # investor_phase
-        phase = status_data.get("phase", "unknown")
-        phase_ru = status_data.get("phase_ru", phase)
-        await self.publish_sensor("investor_phase", phase, {
-            "phase_ru": phase_ru,
-            "last_updated": timestamp,
-        })
+        # investor_phase - handle nested dict format
+        phase = status_data.get("phase", {})
+        if isinstance(phase, dict):
+            phase_val = phase.get("name_ru", phase.get("value", "unknown"))
+            phase_attrs = {
+                "value": phase.get("value", ""),
+                "confidence": phase.get("confidence", 50),
+                "description": phase.get("description", ""),
+                "description_ru": phase.get("description_ru", ""),
+                "last_updated": timestamp,
+            }
+        else:
+            phase_val = str(phase)
+            phase_attrs = {"last_updated": timestamp}
+        await self.publish_sensor("investor_phase", phase_val, phase_attrs)
 
-        # calm_indicator
-        calm = status_data.get("calm_score", 50)
-        await self.publish_sensor("calm_indicator", calm, {"last_updated": timestamp})
+        # calm_indicator - handle nested dict format
+        calm = status_data.get("calm", {})
+        if isinstance(calm, dict):
+            calm_val = calm.get("score", 50)
+            calm_attrs = {
+                "level": calm.get("level", ""),
+                "message": calm.get("message", ""),
+                "message_ru": calm.get("message_ru", ""),
+                "last_updated": timestamp,
+            }
+        else:
+            calm_val = int(calm) if calm else 50
+            calm_attrs = {"last_updated": timestamp}
+        await self.publish_sensor("calm_indicator", calm_val, calm_attrs)
 
         # red_flags - CountSensor expects int value
-        flags = status_data.get("red_flags_count", 0)
-        flags_list = status_data.get("red_flags", [])
-        emoji = "🟢" if flags == 0 else ("🟡" if flags <= 2 else "🔴")
-        await self.publish_sensor("red_flags", flags, {
+        flags_data = status_data.get("red_flags", {})
+        if isinstance(flags_data, dict):
+            flags_count = flags_data.get("count", 0)
+            flags_list = flags_data.get("flags_list", "")
+        else:
+            flags_count = int(flags_data) if flags_data else 0
+            flags_list = ""
+        emoji = "🟢" if flags_count == 0 else ("🟡" if flags_count <= 2 else "🔴")
+        await self.publish_sensor("red_flags", flags_count, {
             "status_emoji": emoji,
-            "count": flags,
-            "flags": flags_list,
+            "count": flags_count,
+            "flags_list": flags_list,
             "last_updated": timestamp,
         })
 
-        # market_tension
-        tension = status_data.get("market_tension", "unknown")
-        await self.publish_sensor("market_tension", tension, {"last_updated": timestamp})
+        # market_tension - handle nested dict format
+        tension = status_data.get("tension", {})
+        if isinstance(tension, dict):
+            tension_val = tension.get("level_ru", tension.get("level", "unknown"))
+            tension_attrs = {
+                "score": tension.get("score", 50),
+                "state": tension.get("state", ""),
+                "last_updated": timestamp,
+            }
+        else:
+            tension_val = str(tension) if tension else "unknown"
+            tension_attrs = {"last_updated": timestamp}
+        await self.publish_sensor("market_tension", tension_val, tension_attrs)
 
-        # price_context
-        context = status_data.get("price_context", "unknown")
-        await self.publish_sensor("price_context", context, {"last_updated": timestamp})
+        # price_context - handle nested dict format
+        context = status_data.get("price_context", {})
+        if isinstance(context, dict):
+            context_val = context.get("context_ru", context.get("context", "unknown"))
+            context_attrs = {
+                "current_price": context.get("current_price", 0),
+                "avg_6m": context.get("avg_6m", 0),
+                "diff_percent": context.get("diff_percent", 0),
+                "recommendation": context.get("recommendation", ""),
+                "recommendation_ru": context.get("recommendation_ru", ""),
+                "last_updated": timestamp,
+            }
+        else:
+            context_val = str(context) if context else "unknown"
+            context_attrs = {"last_updated": timestamp}
+        await self.publish_sensor("price_context", context_val, context_attrs)
 
-        # dca_result
-        dca_amount = status_data.get("dca_amount", 0)
-        await self.publish_sensor("dca_result", dca_amount, {"last_updated": timestamp})
-
-        # dca_signal
-        dca_signal = status_data.get("dca_signal", "unknown")
+        # dca - handle nested dict format
+        dca = status_data.get("dca", {})
+        if isinstance(dca, dict):
+            dca_signal = dca.get("signal_ru", dca.get("signal", "unknown"))
+            dca_amount = dca.get("total_amount", 0)
+            dca_attrs = {
+                "signal": dca.get("signal", ""),
+                "state": dca.get("state", ""),
+                "btc_amount": dca.get("btc_amount", 0),
+                "eth_amount": dca.get("eth_amount", 0),
+                "reason": dca.get("reason", ""),
+                "reason_ru": dca.get("reason_ru", ""),
+                "next_dca": dca.get("next_dca", ""),
+                "last_updated": timestamp,
+            }
+        else:
+            dca_signal = str(dca) if dca else "unknown"
+            dca_amount = 0
+            dca_attrs = {"last_updated": timestamp}
+        await self.publish_sensor("dca_result", dca_amount, dca_attrs)
         await self.publish_sensor("dca_signal", dca_signal, {"last_updated": timestamp})
 
-        # weekly_insight
-        insight = status_data.get("weekly_insight", "")
-        await self.publish_sensor("weekly_insight", insight, {"last_updated": timestamp})
+        # weekly_insight - handle nested dict format
+        insight = status_data.get("weekly_insight", {})
+        if isinstance(insight, dict):
+            insight_val = insight.get("summary_ru", insight.get("summary", ""))
+            insight_attrs = {
+                "btc_status": insight.get("btc_status", ""),
+                "eth_vs_btc": insight.get("eth_vs_btc", ""),
+                "alts_status": insight.get("alts_status", ""),
+                "dominance_trend": insight.get("dominance_trend", ""),
+                "last_updated": timestamp,
+            }
+        else:
+            insight_val = str(insight) if insight else ""
+            insight_attrs = {"last_updated": timestamp}
+        await self.publish_sensor("weekly_insight", insight_val, insight_attrs)
 
     # === Market Data Methods ===
 
