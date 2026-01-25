@@ -1,0 +1,158 @@
+# =============================================================================
+# ТЕХНИЧЕСКИЙ АНАЛИЗ
+# =============================================================================
+# Автоматизации на основе технических индикаторов
+
+# -----------------------------------------------------------------------------
+# 7. RSI в зоне перепроданности (<30)
+# -----------------------------------------------------------------------------
+- id: crypto_rsi_oversold
+  alias: "Crypto: RSI перепроданность"
+  description: "RSI ниже 30 - потенциальная возможность для покупки"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.crypto_inspect_ta_rsi
+      below: 30
+  condition:
+    - condition: state
+      entity_id: input_boolean.crypto_ta_alerts_enabled
+      state: "on"
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "📉 RSI Перепроданность"
+        message: "RSI = {{ states('sensor.crypto_inspect_ta_rsi') }}. Рынок перепродан - возможность для покупки"
+        data:
+          tag: rsi_alert
+
+# -----------------------------------------------------------------------------
+# 8. RSI в зоне перекупленности (>70)
+# -----------------------------------------------------------------------------
+- id: crypto_rsi_overbought
+  alias: "Crypto: RSI перекупленность"
+  description: "RSI выше 70 - возможно стоит фиксировать прибыль"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.crypto_inspect_ta_rsi
+      above: 70
+  condition:
+    - condition: state
+      entity_id: input_boolean.crypto_ta_alerts_enabled
+      state: "on"
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "📈 RSI Перекупленность"
+        message: "RSI = {{ states('sensor.crypto_inspect_ta_rsi') }}. Рынок перекуплен - рассмотри фиксацию прибыли"
+        data:
+          tag: rsi_alert
+
+# -----------------------------------------------------------------------------
+# 9. MACD бычий кроссовер
+# -----------------------------------------------------------------------------
+- id: crypto_macd_bullish_cross
+  alias: "Crypto: MACD бычий сигнал"
+  description: "MACD пересёк сигнальную линию снизу вверх"
+  trigger:
+    - platform: state
+      entity_id: sensor.crypto_inspect_ta_macd_signal
+      to: "bullish_cross"
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "🟢 MACD Бычий"
+        message: "MACD дал бычий сигнал - начало восходящего тренда?"
+
+# -----------------------------------------------------------------------------
+# 10. MACD медвежий кроссовер
+# -----------------------------------------------------------------------------
+- id: crypto_macd_bearish_cross
+  alias: "Crypto: MACD медвежий сигнал"
+  description: "MACD пересёк сигнальную линию сверху вниз"
+  trigger:
+    - platform: state
+      entity_id: sensor.crypto_inspect_ta_macd_signal
+      to: "bearish_cross"
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "🔴 MACD Медвежий"
+        message: "MACD дал медвежий сигнал - возможное начало коррекции"
+
+# -----------------------------------------------------------------------------
+# 11. Сильный технический сигнал на покупку
+# -----------------------------------------------------------------------------
+- id: crypto_strong_buy_signal
+  alias: "Crypto: Сильный сигнал BUY"
+  description: "Совпадение нескольких индикаторов на покупку"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.crypto_inspect_ta_confluence
+      above: 75
+  condition:
+    - condition: template
+      value_template: "{{ states('sensor.crypto_inspect_ta_signal') == 'strong_buy' }}"
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "💚 STRONG BUY"
+        message: "Confluence {{ states('sensor.crypto_inspect_ta_confluence') }}%. Множество индикаторов указывают на покупку!"
+        data:
+          priority: high
+
+# -----------------------------------------------------------------------------
+# 12. Сильный технический сигнал на продажу
+# -----------------------------------------------------------------------------
+- id: crypto_strong_sell_signal
+  alias: "Crypto: Сильный сигнал SELL"
+  description: "Совпадение нескольких индикаторов на продажу"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.crypto_inspect_ta_confluence
+      below: 25
+  condition:
+    - condition: template
+      value_template: "{{ states('sensor.crypto_inspect_ta_signal') == 'strong_sell' }}"
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "💔 STRONG SELL"
+        message: "Confluence {{ states('sensor.crypto_inspect_ta_confluence') }}%. Множество индикаторов указывают на продажу!"
+        data:
+          priority: high
+
+# -----------------------------------------------------------------------------
+# 13. Смена тренда
+# -----------------------------------------------------------------------------
+- id: crypto_trend_change
+  alias: "Crypto: Смена тренда"
+  description: "Уведомление при смене общего тренда"
+  trigger:
+    - platform: state
+      entity_id: sensor.crypto_inspect_ta_trend
+  condition:
+    - condition: template
+      value_template: >
+        {{ trigger.from_state.state != trigger.to_state.state and 
+           trigger.from_state.state not in ['unknown', 'unavailable'] }}
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "🔄 Смена тренда"
+        message: "Тренд изменился: {{ trigger.from_state.state }} → {{ trigger.to_state.state }}"
+
+# -----------------------------------------------------------------------------
+# 14. Дивергенция обнаружена
+# -----------------------------------------------------------------------------
+- id: crypto_divergence_detected
+  alias: "Crypto: Дивергенция обнаружена"
+  description: "Price/RSI дивергенция - предвестник разворота"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.crypto_inspect_divergences_active
+      above: 0
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "⚡ Дивергенция!"
+        message: "Обнаружена дивергенция - возможен разворот тренда"

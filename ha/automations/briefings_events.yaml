@@ -1,0 +1,165 @@
+# =============================================================================
+# БРИФИНГИ И РЕГУЛЯРНЫЕ ОТЧЁТЫ
+# =============================================================================
+# Автоматизации для регулярных уведомлений
+
+# -----------------------------------------------------------------------------
+# 43. Утренний брифинг
+# -----------------------------------------------------------------------------
+- id: crypto_morning_briefing
+  alias: "Crypto: Утренний брифинг"
+  description: "Ежедневный утренний обзор рынка"
+  trigger:
+    - platform: time
+      at: "08:00:00"
+  condition:
+    - condition: state
+      entity_id: input_boolean.crypto_briefings_enabled
+      state: "on"
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "☀️ Утренний брифинг"
+        message: >
+          {{ states('sensor.crypto_inspect_morning_briefing') }}
+        data:
+          tag: morning_briefing
+
+# -----------------------------------------------------------------------------
+# 44. Вечерний брифинг
+# -----------------------------------------------------------------------------
+- id: crypto_evening_briefing
+  alias: "Crypto: Вечерний брифинг"
+  description: "Ежедневный вечерний обзор и итоги дня"
+  trigger:
+    - platform: time
+      at: "21:00:00"
+  condition:
+    - condition: state
+      entity_id: input_boolean.crypto_briefings_enabled
+      state: "on"
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "🌙 Вечерний итог"
+        message: >
+          {{ states('sensor.crypto_inspect_evening_briefing') }}
+        data:
+          tag: evening_briefing
+
+# -----------------------------------------------------------------------------
+# 45. Еженедельный отчёт
+# -----------------------------------------------------------------------------
+- id: crypto_weekly_summary
+  alias: "Crypto: Еженедельный отчёт"
+  description: "Отчёт по воскресеньям"
+  trigger:
+    - platform: time
+      at: "18:00:00"
+  condition:
+    - condition: time
+      weekday: [sun]
+    - condition: state
+      entity_id: input_boolean.crypto_briefings_enabled
+      state: "on"
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "📊 Неделя в крипто"
+        message: "{{ states('sensor.crypto_inspect_weekly_insight') }}"
+
+# -----------------------------------------------------------------------------
+# 46. FOMC напоминание (за день)
+# -----------------------------------------------------------------------------
+- id: crypto_fomc_reminder
+  alias: "Crypto: FOMC завтра"
+  description: "Напоминание о предстоящем заседании ФРС"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.crypto_inspect_days_to_fomc
+      below: 2
+  condition:
+    - condition: template
+      value_template: "{{ states('sensor.crypto_inspect_days_to_fomc') | int(999) == 1 }}"
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "🏛️ FOMC завтра!"
+        message: "Заседание ФРС завтра. Ожидай повышенную волатильность"
+        data:
+          priority: high
+
+# -----------------------------------------------------------------------------
+# 47. Важное макро событие
+# -----------------------------------------------------------------------------
+- id: crypto_macro_event
+  alias: "Crypto: Важное макро событие"
+  description: "Уведомление о предстоящем важном событии"
+  trigger:
+    - platform: state
+      entity_id: sensor.crypto_inspect_next_macro_event
+  condition:
+    - condition: template
+      value_template: >
+        {{ trigger.to_state.state not in ['unknown', 'unavailable', 'none'] and
+           state_attr('sensor.crypto_inspect_next_macro_event', 'hours_until') | default(999) < 24 }}
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "📅 Макро событие"
+        message: "Скоро: {{ states('sensor.crypto_inspect_next_macro_event') }}"
+
+# -----------------------------------------------------------------------------
+# 48. Token Unlock предупреждение
+# -----------------------------------------------------------------------------
+- id: crypto_unlock_warning
+  alias: "Crypto: Token Unlock скоро"
+  description: "Предупреждение о предстоящей разблокировке токенов"
+  trigger:
+    - platform: state
+      entity_id: sensor.crypto_inspect_unlocks_next_event
+  condition:
+    - condition: template
+      value_template: >
+        {{ state_attr('sensor.crypto_inspect_unlocks_next_event', 'days_until') | default(999) < 3 }}
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "🔓 Token Unlock"
+        message: "{{ states('sensor.crypto_inspect_unlocks_next_event') }} - возможное давление на цену"
+
+# -----------------------------------------------------------------------------
+# 49. Высокий макро риск на неделе
+# -----------------------------------------------------------------------------
+- id: crypto_macro_risk_high
+  alias: "Crypto: Высокий макро риск"
+  description: "Много важных событий на неделе"
+  trigger:
+    - platform: state
+      entity_id: sensor.crypto_inspect_macro_risk_week
+      to: "high"
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "⚠️ Макро риск высокий"
+        message: "Много важных событий на этой неделе. Будь осторожен с позициями"
+
+# -----------------------------------------------------------------------------
+# 50. AI анализ готов
+# -----------------------------------------------------------------------------
+- id: crypto_ai_analysis_ready
+  alias: "Crypto: AI анализ готов"
+  description: "Новый AI анализ рынка доступен"
+  trigger:
+    - platform: state
+      entity_id: sensor.crypto_inspect_ai_last_analysis
+  condition:
+    - condition: template
+      value_template: >
+        {{ trigger.to_state.state != trigger.from_state.state and
+           trigger.to_state.state not in ['unknown', 'unavailable'] }}
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "🤖 AI анализ"
+        message: "{{ states('sensor.crypto_inspect_ai_recommendation') }}"

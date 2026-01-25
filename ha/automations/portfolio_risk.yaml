@@ -1,0 +1,174 @@
+# =============================================================================
+# ПОРТФОЛИО И РИСК-МЕНЕДЖМЕНТ
+# =============================================================================
+# Автоматизации для управления портфелем и рисками
+
+# -----------------------------------------------------------------------------
+# 15. Просадка портфеля > 10%
+# -----------------------------------------------------------------------------
+- id: crypto_portfolio_drawdown_warning
+  alias: "Crypto: Просадка портфеля предупреждение"
+  description: "Предупреждение при просадке более 10%"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.crypto_inspect_portfolio_current_drawdown
+      above: 10
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "⚠️ Просадка портфеля"
+        message: "Текущая просадка: {{ states('sensor.crypto_inspect_portfolio_current_drawdown') }}%"
+        data:
+          priority: high
+          tag: drawdown
+
+# -----------------------------------------------------------------------------
+# 16. Критическая просадка портфеля > 20%
+# -----------------------------------------------------------------------------
+- id: crypto_portfolio_drawdown_critical
+  alias: "Crypto: Просадка критическая"
+  description: "Критическая просадка - требуется внимание"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.crypto_inspect_portfolio_current_drawdown
+      above: 20
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "🚨 КРИТИЧЕСКАЯ ПРОСАДКА"
+        message: "Просадка {{ states('sensor.crypto_inspect_portfolio_current_drawdown') }}%! Проверь позиции!"
+        data:
+          priority: critical
+          channel: crypto_critical
+
+# -----------------------------------------------------------------------------
+# 17. Новый максимум портфеля
+# -----------------------------------------------------------------------------
+- id: crypto_portfolio_new_high
+  alias: "Crypto: Новый максимум портфеля"
+  description: "Портфель достиг нового ATH"
+  trigger:
+    - platform: template
+      value_template: >
+        {{ states('sensor.crypto_inspect_portfolio_current_drawdown') | float(10) == 0 }}
+  condition:
+    - condition: template
+      value_template: >
+        {{ states('sensor.crypto_inspect_bybit_total_portfolio') | float(0) > 1000 }}
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "🎉 Новый ATH портфеля!"
+        message: "Портфель достиг ${{ states('sensor.crypto_inspect_bybit_total_portfolio') | round(0) }}"
+
+# -----------------------------------------------------------------------------
+# 18. Прибыль за 24ч > 5%
+# -----------------------------------------------------------------------------
+- id: crypto_portfolio_good_day
+  alias: "Crypto: Хороший день"
+  description: "Уведомление о прибыльном дне"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.crypto_inspect_portfolio_pnl_24h
+      above: 5
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "💰 Отличный день!"
+        message: "PnL за 24ч: +{{ states('sensor.crypto_inspect_portfolio_pnl_24h') }}%"
+
+# -----------------------------------------------------------------------------
+# 19. Убыток за 24ч > 5%
+# -----------------------------------------------------------------------------
+- id: crypto_portfolio_bad_day
+  alias: "Crypto: Плохой день"
+  description: "Уведомление о убыточном дне"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.crypto_inspect_portfolio_pnl_24h
+      below: -5
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "📉 Тяжёлый день"
+        message: "PnL за 24ч: {{ states('sensor.crypto_inspect_portfolio_pnl_24h') }}%. Держись!"
+
+# -----------------------------------------------------------------------------
+# 20. Цель достигнута (milestone)
+# -----------------------------------------------------------------------------
+- id: crypto_goal_milestone
+  alias: "Crypto: Milestone достигнут"
+  description: "Уведомление при достижении целевого уровня"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.crypto_inspect_goal_progress
+      above: 100
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "🏆 ЦЕЛЬ ДОСТИГНУТА!"
+        message: "Поздравляю! Цель {{ states('sensor.crypto_inspect_goal_target') }}$ достигнута!"
+        data:
+          priority: high
+    - service: persistent_notification.create
+      data:
+        title: "🏆 Цель достигнута!"
+        message: "Финансовая цель достигнута!"
+
+# -----------------------------------------------------------------------------
+# 21. Прогресс цели 25/50/75%
+# -----------------------------------------------------------------------------
+- id: crypto_goal_progress_milestone
+  alias: "Crypto: Прогресс цели"
+  description: "Уведомление при достижении промежуточных целей"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.crypto_inspect_goal_progress
+      above: 25
+    - platform: numeric_state
+      entity_id: sensor.crypto_inspect_goal_progress
+      above: 50
+    - platform: numeric_state
+      entity_id: sensor.crypto_inspect_goal_progress
+      above: 75
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "📊 Прогресс цели"
+        message: "{{ states('sensor.crypto_inspect_goal_progress') | round(0) }}% к цели {{ states('sensor.crypto_inspect_goal_name') }}"
+
+# -----------------------------------------------------------------------------
+# 22. Высокий риск ликвидации
+# -----------------------------------------------------------------------------
+- id: crypto_liquidation_risk
+  alias: "Crypto: Риск ликвидации"
+  description: "Предупреждение о риске ликвидации позиций"
+  trigger:
+    - platform: state
+      entity_id: sensor.crypto_inspect_liq_risk_level
+      to: "high"
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "🚨 Риск ликвидации!"
+        message: "Высокий риск ликвидации позиций. Проверь маржу!"
+        data:
+          priority: critical
+
+# -----------------------------------------------------------------------------
+# 23. Stop-loss рекомендация
+# -----------------------------------------------------------------------------
+- id: crypto_stop_loss_recommendation
+  alias: "Crypto: Stop-loss рекомендация"
+  description: "Уведомление о рекомендации установить стоп"
+  trigger:
+    - platform: state
+      entity_id: sensor.crypto_inspect_stop_loss_recommendation
+  condition:
+    - condition: template
+      value_template: "{{ trigger.to_state.state not in ['none', 'unknown', 'unavailable'] }}"
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "🛡️ Stop-Loss"
+        message: "Рекомендация: {{ states('sensor.crypto_inspect_stop_loss_recommendation') }}"

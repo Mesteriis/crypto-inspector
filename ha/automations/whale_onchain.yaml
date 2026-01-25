@@ -1,0 +1,94 @@
+# =============================================================================
+# КИТЫ И ON-CHAIN АКТИВНОСТЬ
+# =============================================================================
+# Автоматизации для отслеживания крупных игроков
+
+# -----------------------------------------------------------------------------
+# 38. Whale Alert - крупная транзакция
+# -----------------------------------------------------------------------------
+- id: crypto_whale_alert
+  alias: "Crypto: Whale Alert"
+  description: "Уведомление о крупной транзакции кита"
+  trigger:
+    - platform: state
+      entity_id: sensor.crypto_inspect_whale_last_alert
+  condition:
+    - condition: template
+      value_template: >
+        {{ trigger.to_state.state != trigger.from_state.state and
+           trigger.to_state.state not in ['unknown', 'unavailable', 'none'] }}
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "🐋 Whale Alert"
+        message: "{{ states('sensor.crypto_inspect_whale_last_alert') }}"
+
+# -----------------------------------------------------------------------------
+# 39. Большой отток с бирж
+# -----------------------------------------------------------------------------
+- id: crypto_exchange_outflow
+  alias: "Crypto: Отток с бирж"
+  description: "Крупный вывод средств с бирж - бычий сигнал"
+  trigger:
+    - platform: state
+      entity_id: sensor.crypto_inspect_exchange_flow_signal
+      to: "strong_outflow"
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "📤 Отток с бирж"
+        message: "Крупный вывод BTC с бирж. Возможно накопление китами"
+        data:
+          tag: exchange_flow
+
+# -----------------------------------------------------------------------------
+# 40. Большой приток на биржи
+# -----------------------------------------------------------------------------
+- id: crypto_exchange_inflow
+  alias: "Crypto: Приток на биржи"
+  description: "Крупный ввод средств на биржи - возможные продажи"
+  trigger:
+    - platform: state
+      entity_id: sensor.crypto_inspect_exchange_flow_signal
+      to: "strong_inflow"
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "📥 Приток на биржи"
+        message: "Крупный ввод BTC на биржи. Возможное давление продаж"
+        data:
+          tag: exchange_flow
+
+# -----------------------------------------------------------------------------
+# 41. Whale Net Flow изменился
+# -----------------------------------------------------------------------------
+- id: crypto_whale_net_flow
+  alias: "Crypto: Whale Net Flow"
+  description: "Значительное изменение net flow китов"
+  trigger:
+    - platform: template
+      value_template: >
+        {{ states('sensor.crypto_inspect_whale_net_flow') | float(0) | abs > 10000 }}
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "🐋 Whale Flow"
+        message: >
+          {% set flow = states('sensor.crypto_inspect_whale_net_flow') | float(0) %}
+          Киты {{ 'накапливают' if flow > 0 else 'продают' }}: {{ flow | abs | round(0) }} BTC
+
+# -----------------------------------------------------------------------------
+# 42. Много whale alerts за 24ч
+# -----------------------------------------------------------------------------
+- id: crypto_whale_activity_high
+  alias: "Crypto: Высокая активность китов"
+  description: "Много крупных транзакций за последние 24ч"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.crypto_inspect_whale_alerts_24h
+      above: 10
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "🐋 Активность китов"
+        message: "{{ states('sensor.crypto_inspect_whale_alerts_24h') }} whale alerts за 24ч. Повышенная активность!"

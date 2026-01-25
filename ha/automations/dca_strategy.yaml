@@ -1,0 +1,102 @@
+# =============================================================================
+# DCA И СТРАТЕГИЯ НАКОПЛЕНИЯ
+# =============================================================================
+# Автоматизации для Dollar Cost Averaging
+
+# -----------------------------------------------------------------------------
+# 33. DCA сигнал - хороший момент для покупки
+# -----------------------------------------------------------------------------
+- id: crypto_dca_good_time
+  alias: "Crypto: DCA хороший момент"
+  description: "Индикаторы указывают на хороший момент для DCA"
+  trigger:
+    - platform: state
+      entity_id: sensor.crypto_inspect_dca_signal
+      to: "buy"
+  condition:
+    - condition: state
+      entity_id: input_boolean.crypto_dca_alerts_enabled
+      state: "on"
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "💰 DCA сигнал"
+        message: "Хороший момент для покупки. DCA Risk: {{ states('sensor.crypto_inspect_dca_risk_score') }}"
+        data:
+          tag: dca_signal
+
+# -----------------------------------------------------------------------------
+# 34. DCA напоминание (еженедельно)
+# -----------------------------------------------------------------------------
+- id: crypto_dca_weekly_reminder
+  alias: "Crypto: Еженедельное DCA напоминание"
+  description: "Напоминание о регулярной покупке"
+  trigger:
+    - platform: time
+      at: "10:00:00"
+  condition:
+    - condition: time
+      weekday: [mon]
+    - condition: state
+      entity_id: input_boolean.crypto_dca_reminders_enabled
+      state: "on"
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "📅 DCA понедельник"
+        message: >
+          Время еженедельной покупки!
+          DCA сигнал: {{ states('sensor.crypto_inspect_dca_signal') }}
+          Risk score: {{ states('sensor.crypto_inspect_dca_risk_score') }}
+
+# -----------------------------------------------------------------------------
+# 35. Оптимальная зона DCA
+# -----------------------------------------------------------------------------
+- id: crypto_dca_optimal_zone
+  alias: "Crypto: Оптимальная DCA зона"
+  description: "Цена в оптимальной зоне для накопления"
+  trigger:
+    - platform: template
+      value_template: >
+        {{ states('sensor.crypto_inspect_dca_risk_score') | int(50) < 30 }}
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "🎯 Оптимальная зона DCA"
+        message: "Риск покупки низкий ({{ states('sensor.crypto_inspect_dca_risk_score') }}). Отличный момент для накопления!"
+        data:
+          priority: high
+
+# -----------------------------------------------------------------------------
+# 36. DCA результат за месяц
+# -----------------------------------------------------------------------------
+- id: crypto_dca_monthly_result
+  alias: "Crypto: DCA результат за месяц"
+  description: "Ежемесячный отчёт по DCA стратегии"
+  trigger:
+    - platform: time
+      at: "09:00:00"
+  condition:
+    - condition: template
+      value_template: "{{ now().day == 1 }}"
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "📊 DCA отчёт"
+        message: "Результат DCA за месяц: {{ states('sensor.crypto_inspect_dca_result') }}"
+
+# -----------------------------------------------------------------------------
+# 37. Не покупать сейчас (высокий риск)
+# -----------------------------------------------------------------------------
+- id: crypto_dca_avoid
+  alias: "Crypto: DCA не рекомендуется"
+  description: "Высокий риск - лучше подождать"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.crypto_inspect_dca_risk_score
+      above: 80
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "⛔ DCA не рекомендуется"
+        message: "Высокий риск покупки ({{ states('sensor.crypto_inspect_dca_risk_score') }}). Лучше подождать"

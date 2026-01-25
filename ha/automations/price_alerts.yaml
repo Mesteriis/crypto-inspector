@@ -1,0 +1,138 @@
+# =============================================================================
+# ЦЕНОВЫЕ АЛЕРТЫ
+# =============================================================================
+# Автоматизации для отслеживания ценовых движений
+
+# -----------------------------------------------------------------------------
+# 1. BTC пробил исторический максимум
+# -----------------------------------------------------------------------------
+- id: crypto_btc_ath_alert
+  alias: "Crypto: BTC пробил ATH"
+  description: "Уведомление когда BTC обновляет исторический максимум"
+  trigger:
+    - platform: template
+      value_template: >
+        {{ states('sensor.crypto_inspect_prices') | from_json | default({}) 
+           | selectattr('BTC') | first | default(0) > 
+           state_attr('sensor.crypto_inspect_prices', 'btc_ath') | default(100000) }}
+  condition:
+    - condition: state
+      entity_id: input_boolean.crypto_alerts_enabled
+      state: "on"
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "🚀 BTC ATH!"
+        message: "Bitcoin обновил исторический максимум: ${{ states('sensor.crypto_inspect_prices') | from_json | default({}) | selectattr('BTC') | first | round(0) }}"
+        data:
+          priority: high
+          tag: btc_ath
+
+# -----------------------------------------------------------------------------
+# 2. Резкое падение цены (Flash Crash)
+# -----------------------------------------------------------------------------
+- id: crypto_flash_crash_alert
+  alias: "Crypto: Flash Crash детектор"
+  description: "Уведомление при падении >5% за час"
+  trigger:
+    - platform: template
+      value_template: >
+        {% set changes = states('sensor.crypto_inspect_changes_24h') | from_json | default({}) %}
+        {{ changes.values() | select('lt', -5) | list | count > 0 }}
+  condition:
+    - condition: state
+      entity_id: input_boolean.crypto_alerts_enabled
+      state: "on"
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "⚠️ Flash Crash!"
+        message: >
+          {% set changes = states('sensor.crypto_inspect_changes_24h') | from_json | default({}) %}
+          Резкое падение: {{ changes | dictsort(by='value') | first | first }} {{ changes | dictsort(by='value') | first | last | round(1) }}%
+        data:
+          priority: critical
+          channel: crypto_alerts
+
+# -----------------------------------------------------------------------------
+# 3. Цена достигла уровня поддержки
+# -----------------------------------------------------------------------------
+- id: crypto_support_level_hit
+  alias: "Crypto: Цена на уровне поддержки"
+  description: "Уведомление когда цена касается ключевого уровня поддержки"
+  trigger:
+    - platform: state
+      entity_id: sensor.crypto_inspect_ta_support
+  condition:
+    - condition: template
+      value_template: >
+        {{ trigger.to_state.state != trigger.from_state.state and 
+           'near_support' in trigger.to_state.attributes.get('status', '') }}
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "📉 Уровень поддержки"
+        message: "Цена близка к поддержке. Возможность для покупки?"
+
+# -----------------------------------------------------------------------------
+# 4. Цена достигла уровня сопротивления
+# -----------------------------------------------------------------------------
+- id: crypto_resistance_level_hit
+  alias: "Crypto: Цена на уровне сопротивления"
+  description: "Уведомление когда цена касается ключевого уровня сопротивления"
+  trigger:
+    - platform: state
+      entity_id: sensor.crypto_inspect_ta_resistance
+  condition:
+    - condition: template
+      value_template: >
+        {{ trigger.to_state.state != trigger.from_state.state and 
+           'near_resistance' in trigger.to_state.attributes.get('status', '') }}
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "📈 Уровень сопротивления"
+        message: "Цена близка к сопротивлению. Фиксация прибыли?"
+
+# -----------------------------------------------------------------------------
+# 5. Значительное движение за 24ч (>10%)
+# -----------------------------------------------------------------------------
+- id: crypto_significant_move
+  alias: "Crypto: Значительное движение >10%"
+  description: "Уведомление при движении более 10% за сутки"
+  trigger:
+    - platform: template
+      value_template: >
+        {% set changes = states('sensor.crypto_inspect_changes_24h') | from_json | default({}) %}
+        {{ changes.values() | map('abs') | select('gt', 10) | list | count > 0 }}
+  condition:
+    - condition: state
+      entity_id: input_boolean.crypto_alerts_enabled
+      state: "on"
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "📊 Сильное движение"
+        message: >
+          {% set changes = states('sensor.crypto_inspect_changes_24h') | from_json | default({}) %}
+          {% for coin, change in changes.items() if change | abs > 10 %}
+          {{ coin }}: {{ '+' if change > 0 else '' }}{{ change | round(1) }}%
+          {% endfor %}
+
+# -----------------------------------------------------------------------------
+# 6. Новый локальный минимум (7 дней)
+# -----------------------------------------------------------------------------
+- id: crypto_local_low
+  alias: "Crypto: Новый локальный минимум"
+  description: "Цена достигла минимума за 7 дней - возможность для DCA"
+  trigger:
+    - platform: template
+      value_template: >
+        {% set lows = states('sensor.crypto_inspect_lows_24h') | from_json | default({}) %}
+        {% set prices = states('sensor.crypto_inspect_prices') | from_json | default({}) %}
+        {{ prices.get('BTC', 0) <= lows.get('BTC', 999999) * 1.01 }}
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "💰 Локальный минимум"
+        message: "BTC на локальном минимуме. Хороший момент для DCA?"
