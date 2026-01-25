@@ -1,0 +1,521 @@
+# =============================================================================
+# CRYPTO INSPECT - COMPACT DASHBOARD
+# =============================================================================
+# Single-screen dashboard with universal-card
+# - Key metrics at a glance
+# - Signal bar (appears only when signals exist)
+# - Lazy investor status
+# - Modal popups for details
+# =============================================================================
+
+views:
+  - title: "Crypto Inspect"
+    icon: mdi:bitcoin
+    path: crypto-compact
+    
+    cards:
+      # =========================================================================
+      # MAIN OVERVIEW CARD with Modal for Details
+      # =========================================================================
+      - type: custom:universal-card
+        title: "Crypto Inspect"
+        subtitle: |
+          {% set phase = states('sensor.crypto_inspect_investor_phase') %}
+          {{ phase if phase not in ['unknown', 'unavailable'] else 'Загрузка...' }}
+        icon: mdi:chart-finance
+        theme: glass
+        entity: sensor.crypto_inspect_do_nothing_ok
+        
+        badges:
+          - entity: sensor.crypto_inspect_fear_greed
+            icon: mdi:emoticon-neutral
+          - entity: sensor.crypto_inspect_calm_indicator
+            icon: mdi:shield-check
+          - entity: sensor.crypto_inspect_red_flags
+            icon: mdi:flag
+            color: |
+              {% set flags = states('sensor.crypto_inspect_red_flags') | int(0) %}
+              {{ 'red' if flags > 0 else 'green' }}
+        
+        body_mode: tabs
+        tabs:
+          # === TAB 1: PRICES ===
+          - label: "💰 Цены"
+            icon: mdi:currency-btc
+            cards:
+              - type: custom:universal-card
+                theme: transparent
+                grid:
+                  columns: 2
+                  gap: 12px
+                body:
+                  cards:
+                    # BTC Price
+                    - type: custom:mushroom-template-card
+                      primary: "Bitcoin"
+                      secondary: |
+                        {% set prices = states('sensor.crypto_inspect_prices') %}
+                        {% if prices not in ['unknown', 'unavailable', ''] %}
+                          {% set data = prices | from_json %}
+                          ${{ '{:,.0f}'.format(data.get('BTC/USDT', data.get('BTCUSDT', 0)) | float) }}
+                        {% else %}—{% endif %}
+                      icon: mdi:bitcoin
+                      icon_color: orange
+                      card_mod:
+                        style: |
+                          ha-card { background: rgba(255,153,0,0.1); }
+                      tap_action:
+                        action: more-info
+                        entity: sensor.crypto_inspect_prices
+                    
+                    # ETH Price
+                    - type: custom:mushroom-template-card
+                      primary: "Ethereum"
+                      secondary: |
+                        {% set prices = states('sensor.crypto_inspect_prices') %}
+                        {% if prices not in ['unknown', 'unavailable', ''] %}
+                          {% set data = prices | from_json %}
+                          ${{ '{:,.0f}'.format(data.get('ETH/USDT', data.get('ETHUSDT', 0)) | float) }}
+                        {% else %}—{% endif %}
+                      icon: mdi:ethereum
+                      icon_color: blue
+                      card_mod:
+                        style: |
+                          ha-card { background: rgba(98,126,234,0.1); }
+                    
+                    # 24h Change BTC
+                    - type: custom:mushroom-template-card
+                      primary: "BTC 24h"
+                      secondary: |
+                        {% set changes = states('sensor.crypto_inspect_changes_24h') %}
+                        {% if changes not in ['unknown', 'unavailable', ''] %}
+                          {% set data = changes | from_json %}
+                          {% set val = data.get('BTC/USDT', data.get('BTCUSDT', 0)) | float %}
+                          {{ '{:+.2f}'.format(val) }}%
+                        {% else %}—{% endif %}
+                      icon: |
+                        {% set changes = states('sensor.crypto_inspect_changes_24h') %}
+                        {% if changes not in ['unknown', 'unavailable', ''] %}
+                          {% set data = changes | from_json %}
+                          {% set val = data.get('BTC/USDT', data.get('BTCUSDT', 0)) | float %}
+                          {{ 'mdi:trending-up' if val > 0 else 'mdi:trending-down' }}
+                        {% else %}mdi:minus{% endif %}
+                      icon_color: |
+                        {% set changes = states('sensor.crypto_inspect_changes_24h') %}
+                        {% if changes not in ['unknown', 'unavailable', ''] %}
+                          {% set data = changes | from_json %}
+                          {% set val = data.get('BTC/USDT', data.get('BTCUSDT', 0)) | float %}
+                          {{ 'green' if val > 0 else 'red' }}
+                        {% else %}grey{% endif %}
+                    
+                    # 24h Change ETH
+                    - type: custom:mushroom-template-card
+                      primary: "ETH 24h"
+                      secondary: |
+                        {% set changes = states('sensor.crypto_inspect_changes_24h') %}
+                        {% if changes not in ['unknown', 'unavailable', ''] %}
+                          {% set data = changes | from_json %}
+                          {% set val = data.get('ETH/USDT', data.get('ETHUSDT', 0)) | float %}
+                          {{ '{:+.2f}'.format(val) }}%
+                        {% else %}—{% endif %}
+                      icon: |
+                        {% set changes = states('sensor.crypto_inspect_changes_24h') %}
+                        {% if changes not in ['unknown', 'unavailable', ''] %}
+                          {% set data = changes | from_json %}
+                          {% set val = data.get('ETH/USDT', data.get('ETHUSDT', 0)) | float %}
+                          {{ 'mdi:trending-up' if val > 0 else 'mdi:trending-down' }}
+                        {% else %}mdi:minus{% endif %}
+                      icon_color: |
+                        {% set changes = states('sensor.crypto_inspect_changes_24h') %}
+                        {% if changes not in ['unknown', 'unavailable', ''] %}
+                          {% set data = changes | from_json %}
+                          {% set val = data.get('ETH/USDT', data.get('ETHUSDT', 0)) | float %}
+                          {{ 'green' if val > 0 else 'red' }}
+                        {% else %}grey{% endif %}
+          
+          # === TAB 2: LAZY INVESTOR ===
+          - label: "🧘 Инвестор"
+            icon: mdi:meditation
+            cards:
+              - type: custom:universal-card
+                theme: transparent
+                grid:
+                  columns: 2
+                  gap: 12px
+                body:
+                  cards:
+                    # Do Nothing OK
+                    - type: custom:mushroom-template-card
+                      primary: "Ничего не делать?"
+                      secondary: |
+                        {% set val = states('sensor.crypto_inspect_do_nothing_ok') %}
+                        {{ val if val not in ['unknown', 'unavailable'] else '—' }}
+                      icon: mdi:meditation
+                      icon_color: |
+                        {% set val = states('sensor.crypto_inspect_do_nothing_ok') %}
+                        {{ 'green' if val in ['Yes', 'Да', 'true', 'True'] else 'orange' }}
+                      tap_action:
+                        action: more-info
+                        entity: sensor.crypto_inspect_do_nothing_ok
+                    
+                    # Market Phase
+                    - type: custom:mushroom-template-card
+                      primary: "Фаза рынка"
+                      secondary: |
+                        {% set val = states('sensor.crypto_inspect_investor_phase') %}
+                        {{ val if val not in ['unknown', 'unavailable'] else '—' }}
+                      icon: mdi:chart-timeline-variant-shimmer
+                      icon_color: blue
+                      tap_action:
+                        action: more-info
+                        entity: sensor.crypto_inspect_investor_phase
+                    
+                    # Calm Score
+                    - type: custom:mushroom-template-card
+                      primary: "Спокойствие"
+                      secondary: |
+                        {% set val = states('sensor.crypto_inspect_calm_indicator') %}
+                        {{ val if val not in ['unknown', 'unavailable'] else '—' }}
+                      icon: mdi:emoticon-cool
+                      icon_color: |
+                        {% set val = states('sensor.crypto_inspect_calm_indicator') | int(50) %}
+                        {% if val >= 70 %}green{% elif val >= 40 %}orange{% else %}red{% endif %}
+                    
+                    # Red Flags
+                    - type: custom:mushroom-template-card
+                      primary: "Красные флаги"
+                      secondary: |
+                        {% set val = states('sensor.crypto_inspect_red_flags') %}
+                        {{ val if val not in ['unknown', 'unavailable'] else '0' }}
+                      icon: mdi:flag-variant
+                      icon_color: |
+                        {% set val = states('sensor.crypto_inspect_red_flags') | int(0) %}
+                        {{ 'red' if val > 0 else 'green' }}
+                    
+                    # DCA Signal
+                    - type: custom:mushroom-template-card
+                      primary: "DCA Сигнал"
+                      secondary: |
+                        {% set val = states('sensor.crypto_inspect_dca_signal') %}
+                        {{ val if val not in ['unknown', 'unavailable'] else '—' }}
+                      icon: mdi:cash-plus
+                      icon_color: |
+                        {% set val = states('sensor.crypto_inspect_dca_signal') | lower %}
+                        {% if 'buy' in val %}green{% elif 'wait' in val %}orange{% else %}grey{% endif %}
+                    
+                    # Next Action
+                    - type: custom:mushroom-template-card
+                      primary: "Следующее действие"
+                      secondary: |
+                        {% set val = states('sensor.crypto_inspect_next_action_timer') %}
+                        {{ val if val not in ['unknown', 'unavailable'] else '—' }}
+                      icon: mdi:timer-outline
+                      icon_color: cyan
+
+          # === TAB 3: MARKET ===
+          - label: "📊 Рынок"
+            icon: mdi:chart-line
+            cards:
+              - type: custom:universal-card
+                theme: transparent
+                grid:
+                  columns: 2
+                  gap: 12px
+                body:
+                  cards:
+                    # Fear & Greed
+                    - type: custom:mushroom-template-card
+                      primary: "Fear & Greed"
+                      secondary: |
+                        {% set val = states('sensor.crypto_inspect_fear_greed') %}
+                        {{ val if val not in ['unknown', 'unavailable'] else '—' }}
+                      icon: mdi:emoticon-neutral
+                      icon_color: |
+                        {% set val = states('sensor.crypto_inspect_fear_greed') | int(50) %}
+                        {% if val <= 25 %}red{% elif val <= 45 %}orange{% elif val <= 55 %}grey{% elif val <= 75 %}green{% else %}blue{% endif %}
+                    
+                    # BTC Dominance
+                    - type: custom:mushroom-template-card
+                      primary: "BTC Dominance"
+                      secondary: |
+                        {% set val = states('sensor.crypto_inspect_btc_dominance') %}
+                        {{ val if val not in ['unknown', 'unavailable'] else '—' }}%
+                      icon: mdi:crown
+                      icon_color: orange
+                    
+                    # Volatility
+                    - type: custom:mushroom-template-card
+                      primary: "Волатильность"
+                      secondary: |
+                        {% set val = states('sensor.crypto_inspect_volatility_status') %}
+                        {{ val if val not in ['unknown', 'unavailable'] else '—' }}
+                      icon: mdi:chart-bell-curve
+                      icon_color: purple
+                    
+                    # Market Tension
+                    - type: custom:mushroom-template-card
+                      primary: "Напряжённость"
+                      secondary: |
+                        {% set val = states('sensor.crypto_inspect_market_tension') %}
+                        {{ val if val not in ['unknown', 'unavailable'] else '—' }}
+                      icon: mdi:gauge
+                      icon_color: |
+                        {% set val = states('sensor.crypto_inspect_market_tension') | lower %}
+                        {% if 'high' in val %}red{% elif 'medium' in val %}orange{% else %}green{% endif %}
+
+          # === TAB 4: TECHNICAL ===
+          - label: "📈 ТА"
+            icon: mdi:chart-areaspline
+            cards:
+              - type: custom:universal-card
+                theme: transparent
+                grid:
+                  columns: 2
+                  gap: 12px
+                body:
+                  cards:
+                    # RSI
+                    - type: custom:mushroom-template-card
+                      primary: "RSI"
+                      secondary: |
+                        {% set rsi = states('sensor.crypto_inspect_ta_rsi') %}
+                        {% if rsi not in ['unknown', 'unavailable', ''] %}
+                          {% set data = rsi | from_json %}
+                          BTC: {{ data.get('BTC', '—') }}
+                        {% else %}—{% endif %}
+                      icon: mdi:chart-line
+                      icon_color: |
+                        {% set rsi = states('sensor.crypto_inspect_ta_rsi') %}
+                        {% if rsi not in ['unknown', 'unavailable', ''] %}
+                          {% set data = rsi | from_json %}
+                          {% set val = data.get('BTC', 50) | float %}
+                          {% if val > 70 %}red{% elif val < 30 %}green{% else %}grey{% endif %}
+                        {% else %}grey{% endif %}
+                    
+                    # MACD
+                    - type: custom:mushroom-template-card
+                      primary: "MACD"
+                      secondary: |
+                        {% set macd = states('sensor.crypto_inspect_ta_macd_signal') %}
+                        {% if macd not in ['unknown', 'unavailable', ''] %}
+                          {% set data = macd | from_json %}
+                          BTC: {{ data.get('BTC', '—') }}
+                        {% else %}—{% endif %}
+                      icon: mdi:signal
+                      icon_color: blue
+                    
+                    # Trend
+                    - type: custom:mushroom-template-card
+                      primary: "Тренд"
+                      secondary: |
+                        {% set trend = states('sensor.crypto_inspect_ta_trend') %}
+                        {% if trend not in ['unknown', 'unavailable', ''] %}
+                          {% set data = trend | from_json %}
+                          BTC: {{ data.get('BTC', '—') }}
+                        {% else %}—{% endif %}
+                      icon: mdi:trending-up
+                      icon_color: |
+                        {% set trend = states('sensor.crypto_inspect_ta_trend') %}
+                        {% if trend not in ['unknown', 'unavailable', ''] %}
+                          {% set data = trend | from_json %}
+                          {% set val = data.get('BTC', '') | lower %}
+                          {% if 'up' in val %}green{% elif 'down' in val %}red{% else %}grey{% endif %}
+                        {% else %}grey{% endif %}
+                    
+                    # TA Signal
+                    - type: custom:mushroom-template-card
+                      primary: "TA Сигнал"
+                      secondary: |
+                        {% set val = states('sensor.crypto_inspect_ta_signal') %}
+                        {{ val if val not in ['unknown', 'unavailable'] else '—' }}
+                      icon: mdi:traffic-light
+                      icon_color: |
+                        {% set val = states('sensor.crypto_inspect_ta_signal') | lower %}
+                        {% if 'buy' in val %}green{% elif 'sell' in val %}red{% else %}orange{% endif %}
+
+      # =========================================================================
+      # SIGNAL BAR - Appears ONLY when there are active signals
+      # =========================================================================
+      - type: conditional
+        conditions:
+          - condition: template
+            value_template: |
+              {% set alerts = states('sensor.crypto_inspect_active_alerts_count') | int(0) %}
+              {% set signals = states('sensor.crypto_inspect_signals_today') | int(0) %}
+              {% set flags = states('sensor.crypto_inspect_red_flags') | int(0) %}
+              {{ alerts > 0 or signals > 0 or flags > 0 }}
+        card:
+          type: custom:universal-card
+          title: "⚠️ Активные сигналы"
+          icon: mdi:alert-circle
+          theme: ember
+          expanded: true
+          grid:
+            columns: 3
+            gap: 8px
+          body:
+            cards:
+              - type: custom:mushroom-template-card
+                primary: "Алерты"
+                secondary: "{{ states('sensor.crypto_inspect_active_alerts_count') | int(0) }}"
+                icon: mdi:bell-badge
+                icon_color: red
+                
+              - type: custom:mushroom-template-card
+                primary: "Сигналы"
+                secondary: "{{ states('sensor.crypto_inspect_signals_today') | int(0) }}"
+                icon: mdi:signal
+                icon_color: orange
+                
+              - type: custom:mushroom-template-card
+                primary: "Флаги"
+                secondary: "{{ states('sensor.crypto_inspect_red_flags') | int(0) }}"
+                icon: mdi:flag
+                icon_color: |
+                  {% set val = states('sensor.crypto_inspect_red_flags') | int(0) %}
+                  {{ 'red' if val > 0 else 'green' }}
+
+      # =========================================================================
+      # QUICK ACTIONS - Modal popups
+      # =========================================================================
+      - type: custom:universal-card
+        title: "🔍 Детали"
+        icon: mdi:magnify
+        theme: glass
+        body_mode: none
+        
+        header:
+          right:
+            # Portfolio Details Modal
+            - type: custom:mushroom-template-card
+              primary: ""
+              icon: mdi:wallet
+              icon_color: green
+              tap_action:
+                action: fire-dom-event
+                browser_mod:
+                  service: browser_mod.popup
+                  data:
+                    title: "💼 Портфель"
+                    content:
+                      type: vertical-stack
+                      cards:
+                        - type: custom:mushroom-entity-card
+                          entity: sensor.crypto_inspect_bybit_balance
+                          name: "Баланс"
+                        - type: custom:mushroom-entity-card
+                          entity: sensor.crypto_inspect_bybit_pnl_24h
+                          name: "P&L 24ч"
+                        - type: custom:mushroom-entity-card
+                          entity: sensor.crypto_inspect_bybit_pnl_7d
+                          name: "P&L 7д"
+                        - type: custom:mushroom-entity-card
+                          entity: sensor.crypto_inspect_portfolio_sharpe
+                          name: "Sharpe Ratio"
+            
+            # Technical Analysis Modal  
+            - type: custom:mushroom-template-card
+              primary: ""
+              icon: mdi:chart-areaspline
+              icon_color: blue
+              tap_action:
+                action: fire-dom-event
+                browser_mod:
+                  service: browser_mod.popup
+                  data:
+                    title: "📊 Тех. анализ"
+                    content:
+                      type: vertical-stack
+                      cards:
+                        - type: custom:mushroom-entity-card
+                          entity: sensor.crypto_inspect_ta_rsi
+                          name: "RSI"
+                        - type: custom:mushroom-entity-card
+                          entity: sensor.crypto_inspect_ta_macd_signal
+                          name: "MACD"
+                        - type: custom:mushroom-entity-card
+                          entity: sensor.crypto_inspect_ta_trend
+                          name: "Тренд"
+                        - type: custom:mushroom-entity-card
+                          entity: sensor.crypto_inspect_ta_confluence
+                          name: "Confluence"
+            
+            # System Status Modal
+            - type: custom:mushroom-template-card
+              primary: ""
+              icon: mdi:cog
+              icon_color: grey
+              tap_action:
+                action: fire-dom-event
+                browser_mod:
+                  service: browser_mod.popup
+                  data:
+                    title: "⚙️ Система"
+                    content:
+                      type: vertical-stack
+                      cards:
+                        - type: custom:mushroom-entity-card
+                          entity: sensor.crypto_inspect_sync_status
+                          name: "Статус синхр."
+                        - type: custom:mushroom-entity-card
+                          entity: sensor.crypto_inspect_last_sync
+                          name: "Посл. синхр."
+                        - type: custom:mushroom-entity-card
+                          entity: sensor.crypto_inspect_candles_count
+                          name: "Всего свечей"
+                        - type: custom:mushroom-entity-card
+                          entity: sensor.crypto_inspect_api_status
+                          name: "API статус"
+
+      # =========================================================================
+      # MARKET SUMMARY - Compact grid
+      # =========================================================================
+      - type: custom:universal-card
+        title: "Традиционные рынки"
+        subtitle: "Gold, S&P500, DXY"
+        icon: mdi:bank
+        theme: minimal
+        
+        grid:
+          columns: 4
+          gap: 8px
+        
+        body:
+          cards:
+            - type: custom:mushroom-template-card
+              primary: "Gold"
+              secondary: |
+                {% set val = states('sensor.crypto_inspect_gold_price') %}
+                {{ '$' ~ '{:,.0f}'.format(val | float) if val not in ['unknown', 'unavailable'] else '—' }}
+              icon: mdi:gold
+              icon_color: amber
+              layout: vertical
+              
+            - type: custom:mushroom-template-card
+              primary: "S&P500"
+              secondary: |
+                {% set val = states('sensor.crypto_inspect_sp500_price') %}
+                {{ '{:,.0f}'.format(val | float) if val not in ['unknown', 'unavailable'] else '—' }}
+              icon: mdi:chart-line
+              icon_color: green
+              layout: vertical
+              
+            - type: custom:mushroom-template-card
+              primary: "DXY"
+              secondary: |
+                {% set val = states('sensor.crypto_inspect_dxy_index') %}
+                {{ '{:.2f}'.format(val | float) if val not in ['unknown', 'unavailable'] else '—' }}
+              icon: mdi:currency-usd
+              icon_color: blue
+              layout: vertical
+              
+            - type: custom:mushroom-template-card
+              primary: "Gas"
+              secondary: |
+                {% set val = states('sensor.crypto_inspect_eth_gas_standard') %}
+                {{ val ~ ' gwei' if val not in ['unknown', 'unavailable'] else '—' }}
+              icon: mdi:gas-station
+              icon_color: |
+                {% set val = states('sensor.crypto_inspect_eth_gas_standard') | int(50) %}
+                {% if val < 20 %}green{% elif val < 50 %}orange{% else %}red{% endif %}
+              layout: vertical
