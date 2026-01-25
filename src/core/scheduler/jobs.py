@@ -1599,7 +1599,7 @@ async def profit_taking_job() -> None:
     Profit Taking Advisor job.
 
     Runs every hour to calculate take profit levels
-    and update HA sensors.
+    and update HA sensors for all currencies.
     """
     from service.analysis.profit_taking import get_profit_advisor
     from service.ha import get_sensors_manager
@@ -1609,30 +1609,53 @@ async def profit_taking_job() -> None:
 
     advisor = get_profit_advisor()
     sensors = get_sensors_manager()
+    symbols = await get_currency_list_async()
+    base_symbols = [s.split("/")[0] for s in symbols]
 
     try:
-        analysis = await advisor.analyze("BTC")
+        tp_levels_data: dict[str, dict[str, float]] = {}
+        best_action = None
+        max_greed = 0
 
-        # Use dictionary format for multi-currency support
-        if analysis.tp_levels:
-            tp_data = {}
-            for i, level in enumerate(analysis.tp_levels[:2]):
-                tp_data[f"level_{i + 1}"] = round(level.price, 2)
-            await sensors.publish_sensor("tp_levels", {"BTC": tp_data})
+        for symbol in base_symbols:
+            try:
+                analysis = await advisor.analyze(symbol)
 
-        await sensors.publish_sensor("profit_action", analysis.action.name_ru)
-        # greed_level is a PercentSensor (0-100), send numeric greed_score
-        await sensors.publish_sensor("greed_level", analysis.greed_score)
+                # Build TP levels for this symbol
+                if analysis.tp_levels:
+                    tp_data = {}
+                    for i, level in enumerate(analysis.tp_levels[:2]):
+                        tp_data[f"level_{i + 1}"] = round(level.price, 2)
+                    tp_levels_data[symbol] = tp_data
 
-        # Alert on scale out signals
-        if analysis.action.value in ["scale_out_50", "take_profit"]:
-            await notify(
-                message=analysis._get_recommendation_ru(),
-                title=f"💰 {analysis.action.name_ru}",
-                notification_id="profit_taking_signal",
-            )
+                # Track highest greed for overall action
+                if analysis.greed_score > max_greed:
+                    max_greed = analysis.greed_score
+                    best_action = analysis
 
-        logger.info(f"Profit taking: action={analysis.action.value}, greed={analysis.greed_level.value}")
+            except Exception as e:
+                logger.warning(f"Profit taking analysis failed for {symbol}: {e}")
+
+            await asyncio.sleep(0.3)  # Rate limiting
+
+        await sensors.publish_sensor("tp_levels", tp_levels_data)
+
+        # Use the analysis with highest greed for overall metrics
+        if best_action:
+            await sensors.publish_sensor("profit_action", best_action.action.name_ru)
+            await sensors.publish_sensor("greed_level", best_action.greed_score)
+
+            # Alert on scale out signals
+            if best_action.action.value in ["scale_out_50", "take_profit"]:
+                await notify(
+                    message=best_action._get_recommendation_ru(),
+                    title=f"💰 {best_action.action.name_ru}",
+                    notification_id="profit_taking_signal",
+                )
+
+            logger.info(f"Profit taking: action={best_action.action.value}, greed={best_action.greed_level.value}")
+
+        logger.info(f"TP levels updated for {len(tp_levels_data)} symbols")
 
     except Exception as e:
         logger.error(f"Profit taking job failed: {e}")
