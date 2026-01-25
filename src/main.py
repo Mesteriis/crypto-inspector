@@ -10,19 +10,16 @@ from fastapi.staticfiles import StaticFiles
 from api.middleware import setup_exception_handlers
 from api.router import api_router
 from core.config import settings
+from core.logging_config import setup_logging
 from core.scheduler import scheduler_lifespan
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+# Configure logging with file rotation
+setup_logging(
+    level=settings.LOG_LEVEL,
+    enable_file_logging=True,
+    enable_console=True,
 )
 logger = logging.getLogger(__name__)
-
-# Reduce noise from httpx and other verbose loggers
-logging.getLogger("httpx").setLevel(logging.WARNING)
-logging.getLogger("httpcore").setLevel(logging.WARNING)
-logging.getLogger("apscheduler.executors.default").setLevel(logging.WARNING)
 
 
 async def start_websocket_streaming() -> None:

@@ -9,6 +9,7 @@ Contains:
 from models.base import Base
 from models.candlestick import CandlestickRecord
 from models.ml_predictions import MLModelPerformance, MLPredictionRecord
+from models.sensor_state import SensorState
 from models.session import async_session_maker, engine, get_db
 from models.traditional import TraditionalAssetRecord
 
@@ -24,4 +25,5 @@ __all__ = [
     "TraditionalAssetRecord",
     "MLPredictionRecord",
     "MLModelPerformance",
+    "SensorState",
 ]

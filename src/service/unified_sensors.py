@@ -26,26 +26,33 @@ class UnifiedSensorManager:
     - ai_trend_directions: {"BTC": "Bullish", "ETH": "Neutral", "SOL": "Bearish"}
     """
 
+    # These sensors are already registered in SensorRegistry via category modules
+    CONSOLIDATED_SENSORS = [
+        "price_predictions",
+        "ai_trend_directions", 
+        "technical_indicators",
+        "market_volatility",
+        "market_sentiment",
+    ]
+
     def __init__(self, sensors_manager: HAIntegrationManager):
         self.sensors_manager = sensors_manager
         self._consolidated_sensors_created = False
 
     async def create_consolidated_sensors(self) -> None:
-        """Create unified dictionary format sensors."""
+        """Mark consolidated sensors as ready.
+        
+        Note: Actual sensor registration happens via SensorRegistry during startup.
+        This method just marks them as initialized.
+        """
         if self._consolidated_sensors_created:
             logger.debug("Consolidated sensors already created")
             return
 
         try:
             logger.info("Creating consolidated dictionary format sensors")
-
-            # Create consolidated sensors
-            await self._create_price_predictions_sensor()
-            await self._create_ai_trend_sensor()
-            await self._create_technical_indicators_sensor()
-            await self._create_volatility_sensor()
-            await self._create_market_sentiment_sensor()
-
+            # Sensors are pre-registered via @register_sensor decorator
+            # Just mark as created
             self._consolidated_sensors_created = True
             logger.info("Consolidated sensors created successfully")
 
@@ -58,10 +65,11 @@ class UnifiedSensorManager:
             await self.create_consolidated_sensors()
 
         try:
-            currencies = await get_currency_list()
+            # get_currency_list is synchronous
+            currencies = get_currency_list()
             logger.debug(f"Updating consolidated sensors for {len(currencies)} currencies")
 
-            # Update each consolidated sensor
+            # Update each consolidated sensor using publish_sensor
             await self._update_price_predictions(currencies)
             await self._update_ai_trends(currencies)
             await self._update_technical_indicators(currencies)
@@ -70,68 +78,6 @@ class UnifiedSensorManager:
 
         except Exception as e:
             logger.error(f"Error updating consolidated sensors: {e}")
-
-    async def _create_price_predictions_sensor(self) -> None:
-        """Create consolidated price predictions sensor."""
-        sensor_config = {
-            "name": "Price Predictions",
-            "name_ru": "Предсказания цен",
-            "icon": "mdi:chart-line",
-            "unit": "USDT",
-            "description": 'AI price predictions for all currencies. Format: {"BTC": 95000, "ETH": 3200}',
-            "description_ru": 'AI предсказания цен для всех валют. Формат: {"BTC": 95000, "ETH": 3200}',
-        }
-
-        await self.sensors_manager.register_sensor("price_predictions", sensor_config)
-
-    async def _create_ai_trend_sensor(self) -> None:
-        """Create consolidated AI trend sensor."""
-        sensor_config = {
-            "name": "AI Trend Directions",
-            "name_ru": "AI направления трендов",
-            "icon": "mdi:trending-up",
-            "description": 'AI trend analysis for all currencies. Format: {"BTC": "Bullish", "ETH": "Neutral"}',
-            "description_ru": 'AI анализ трендов для всех валют. Формат: {"BTC": "Bullish", "ETH": "Neutral"}',
-        }
-
-        await self.sensors_manager.register_sensor("ai_trend_directions", sensor_config)
-
-    async def _create_technical_indicators_sensor(self) -> None:
-        """Create consolidated technical indicators sensor."""
-        sensor_config = {
-            "name": "Technical Indicators",
-            "name_ru": "Технические индикаторы",
-            "icon": "mdi:chart-bell-curve",
-            "description": 'Key technical indicators for all currencies. Format: {"BTC": {"rsi": 65, "macd": 1.2}}',
-            "description_ru": 'Ключевые технические индикаторы для всех валют. Формат: {"BTC": {"rsi": 65, "macd": 1.2}}',
-        }
-
-        await self.sensors_manager.register_sensor("technical_indicators", sensor_config)
-
-    async def _create_volatility_sensor(self) -> None:
-        """Create consolidated volatility sensor."""
-        sensor_config = {
-            "name": "Market Volatility",
-            "name_ru": "Рыночная волатильность",
-            "icon": "mdi:wave",
-            "unit": "%",
-            "description": 'Volatility measurements for all currencies. Format: {"BTC": 2.5, "ETH": 3.1}',
-            "description_ru": 'Измерения волатильности для всех валют. Формат: {"BTC": 2.5, "ETH": 3.1}',
-        }
-
-        await self.sensors_manager.register_sensor("market_volatility", sensor_config)
-
-    async def _create_market_sentiment_sensor(self) -> None:
-        """Create consolidated market sentiment sensor."""
-        sensor_config = {
-            "name": "Market Sentiment",
-            "name_ru": "Рыночное настроение",
-            "icon": "mdi:emoticon",
-            "description": 'Sentiment analysis for all currencies. Format: {"BTC": 0.75, "ETH": 0.62}',
-            "description_ru": 'Анализ настроения для всех валют. Формат: {"BTC": 0.75, "ETH": 0.62}',
-        }
-
-        await self.sensors_manager.register_sensor("market_sentiment", sensor_config)
 
     async def _update_price_predictions(self, currencies: list[str]) -> None:
         """Update consolidated price predictions sensor."""
@@ -153,9 +99,11 @@ class UnifiedSensorManager:
                     logger.debug(f"Could not get prediction for {currency}: {e}")
                     continue
 
-            # Update sensor
-            await self.sensors_manager._update_sensor_state("price_predictions", str(len(predictions_data)))
-            await self.sensors_manager._update_sensor_attributes("price_predictions", predictions_data)
+            # Update sensor using publish_sensor
+            await self.sensors_manager.publish_sensor(
+                "price_predictions", 
+                predictions_data
+            )
 
         except Exception as e:
             logger.error(f"Error updating price predictions sensor: {e}")
@@ -176,8 +124,10 @@ class UnifiedSensorManager:
                     logger.debug(f"Could not get AI trend for {currency}: {e}")
                     continue
 
-            await self.sensors_manager._update_sensor_state("ai_trend_directions", str(len(trends_data)))
-            await self.sensors_manager._update_sensor_attributes("ai_trend_directions", trends_data)
+            await self.sensors_manager.publish_sensor(
+                "ai_trend_directions",
+                trends_data
+            )
 
         except Exception as e:
             logger.error(f"Error updating AI trends sensor: {e}")
@@ -198,8 +148,10 @@ class UnifiedSensorManager:
                     logger.debug(f"Could not get technical indicators for {currency}: {e}")
                     continue
 
-            await self.sensors_manager._update_sensor_state("technical_indicators", str(len(tech_data)))
-            await self.sensors_manager._update_sensor_attributes("technical_indicators", tech_data)
+            await self.sensors_manager.publish_sensor(
+                "technical_indicators",
+                tech_data
+            )
 
         except Exception as e:
             logger.error(f"Error updating technical indicators sensor: {e}")
@@ -220,8 +172,10 @@ class UnifiedSensorManager:
                     logger.debug(f"Could not get volatility for {currency}: {e}")
                     continue
 
-            await self.sensors_manager._update_sensor_state("market_volatility", str(len(volatility_data)))
-            await self.sensors_manager._update_sensor_attributes("market_volatility", volatility_data)
+            await self.sensors_manager.publish_sensor(
+                "market_volatility",
+                volatility_data
+            )
 
         except Exception as e:
             logger.error(f"Error updating volatility sensor: {e}")
@@ -242,8 +196,10 @@ class UnifiedSensorManager:
                     logger.debug(f"Could not get sentiment for {currency}: {e}")
                     continue
 
-            await self.sensors_manager._update_sensor_state("market_sentiment", str(len(sentiment_data)))
-            await self.sensors_manager._update_sensor_attributes("market_sentiment", sentiment_data)
+            await self.sensors_manager.publish_sensor(
+                "market_sentiment",
+                sentiment_data
+            )
 
         except Exception as e:
             logger.error(f"Error updating market sentiment sensor: {e}")

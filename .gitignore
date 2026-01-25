@@ -44,6 +44,10 @@ Thumbs.db
 *.sqlite
 *.sqlite3
 
+# Logs
+logs/
+*.log
+
 # Generated docs (built in CI)
 docs/
-*.log
+*.xlsx

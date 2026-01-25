@@ -3,6 +3,7 @@
 Wraps SupervisorAPIClient to provide sensor-specific publishing methods.
 """
 
+import asyncio
 import json
 import logging
 
@@ -107,11 +108,14 @@ class SupervisorPublisher:
             attributes: Optional additional attributes
 
         Returns:
-            True if published successfully
+            True if published successfully (or saved to DB when HA not available)
         """
+        # Always save to database (non-blocking)
+        asyncio.create_task(self._save_sensor_state(sensor_id, state))
+
         if not self.is_available:
-            logger.debug(f"Supervisor API not available, skipping publish for {sensor_id}")
-            return False
+            logger.debug(f"Supervisor API not available, skipping HA publish for {sensor_id}")
+            return True  # Return True since we saved to DB
 
         # Convert dict state to JSON string
         if isinstance(state, dict):
@@ -124,6 +128,24 @@ class SupervisorPublisher:
             state=state_str,
             attributes=attributes,
         )
+
+    async def _save_sensor_state(self, sensor_id: str, value: str | dict) -> None:
+        """Save sensor state to database asynchronously.
+
+        Args:
+            sensor_id: Sensor identifier
+            value: Sensor value
+        """
+        try:
+            from models.repositories.sensor_state import SensorStateRepository
+            from models.session import async_session_maker
+
+            unique_id = f"crypto_inspect_{sensor_id}"
+            async with async_session_maker() as session:
+                repo = SensorStateRepository(session)
+                await repo.upsert(unique_id, sensor_id, value)
+        except Exception as e:
+            logger.debug(f"Failed to save sensor state {sensor_id}: {e}")
 
     async def update_attributes(
         self,

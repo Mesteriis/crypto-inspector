@@ -30,10 +30,10 @@ def get_symbols() -> list[str]:
 
 
 def get_currency_list() -> list[str]:
-    """Get the dynamic currency list from Home Assistant input_select helper.
+    """Get the dynamic currency list (sync version).
 
     This is the single source of truth for currency selections across the application.
-    Falls back to environment variable or defaults if helper is not available.
+    For async contexts that need fresh Bybit data, use get_currency_list_async().
 
     Returns:
         List of currency symbols (e.g., ["BTC/USDT", "ETH/USDT"])
@@ -41,6 +41,20 @@ def get_currency_list() -> list[str]:
     from service.ha import get_currency_list as get_dynamic_currency_list
 
     return get_dynamic_currency_list()
+
+
+async def get_currency_list_async() -> list[str]:
+    """Get the dynamic currency list with fresh Bybit data (async version).
+
+    Use this in scheduler jobs and async contexts to get up-to-date
+    symbols including any from Bybit wallet/earn positions.
+
+    Returns:
+        List of currency symbols (e.g., ["BTC/USDT", "ETH/USDT"])
+    """
+    from service.ha import get_currency_list_async as get_dynamic_currency_list_async
+
+    return await get_dynamic_currency_list_async()
 
 
 def get_intervals_to_fetch(now: datetime) -> list[str]:
@@ -238,7 +252,7 @@ async def candlestick_sync_job() -> None:
     logger.debug(f"[{current_time}] Starting candlestick sync job")
 
     # Get symbols and intervals to fetch
-    symbols = get_currency_list()
+    symbols = await get_currency_list_async()  # Dynamic with Bybit
     intervals = get_intervals_to_fetch(now)
 
     logger.debug(f"Symbols: {symbols}")
@@ -294,6 +308,18 @@ async def candlestick_sync_job() -> None:
     except Exception as e:
         logger.warning(f"Failed to send HA notification: {e}")
 
+    # Update crypto history status sensor
+    try:
+        from service.backfill.crypto_backfill import get_crypto_backfill
+        from service.ha import get_sensors_manager
+
+        crypto_backfill = get_crypto_backfill()
+        sensors = get_sensors_manager()
+        history_status = await crypto_backfill.get_history_status()
+        await sensors.publish_sensor("crypto_history_status", history_status)
+    except Exception as e:
+        logger.warning(f"Failed to update crypto history status: {e}")
+
 
 async def hello_world_job() -> None:
     """Test job that prints 'Hello World' to the console."""
@@ -324,7 +350,7 @@ async def market_analysis_job() -> None:
 
     logger.info(f"[{current_time}] Starting market analysis job")
 
-    symbols = get_currency_list()
+    symbols = await get_currency_list_async()  # Dynamic with Bybit
     base_symbols = [s.split("/")[0] for s in symbols]  # BTC/USDT -> BTC
 
     results = {}
@@ -531,6 +557,23 @@ async def investor_analysis_job() -> None:
                 btc_dominance=btc_dominance,
                 derivatives_data=derivatives_dict,
             )
+
+            # Update smart summary sensors
+            phase_name = status._get_phase_name_ru()
+            action = "Держать" if status.do_nothing_ok else "Внимание"
+            priority = "low" if status.do_nothing_ok else "high"
+
+            smart_summary = {
+                "pulse": phase_name,
+                "pulse_ru": phase_name,
+                "action": action,
+                "action_ru": action,
+                "action_priority": priority,
+                "outlook": f"Фаза: {phase_name}",
+                "outlook_ru": f"Фаза: {phase_name}",
+            }
+            await sensors.update_smart_summary(smart_summary)
+
             logger.info("Updated HA sensors")
         except Exception as e:
             logger.warning(f"Failed to update HA sensors: {e}")
@@ -587,6 +630,9 @@ async def altseason_job() -> None:
 
     Runs every 6 hours to fetch altcoin performance vs BTC
     and update HA sensors.
+    
+    Raises:
+        RuntimeError: If not enough altcoin data received
     """
     from service.analysis.altseason import AltseasonAnalyzer
     from service.ha import get_sensors_manager
@@ -599,14 +645,19 @@ async def altseason_job() -> None:
 
     try:
         data = await analyzer.analyze()
-        logger.info(f"Altseason: index={data.altseason_index}, status={data.status}")
+        logger.info(f"Altseason: index={data.index}, status={data.status.value}, alts_analyzed={data.total_alts_analyzed}")
 
         # Update HA sensors
-        await sensors.publish_sensor("altseason_index", data.altseason_index)
-        await sensors.publish_sensor("altseason_status", data.status)
+        await sensors.publish_sensor("altseason_index", data.index)
+        await sensors.publish_sensor("altseason_status", data.status.value)
 
+    except RuntimeError as e:
+        # Data validation failed - job is considered failed
+        logger.error(f"Altseason job FAILED (insufficient data): {e}")
+        raise
     except Exception as e:
-        logger.error(f"Altseason job failed: {e}")
+        logger.error(f"Altseason job FAILED: {e}")
+        raise
     finally:
         await analyzer.close()
 
@@ -617,6 +668,9 @@ async def stablecoin_job() -> None:
 
     Runs every 4 hours to track stablecoin market caps
     and update HA sensors.
+    
+    Raises:
+        RuntimeError: If not enough stablecoin data received
     """
     from service.analysis.stablecoins import StablecoinAnalyzer
     from service.ha import get_sensors_manager
@@ -629,15 +683,20 @@ async def stablecoin_job() -> None:
 
     try:
         data = await analyzer.analyze()
-        logger.info(f"Stablecoins: total={data.total_market_cap / 1e9:.1f}B, flow_24h={data.flow_24h_percent:.2f}%")
+        logger.info(f"Stablecoins: total={data.total_market_cap / 1e9:.1f}B, flow_24h={data.change_24h_pct:.2f}%, count={len(data.stablecoins)}")
 
         # Update HA sensors
         await sensors.publish_sensor("stablecoin_total", round(data.total_market_cap / 1e9, 2))
-        await sensors.publish_sensor("stablecoin_flow_24h", round(data.flow_24h_percent, 2))
-        await sensors.publish_sensor("stablecoin_dominance", round(data.dominance_percent, 2))
+        await sensors.publish_sensor("stablecoin_flow_24h", round(data.change_24h_pct, 2))
+        await sensors.publish_sensor("stablecoin_dominance", round(data.dominance, 2))
 
+    except RuntimeError as e:
+        # Data validation failed - job is considered failed
+        logger.error(f"Stablecoin job FAILED (insufficient data): {e}")
+        raise
     except Exception as e:
-        logger.error(f"Stablecoin job failed: {e}")
+        logger.error(f"Stablecoin job FAILED: {e}")
+        raise
     finally:
         await analyzer.close()
 
@@ -666,7 +725,9 @@ async def gas_tracker_job() -> None:
         await sensors.publish_sensor("eth_gas_slow", data.slow)
         await sensors.publish_sensor("eth_gas_standard", data.standard)
         await sensors.publish_sensor("eth_gas_fast", data.fast)
-        await sensors.publish_sensor("eth_gas_status", data.status)
+        # Convert enum to string value
+        status_value = data.status.value if hasattr(data.status, 'value') else str(data.status)
+        await sensors.publish_sensor("eth_gas_status", status_value)
 
     except Exception as e:
         logger.error(f"Gas tracker job failed: {e}")
@@ -724,28 +785,30 @@ async def exchange_flow_job() -> None:
     Runs every 4 hours to track BTC/ETH exchange flows
     and update HA sensors.
     """
-    from service.analysis.exchange_flow import ExchangeFlowTracker
+    from service.analysis.exchange_flow import get_exchange_flow_analyzer
     from service.ha import get_sensors_manager
     from service.ha_integration import notify
 
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     logger.info(f"[{current_time}] Starting exchange flow job")
 
-    tracker = ExchangeFlowTracker()
+    analyzer = get_exchange_flow_analyzer()
     sensors = get_sensors_manager()
 
     try:
-        data = await tracker.get_exchange_flow()
-        logger.info(f"Exchange flow: netflow={data.btc_netflow}, signal={data.signal}")
+        data = await analyzer.analyze()
+        btc_flow = data.btc_flow
+        logger.info(f"Exchange flow: signal={data.overall_signal.value}")
 
         # Update HA sensors with dictionary format
-        await sensors._publish_state("exchange_netflows", {"BTC": round(data.btc_netflow, 2)})
-        await sensors.publish_sensor("exchange_flow_signal", data.signal)
+        if btc_flow:
+            await sensors.publish_sensor("exchange_netflows", {"BTC": round(btc_flow.net_flow_24h, 2)})
+        await sensors.publish_sensor("exchange_flow_signal", data.overall_signal.value)
 
         # Alert on significant outflows (bullish signal)
-        if data.btc_netflow < -5000:
+        if btc_flow and btc_flow.net_flow_24h < -5000:
             await notify(
-                message=f"BTC отток с бирж: {abs(data.btc_netflow):.0f} BTC\nСигнал: {data.signal}",
+                message=f"BTC отток с бирж: {abs(btc_flow.net_flow_24h):.0f} BTC\nСигнал: {data.overall_signal.value}",
                 title="📈 Сильный отток BTC с бирж",
                 notification_id="exchange_outflow_alert",
             )
@@ -753,7 +816,7 @@ async def exchange_flow_job() -> None:
     except Exception as e:
         logger.error(f"Exchange flow job failed: {e}")
     finally:
-        await tracker.close()
+        await analyzer.close()
 
 
 async def liquidation_job() -> None:
@@ -761,7 +824,7 @@ async def liquidation_job() -> None:
     Liquidation Levels job.
 
     Runs every hour to fetch liquidation clusters
-    and update HA sensors.
+    and update HA sensors for all crypto symbols.
     """
     from service.analysis.liquidations import LiquidationTracker
     from service.ha import get_sensors_manager
@@ -773,31 +836,48 @@ async def liquidation_job() -> None:
     tracker = LiquidationTracker()
     sensors = get_sensors_manager()
 
-    try:
-        data = await tracker.get_liquidation_levels()
-        logger.info(
-            f"Liquidations: long_nearest={data.long_nearest}, "
-            f"short_nearest={data.short_nearest}, risk={data.risk_level}"
-        )
+    symbols = await get_currency_list_async()  # Dynamic with Bybit
+    base_symbols = [s.split("/")[0] for s in symbols]  # BTC/USDT -> BTC
 
-        # Update HA sensors with dictionary format
-        await sensors._publish_state(
-            "liq_levels",
-            {
-                "BTC": {
-                    "long": data.long_nearest or 0,
-                    "short": data.short_nearest or 0,
+    try:
+        liq_levels_dict: dict[str, dict[str, float]] = {}
+        highest_risk = "low"
+        risk_order = {"low": 0, "medium": 1, "high": 2, "extreme": 3}
+
+        for symbol in base_symbols:
+            try:
+                data = await tracker.analyze(symbol)
+
+                liq_levels_dict[symbol] = {
+                    "long": data.nearest_long_liq or 0,
+                    "short": data.nearest_short_liq or 0,
                 }
-            },
-        )
-        await sensors.publish_sensor("liq_risk_level", data.risk_level)
+
+                # Track highest risk across all symbols
+                if risk_order.get(data.risk_level.value, 0) > risk_order.get(highest_risk, 0):
+                    highest_risk = data.risk_level.value
+
+                logger.debug(
+                    f"{symbol} liquidations: long={data.nearest_long_liq}, "
+                    f"short={data.nearest_short_liq}, risk={data.risk_level.value}"
+                )
+
+            except Exception as e:
+                logger.warning(f"Liquidation analysis failed for {symbol}: {e}")
+                liq_levels_dict[symbol] = {"long": 0, "short": 0}
+
+            await asyncio.sleep(0.5)  # Rate limiting
+
+        # Update HA sensors with dictionary format for ALL symbols
+        await sensors.publish_sensor("liq_levels", liq_levels_dict)
+        await sensors.publish_sensor("liq_risk_level", highest_risk)
+
+        logger.info(f"Liquidations updated for {len(liq_levels_dict)} symbols, highest risk: {highest_risk}")
 
         # Alert on high risk
-        if data.risk_level == "High":
+        if highest_risk in ["high", "extreme"]:
             await notify(
-                message=(
-                    f"Высокий риск ликвидаций!\nLong: ${data.long_nearest:,.0f}\nShort: ${data.short_nearest:,.0f}"
-                ),
+                message=f"Высокий риск ликвидаций на рынке! Уровень: {highest_risk}",
                 title="⚠️ Высокий риск ликвидаций",
                 notification_id="liquidation_high_risk",
             )
@@ -837,9 +917,9 @@ async def portfolio_job() -> None:
         await sensors.publish_sensor("portfolio_value", round(status.total_value, 2))
         await sensors.publish_sensor("portfolio_pnl", round(status.total_pnl_percent, 2))
         await sensors.publish_sensor("portfolio_pnl_24h", round(status.change_24h_pct or 0, 2))
-        await sensors.publish_sensor("portfolio_best", status.best_performer.symbol if status.best_performer else "N/A")
+        await sensors.publish_sensor("portfolio_best", status.best_performer.symbol if status.best_performer else "—")
         await sensors.publish_sensor(
-            "portfolio_worst", status.worst_performer.symbol if status.worst_performer else "N/A"
+            "portfolio_worst", status.worst_performer.symbol if status.worst_performer else "—"
         )
 
     except Exception as e:
@@ -850,8 +930,8 @@ async def divergence_job() -> None:
     """
     Divergence Detection job.
 
-    Runs every hour to detect RSI/MACD divergences
-    and update HA sensors.
+    Runs every hour to detect RSI/MACD divergences,
+    calculate support/resistance levels, technical indicators and update HA sensors.
     """
     from service.analysis.divergences import DivergenceDetector
     from service.analysis.technical import TechnicalAnalyzer
@@ -866,12 +946,23 @@ async def divergence_job() -> None:
     detector = DivergenceDetector()
     ta = TechnicalAnalyzer()
     sensors = get_sensors_manager()
-    symbols = get_currency_list()
+    symbols = await get_currency_list_async()  # Dynamic with Bybit
     base_symbols = [s.split("/")[0] for s in symbols]  # BTC/USDT -> BTC
 
     try:
         active_count = 0
         divergence_data = {}  # Dictionary for all symbols
+        support_data: dict[str, float | None] = {}  # Support levels
+        resistance_data: dict[str, float | None] = {}  # Resistance levels
+        
+        # TA indicators dictionaries
+        rsi_data: dict[str, float | None] = {}
+        macd_data: dict[str, str] = {}
+        trend_data: dict[str, str] = {}
+        bb_position_data: dict[str, str] = {}
+        prices_data: dict[str, float] = {}
+        changes_data: dict[str, float] = {}
+        signal_data: dict[str, str] = {}
 
         for symbol in base_symbols:
             try:
@@ -884,10 +975,19 @@ async def divergence_job() -> None:
 
                 if len(candles) < 50:
                     divergence_data[symbol] = "Insufficient data"
+                    support_data[symbol] = None
+                    resistance_data[symbol] = None
+                    rsi_data[symbol] = None
+                    macd_data[symbol] = "—"
+                    trend_data[symbol] = "—"
+                    bb_position_data[symbol] = "—"
+                    signal_data[symbol] = "—"
                     continue
 
                 # Convert to list of close prices and calculate indicators
                 closes = [float(c.close_price) for c in candles]
+                highs = [float(c.high_price) for c in candles]
+                lows = [float(c.low_price) for c in candles]
                 rsi_values = []
                 macd_values = []
 
@@ -901,11 +1001,76 @@ async def divergence_job() -> None:
                     _, _, hist = ta.calc_macd(closes[: i + 1])
                     if hist is not None:
                         macd_values.append(hist)
+                
+                # Get current price and calculate change
+                current_price = closes[-1]
+                price_24h_ago = closes[-6] if len(closes) >= 6 else closes[0]  # 4h * 6 = 24h
+                change_24h = ((current_price - price_24h_ago) / price_24h_ago) * 100 if price_24h_ago else 0
+                
+                prices_data[symbol] = current_price
+                changes_data[symbol] = round(change_24h, 2)
+                
+                # Current RSI
+                current_rsi = ta.calc_rsi(closes)
+                rsi_data[symbol] = round(current_rsi, 1) if current_rsi else None
+                
+                # Current MACD signal
+                macd_line, signal_line, _ = ta.calc_macd(closes)
+                if macd_line is not None and signal_line is not None:
+                    if macd_line > signal_line:
+                        macd_data[symbol] = "Bullish"
+                    elif macd_line < signal_line:
+                        macd_data[symbol] = "Bearish"
+                    else:
+                        macd_data[symbol] = "Neutral"
+                else:
+                    macd_data[symbol] = "—"
+                
+                # Trend direction based on SMA
+                sma_20 = sum(closes[-20:]) / 20 if len(closes) >= 20 else None
+                sma_50 = sum(closes[-50:]) / 50 if len(closes) >= 50 else None
+                if sma_20 and sma_50:
+                    if current_price > sma_20 > sma_50:
+                        trend_data[symbol] = "Uptrend"
+                    elif current_price < sma_20 < sma_50:
+                        trend_data[symbol] = "Downtrend"
+                    else:
+                        trend_data[symbol] = "Sideways"
+                else:
+                    trend_data[symbol] = "—"
+                
+                # Bollinger Band position
+                bb = ta.calc_bollinger_bands(closes)
+                if bb and bb.get("upper") and bb.get("lower"):
+                    bb_upper = bb["upper"]
+                    bb_lower = bb["lower"]
+                    bb_middle = bb.get("middle", (bb_upper + bb_lower) / 2)
+                    
+                    if current_price >= bb_upper:
+                        bb_position_data[symbol] = "Above Upper"
+                    elif current_price <= bb_lower:
+                        bb_position_data[symbol] = "Below Lower"
+                    elif current_price > bb_middle:
+                        bb_position_data[symbol] = "Upper Half"
+                    else:
+                        bb_position_data[symbol] = "Lower Half"
+                else:
+                    bb_position_data[symbol] = "—"
+                
+                # Generate trading signal
+                signal = "HOLD"
+                if current_rsi and current_rsi < 30 and macd_data[symbol] == "Bullish":
+                    signal = "BUY"
+                elif current_rsi and current_rsi > 70 and macd_data[symbol] == "Bearish":
+                    signal = "SELL"
+                signal_data[symbol] = signal
 
-                # Align arrays
+                # Align arrays for divergence detection
                 min_len = min(len(closes) - 35, len(rsi_values), len(macd_values))
                 if min_len < 20:
                     divergence_data[symbol] = "Insufficient data"
+                    support_data[symbol] = None
+                    resistance_data[symbol] = None
                     continue
 
                 aligned_prices = closes[-min_len:]
@@ -924,36 +1089,81 @@ async def divergence_job() -> None:
 
                 # Find most significant divergence for this symbol
                 if divergences:
-                    # Prioritize by strength
-                    best = max(divergences, key=lambda d: d.strength.value)
+                    # Prioritize by strength using mapping
+                    strength_order = {"weak": 1, "moderate": 2, "strong": 3}
+                    best = max(divergences, key=lambda d: strength_order.get(d.strength.value, 0))
                     sensor_value = f"{best.div_type.value} {best.timeframe}"
 
-                    # Notify on significant divergences (strong only)
-                    if best.strength.value >= 2:  # MODERATE or STRONG
+                    # Notify on significant divergences (MODERATE or STRONG)
+                    if best.strength.value in ("moderate", "strong"):
                         await notify(
                             message=(
                                 f"{symbol}: {best.div_type.value} дивергенция на {best.timeframe}\n"
                                 f"Индикатор: {best.indicator}\n"
                                 f"Сила: {best.strength.value}"
                             ),
-                            title=f"📊 Дивергенция {symbol}",
+                            title=f"Дивергенция {symbol}",
                             notification_id=f"divergence_{symbol.lower()}_{best.timeframe}",
                         )
                 else:
-                    sensor_value = "None"
+                    sensor_value = "Нет"
 
                 # Add to dictionary
                 divergence_data[symbol] = sensor_value
-                logger.debug(f"{symbol} divergences: {len(divergences)}")
+
+                # Calculate support/resistance levels
+                candle_dicts = [
+                    {
+                        "open": float(c.open_price),
+                        "high": float(c.high_price),
+                        "low": float(c.low_price),
+                        "close": float(c.close_price),
+                    }
+                    for c in candles
+                ]
+                sr = ta.find_support_resistance(candle_dicts)
+                support_data[symbol] = sr.nearest_support["level"] if sr.nearest_support else None
+                resistance_data[symbol] = sr.nearest_resistance["level"] if sr.nearest_resistance else None
+
+                logger.debug(
+                    f"{symbol}: divergences={len(divergences)}, RSI={rsi_data[symbol]}, "
+                    f"MACD={macd_data[symbol]}, trend={trend_data[symbol]}"
+                )
 
             except Exception as e:
                 logger.warning(f"Failed to analyze {symbol}: {e}")
-                divergence_data[symbol] = "Error"
+                divergence_data[symbol] = "—"
+                support_data[symbol] = None
+                resistance_data[symbol] = None
+                rsi_data[symbol] = None
+                macd_data[symbol] = "—"
+                trend_data[symbol] = "—"
+                bb_position_data[symbol] = "—"
+                signal_data[symbol] = "—"
 
-        # Update with dictionary format
-        await sensors._publish_state("divergences", divergence_data)
+        # Update divergence sensors
+        await sensors.publish_sensor("divergences", divergence_data)
         await sensors.publish_sensor("divergences_active", active_count)
-        logger.info(f"Divergence job complete: {active_count} active divergences")
+
+        # Update support/resistance levels
+        await sensors.publish_sensor("ta_support", support_data)
+        await sensors.publish_sensor("ta_resistance", resistance_data)
+        
+        # Update TA indicator sensors
+        await sensors.publish_sensor("ta_rsi", rsi_data)
+        await sensors.publish_sensor("ta_macd_signal", macd_data)
+        await sensors.publish_sensor("ta_trend", trend_data)
+        await sensors.publish_sensor("ta_bb_position", bb_position_data)
+        await sensors.publish_sensor("ta_signal", signal_data)
+        
+        # Update price sensors
+        await sensors.publish_sensor("prices", prices_data)
+        await sensors.publish_sensor("changes_24h", changes_data)
+
+        logger.info(
+            f"Divergence job complete: {active_count} divergences, "
+            f"TA indicators for {len(rsi_data)} symbols"
+        )
 
     except Exception as e:
         logger.error(f"Divergence job failed: {e}")
@@ -966,30 +1176,26 @@ async def signal_history_job() -> None:
     Runs every hour to update signal outcomes
     and recalculate win rates.
     """
-    from service.analysis.signal_history import get_signal_tracker
+    from service.analysis.signal_history import get_signal_manager
     from service.ha import get_sensors_manager
 
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     logger.info(f"[{current_time}] Starting signal history update job")
 
-    tracker = get_signal_tracker()
+    tracker = get_signal_manager()
     sensors = get_sensors_manager()
 
     try:
-        # Update outcomes for pending signals
-        await tracker.update_outcomes()
-
-        # Get stats
-        stats = await tracker.get_stats()
+        # Get stats (update_outcomes is not async, get_stats is sync)
+        stats = tracker.get_stats()
         logger.info(
-            f"Signals: win_rate={stats.win_rate:.1f}%, "
-            f"today={stats.signals_today}, last={stats.last_signal_description}"
+            f"Signals: total={stats.total_signals}, "
+            f"win_rate_24h={stats.win_rate_24h:.1f}%"
         )
 
         # Update HA sensors
-        await sensors.publish_sensor("signals_win_rate", round(stats.win_rate, 1))
-        await sensors.publish_sensor("signals_today", stats.signals_today)
-        await sensors.publish_sensor("signals_last", stats.last_signal_description or "Нет сигналов")
+        await sensors.publish_sensor("signals_win_rate", round(stats.win_rate_24h, 1))
+        await sensors.publish_sensor("signals_today", stats.signals_24h)
 
     except Exception as e:
         logger.error(f"Signal history job failed: {e}")
@@ -1066,12 +1272,9 @@ async def bybit_sync_job() -> None:
 
     try:
         account = await portfolio.get_account()
-        pnl_24h = await portfolio.calculate_pnl(
-            __import__("services.exchange.bybit_portfolio", fromlist=["PnlPeriod"]).PnlPeriod.DAY
-        )
-        pnl_7d = await portfolio.calculate_pnl(
-            __import__("services.exchange.bybit_portfolio", fromlist=["PnlPeriod"]).PnlPeriod.WEEK
-        )
+        from service.exchange.bybit_portfolio import PnlPeriod
+        pnl_24h = await portfolio.calculate_pnl(PnlPeriod.DAY)
+        pnl_7d = await portfolio.calculate_pnl(PnlPeriod.WEEK)
 
         # Update HA sensors - Wallet
         await sensors.publish_sensor("bybit_balance", round(account.total_equity, 2))
@@ -1188,7 +1391,7 @@ async def volatility_job() -> None:
         data = await tracker.analyze("BTC")
 
         # Update with dictionary format for multi-currency support
-        await sensors._publish_state("volatility_30d", {"BTC": round(data.volatility_30d, 2)})
+        await sensors.publish_sensor("volatility_30d", {"BTC": round(data.volatility_30d, 2)})
         await sensors.publish_sensor("volatility_percentile", data.percentile)
         await sensors.publish_sensor("volatility_status", data.status.name_ru)
 
@@ -1304,7 +1507,7 @@ async def arbitrage_job() -> None:
         arb_spreads = {}
         if analysis.best_spread:
             arb_spreads["BTC"] = round(analysis.best_spread.spread_pct, 3)
-        await sensors._publish_state("arb_spreads", arb_spreads)
+        await sensors.publish_sensor("arb_spreads", arb_spreads)
 
         # Best funding arb
         if analysis.best_funding:
@@ -1355,7 +1558,7 @@ async def profit_taking_job() -> None:
             tp_data = {}
             for i, level in enumerate(analysis.tp_levels[:2]):
                 tp_data[f"level_{i + 1}"] = round(level.price, 2)
-            await sensors._publish_state("tp_levels", {"BTC": tp_data})
+            await sensors.publish_sensor("tp_levels", {"BTC": tp_data})
 
         await sensors.publish_sensor("profit_action", analysis.action.name_ru)
         # greed_level is a PercentSensor (0-100), send numeric greed_score
@@ -1407,6 +1610,11 @@ async def currency_list_monitor_job() -> None:
 
         # Update consolidated sensors
         await unified_manager.update_consolidated_sensors()
+        
+        # Update crypto_currency_list sensor with current list
+        current_currencies = await get_currency_list_async()
+        await sensors_manager.publish_sensor("crypto_currency_list", current_currencies)
+        logger.debug(f"Updated crypto_currency_list sensor: {current_currencies}")
 
         logger.info("Currency list monitor job completed")
 
@@ -1425,11 +1633,13 @@ async def traditional_finance_job() -> None:
     - Commodities (Oil Brent, WTI, Natural Gas)
     """
     from service.analysis.traditional import get_traditional_tracker
+    from service.backfill.traditional_backfill import get_traditional_backfill
     from service.ha import get_sensors_manager
 
     logger.info("Starting traditional finance job")
 
     tracker = get_traditional_tracker()
+    backfill = get_traditional_backfill()
     sensors = get_sensors_manager()
 
     try:
@@ -1437,7 +1647,7 @@ async def traditional_finance_job() -> None:
 
         # Metals
         if status.gold:
-            await sensors._publish_state("gold_price", round(status.gold.price, 2))
+            await sensors.publish_sensor("gold_price", round(status.gold.price, 2))
             await sensors._publish_attributes(
                 "gold_price",
                 {
@@ -1447,7 +1657,7 @@ async def traditional_finance_job() -> None:
                 },
             )
         if status.silver:
-            await sensors._publish_state("silver_price", round(status.silver.price, 2))
+            await sensors.publish_sensor("silver_price", round(status.silver.price, 2))
             await sensors._publish_attributes(
                 "silver_price",
                 {
@@ -1455,11 +1665,11 @@ async def traditional_finance_job() -> None:
                 },
             )
         if status.platinum:
-            await sensors._publish_state("platinum_price", round(status.platinum.price, 2))
+            await sensors.publish_sensor("platinum_price", round(status.platinum.price, 2))
 
         # Indices
         if status.sp500:
-            await sensors._publish_state("sp500_price", round(status.sp500.price, 2))
+            await sensors.publish_sensor("sp500_price", round(status.sp500.price, 2))
             await sensors._publish_attributes(
                 "sp500_price",
                 {
@@ -1467,7 +1677,7 @@ async def traditional_finance_job() -> None:
                 },
             )
         if status.nasdaq:
-            await sensors._publish_state("nasdaq_price", round(status.nasdaq.price, 2))
+            await sensors.publish_sensor("nasdaq_price", round(status.nasdaq.price, 2))
             await sensors._publish_attributes(
                 "nasdaq_price",
                 {
@@ -1475,7 +1685,7 @@ async def traditional_finance_job() -> None:
                 },
             )
         if status.dji:
-            await sensors._publish_state("dji_price", round(status.dji.price, 2))
+            await sensors.publish_sensor("dji_price", round(status.dji.price, 2))
             await sensors._publish_attributes(
                 "dji_price",
                 {
@@ -1483,7 +1693,7 @@ async def traditional_finance_job() -> None:
                 },
             )
         if status.dax:
-            await sensors._publish_state("dax_price", round(status.dax.price, 2))
+            await sensors.publish_sensor("dax_price", round(status.dax.price, 2))
             await sensors._publish_attributes(
                 "dax_price",
                 {
@@ -1493,7 +1703,7 @@ async def traditional_finance_job() -> None:
 
         # Forex
         if status.eur_usd:
-            await sensors._publish_state("eur_usd", round(status.eur_usd.price, 4))
+            await sensors.publish_sensor("eur_usd", round(status.eur_usd.price, 4))
             await sensors._publish_attributes(
                 "eur_usd",
                 {
@@ -1501,9 +1711,9 @@ async def traditional_finance_job() -> None:
                 },
             )
         if status.gbp_usd:
-            await sensors._publish_state("gbp_usd", round(status.gbp_usd.price, 4))
+            await sensors.publish_sensor("gbp_usd", round(status.gbp_usd.price, 4))
         if status.dxy:
-            await sensors._publish_state("dxy_index", round(status.dxy.price, 2))
+            await sensors.publish_sensor("dxy_index", round(status.dxy.price, 2))
             await sensors._publish_attributes(
                 "dxy_index",
                 {
@@ -1513,7 +1723,7 @@ async def traditional_finance_job() -> None:
 
         # Commodities
         if status.oil_brent:
-            await sensors._publish_state("oil_brent", round(status.oil_brent.price, 2))
+            await sensors.publish_sensor("oil_brent", round(status.oil_brent.price, 2))
             await sensors._publish_attributes(
                 "oil_brent",
                 {
@@ -1521,9 +1731,16 @@ async def traditional_finance_job() -> None:
                 },
             )
         if status.oil_wti:
-            await sensors._publish_state("oil_wti", round(status.oil_wti.price, 2))
+            await sensors.publish_sensor("oil_wti", round(status.oil_wti.price, 2))
         if status.natural_gas:
-            await sensors._publish_state("natural_gas", round(status.natural_gas.price, 3))
+            await sensors.publish_sensor("natural_gas", round(status.natural_gas.price, 3))
+
+        # History status - dict {symbol: {start: ts, stop: ts}}
+        try:
+            history_status = await backfill.get_history_status()
+            await sensors.publish_sensor("traditional_history_status", history_status)
+        except Exception as e:
+            logger.warning(f"Failed to get traditional history status: {e}")
 
         logger.info("Traditional finance data updated")
 
@@ -1531,3 +1748,161 @@ async def traditional_finance_job() -> None:
         logger.error(f"Traditional finance job failed: {e}")
     finally:
         await tracker.close()
+
+
+async def traditional_backfill_job() -> None:
+    """
+    Traditional assets daily backfill job.
+
+    Runs once a day to update historical data for traditional assets.
+    Uses Yahoo Finance with Stooq fallback.
+    """
+    from service.backfill.traditional_backfill import TRADITIONAL_ASSETS, get_traditional_backfill
+
+    logger.info("Starting traditional backfill job")
+
+    backfill = get_traditional_backfill()
+    success_count = 0
+    failure_count = 0
+
+    for symbol in TRADITIONAL_ASSETS.keys():
+        try:
+            count = await backfill.backfill_asset(symbol, years=1)
+            if count > 0:
+                success_count += 1
+                logger.info(f"Traditional backfill {symbol}: {count} records")
+            else:
+                failure_count += 1
+                logger.warning(f"Traditional backfill {symbol}: no data")
+        except Exception as e:
+            failure_count += 1
+            logger.error(f"Traditional backfill {symbol} failed: {e}")
+
+        # Rate limiting
+        await asyncio.sleep(3.0)
+
+    logger.info(
+        f"Traditional backfill completed: {success_count} success, {failure_count} failed"
+    )
+
+
+async def ai_analysis_job() -> None:
+    """
+    AI Market Analysis job.
+
+    Runs periodically (default: every 24 hours) to generate AI-powered
+    market analysis using Ollama or OpenAI.
+    """
+    from service.ai.analyzer import MarketAnalyzer, collect_market_data
+    from service.ai.providers import create_ai_service
+    from service.ha import get_sensors_manager
+    from service.ha_integration import notify
+
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    logger.info(f"[{current_time}] Starting AI analysis job")
+
+    # Check if AI is enabled
+    if not settings.AI_ENABLED:
+        logger.info("AI analysis is disabled, skipping job")
+        return
+
+    sensors = get_sensors_manager()
+
+    # Create AI service
+    ai_service = create_ai_service(
+        ai_enabled=settings.AI_ENABLED,
+        ai_provider=settings.AI_PROVIDER,
+        openai_api_key=settings.OPENAI_API_KEY,
+        ollama_host=settings.OLLAMA_HOST,
+        ollama_model=settings.OLLAMA_MODEL,
+    )
+
+    # Check if service is available
+    is_available = await ai_service.is_available()
+    if not is_available:
+        logger.warning(f"AI service not available (provider: {settings.AI_PROVIDER})")
+        await sensors.publish_sensor("ai_daily_summary", "AI недоступен")
+        await sensors.publish_sensor("ai_market_sentiment", "Unavailable")
+        await sensors.publish_sensor("ai_provider", settings.AI_PROVIDER)
+        return
+
+    analyzer = MarketAnalyzer(ai_service)
+
+    try:
+        # Collect market data from various services
+        from service.analysis import OnChainAnalyzer, DerivativesAnalyzer
+
+        onchain = OnChainAnalyzer()
+        derivatives = DerivativesAnalyzer()
+
+        # Gather data
+        fear_greed_data = None
+        deriv_data = None
+        btc_price = None
+        btc_change = 0.0
+
+        try:
+            onchain_data = await onchain.analyze()
+            if onchain_data.fear_greed:
+                fear_greed_data = {
+                    "value": onchain_data.fear_greed.value,
+                    "label": onchain_data.fear_greed.classification,
+                }
+        except Exception as e:
+            logger.warning(f"Failed to get on-chain data for AI: {e}")
+
+        try:
+            btc_deriv = await derivatives.analyze("BTC")
+            if btc_deriv.funding:
+                btc_price = btc_deriv.funding.mark_price
+            deriv_data = {
+                "funding_rate": btc_deriv.funding.rate if btc_deriv.funding else None,
+                "long_short_ratio": btc_deriv.long_short.long_short_ratio if btc_deriv.long_short else None,
+            }
+        except Exception as e:
+            logger.warning(f"Failed to get derivatives data for AI: {e}")
+
+        await onchain.close()
+        await derivatives.close()
+
+        # Collect market data
+        market_data = await collect_market_data(
+            prices={"BTC/USDT": btc_price or 0},
+            changes={"BTC/USDT": btc_change},
+            fear_greed=fear_greed_data,
+        )
+
+        # Generate daily summary
+        language = settings.AI_LANGUAGE
+        result = await analyzer.generate_daily_summary(market_data, language=language)
+
+        if result:
+            # Update sensors
+            await sensors.publish_sensor("ai_daily_summary", analyzer.get_summary_for_sensor())
+            await sensors.publish_sensor("ai_market_sentiment", analyzer.get_sentiment_for_sensor())
+            await sensors.publish_sensor("ai_recommendation", analyzer.get_recommendation_for_sensor())
+            await sensors.publish_sensor("ai_last_analysis", analyzer.get_last_analysis_time())
+            await sensors.publish_sensor("ai_provider", f"{result.provider}/{result.model}")
+
+            logger.info(
+                f"AI analysis completed: sentiment={result.sentiment}, "
+                f"provider={result.provider}, model={result.model}"
+            )
+
+            # Send notification with AI summary
+            if result.recommendation and result.recommendation not in ["N/A", "HOLD"]:
+                await notify(
+                    message=analyzer.get_summary_for_sensor(max_length=500),
+                    title=f"🤖 AI: {result.sentiment or 'Analysis'}",
+                    notification_id="ai_daily_summary",
+                )
+        else:
+            logger.warning("AI analysis returned no result")
+            await sensors.publish_sensor("ai_daily_summary", "Анализ недоступен")
+
+    except Exception as e:
+        logger.error(f"AI analysis job failed: {e}")
+        await sensors.publish_sensor("ai_daily_summary", f"Ошибка: {str(e)[:50]}")
+    finally:
+        await ai_service.close()
+

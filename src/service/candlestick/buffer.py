@@ -144,7 +144,7 @@ class CandleBuffer:
             return 0
 
     async def _write_to_db(self, candles: list[BufferedCandle]) -> int:
-        """Write candles to database."""
+        """Write candles to database with retry logic."""
         # Import here to avoid circular imports
         from models.session import async_session_maker
 
@@ -163,78 +163,91 @@ class CandleBuffer:
             grouped[key].append(bc)
 
         total_written = 0
+        max_retries = self.config.max_retries
+        
+        for attempt in range(max_retries):
+            try:
+                async with async_session_maker() as session:
+                    for (exchange, symbol, interval), buffered_candles in grouped.items():
+                        records = []
+                        for bc in buffered_candles:
+                            c = bc.candle
+                            records.append(
+                                {
+                                    "exchange": exchange,
+                                    "symbol": symbol,
+                                    "interval": interval,
+                                    "timestamp": c.timestamp,
+                                    "open_price": to_float(c.open_price),
+                                    "high_price": to_float(c.high_price),
+                                    "low_price": to_float(c.low_price),
+                                    "close_price": to_float(c.close_price),
+                                    "volume": to_float(c.volume),
+                                    "quote_volume": to_float(c.quote_volume),
+                                    "trades_count": c.trades_count,
+                                    "fetch_time_ms": 0,
+                                    "is_complete": True,
+                                    "loaded_at": datetime.now(UTC),
+                                }
+                            )
 
-        async with async_session_maker() as session:
-            for (exchange, symbol, interval), buffered_candles in grouped.items():
-                records = []
-                for bc in buffered_candles:
-                    c = bc.candle
-                    records.append(
-                        {
-                            "exchange": exchange,
-                            "symbol": symbol,
-                            "interval": interval,
-                            "timestamp": c.timestamp,
-                            "open_price": to_float(c.open_price),
-                            "high_price": to_float(c.high_price),
-                            "low_price": to_float(c.low_price),
-                            "close_price": to_float(c.close_price),
-                            "volume": to_float(c.volume),
-                            "quote_volume": to_float(c.quote_volume),
-                            "trades_count": c.trades_count,
-                            "fetch_time_ms": 0,
-                            "is_complete": True,
-                            "loaded_at": datetime.now(UTC),
-                        }
-                    )
+                        if records:
+                            # Use raw SQL for upsert to avoid model import issues
+                            from sqlalchemy import text
 
-                if records:
-                    # Use raw SQL for upsert to avoid model import issues
-                    from sqlalchemy import text
+                            # Detect dialect
+                            dialect = session.bind.dialect.name if session.bind else "sqlite"
 
-                    # Detect dialect
-                    dialect = session.bind.dialect.name if session.bind else "sqlite"
+                            for record in records:
+                                if dialect == "postgresql":
+                                    stmt = text("""
+                                        INSERT INTO candlestick_records
+                                        (exchange, symbol, interval, timestamp, open_price, high_price,
+                                         low_price, close_price, volume, quote_volume, trades_count,
+                                         fetch_time_ms, is_complete, loaded_at)
+                                        VALUES (:exchange, :symbol, :interval, :timestamp, :open_price,
+                                                :high_price, :low_price, :close_price, :volume,
+                                                :quote_volume, :trades_count, :fetch_time_ms,
+                                                :is_complete, :loaded_at)
+                                        ON CONFLICT (exchange, symbol, interval, timestamp)
+                                        DO UPDATE SET
+                                            open_price = EXCLUDED.open_price,
+                                            high_price = EXCLUDED.high_price,
+                                            low_price = EXCLUDED.low_price,
+                                            close_price = EXCLUDED.close_price,
+                                            volume = EXCLUDED.volume,
+                                            quote_volume = EXCLUDED.quote_volume,
+                                            trades_count = EXCLUDED.trades_count,
+                                            is_complete = EXCLUDED.is_complete,
+                                            loaded_at = EXCLUDED.loaded_at
+                                    """)
+                                else:
+                                    # SQLite
+                                    stmt = text("""
+                                        INSERT OR REPLACE INTO candlestick_records
+                                        (exchange, symbol, interval, timestamp, open_price, high_price,
+                                         low_price, close_price, volume, quote_volume, trades_count,
+                                         fetch_time_ms, is_complete, loaded_at)
+                                        VALUES (:exchange, :symbol, :interval, :timestamp, :open_price,
+                                                :high_price, :low_price, :close_price, :volume,
+                                                :quote_volume, :trades_count, :fetch_time_ms,
+                                                :is_complete, :loaded_at)
+                                    """)
 
-                    for record in records:
-                        if dialect == "postgresql":
-                            stmt = text("""
-                                INSERT INTO candlestick_records
-                                (exchange, symbol, interval, timestamp, open_price, high_price,
-                                 low_price, close_price, volume, quote_volume, trades_count,
-                                 fetch_time_ms, is_complete, loaded_at)
-                                VALUES (:exchange, :symbol, :interval, :timestamp, :open_price,
-                                        :high_price, :low_price, :close_price, :volume,
-                                        :quote_volume, :trades_count, :fetch_time_ms,
-                                        :is_complete, :loaded_at)
-                                ON CONFLICT (exchange, symbol, interval, timestamp)
-                                DO UPDATE SET
-                                    open_price = EXCLUDED.open_price,
-                                    high_price = EXCLUDED.high_price,
-                                    low_price = EXCLUDED.low_price,
-                                    close_price = EXCLUDED.close_price,
-                                    volume = EXCLUDED.volume,
-                                    quote_volume = EXCLUDED.quote_volume,
-                                    trades_count = EXCLUDED.trades_count,
-                                    is_complete = EXCLUDED.is_complete,
-                                    loaded_at = EXCLUDED.loaded_at
-                            """)
-                        else:
-                            # SQLite
-                            stmt = text("""
-                                INSERT OR REPLACE INTO candlestick_records
-                                (exchange, symbol, interval, timestamp, open_price, high_price,
-                                 low_price, close_price, volume, quote_volume, trades_count,
-                                 fetch_time_ms, is_complete, loaded_at)
-                                VALUES (:exchange, :symbol, :interval, :timestamp, :open_price,
-                                        :high_price, :low_price, :close_price, :volume,
-                                        :quote_volume, :trades_count, :fetch_time_ms,
-                                        :is_complete, :loaded_at)
-                            """)
+                                await session.execute(stmt, record)
+                                total_written += 1
 
-                        await session.execute(stmt, record)
-                        total_written += 1
-
-            await session.commit()
+                    await session.commit()
+                    return total_written
+                    
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    wait_time = (2 ** attempt) * 0.5  # Exponential backoff: 0.5s, 1s, 2s
+                    logger.warning(f"[Buffer] DB write failed (attempt {attempt + 1}/{max_retries}), retrying in {wait_time}s: {e}")
+                    await asyncio.sleep(wait_time)
+                else:
+                    logger.error(f"[Buffer] DB write failed after {max_retries} attempts: {e}")
+                    raise
 
         return total_written
 

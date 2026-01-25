@@ -18,8 +18,8 @@ class DoNothingOkSensor(BoolSensor):
         description_ru="Да/Нет - можно ли сейчас просто держать",
     )
 
-    true_text = "Yes"
-    false_text = "No"
+    true_text = "Да"
+    false_text = "Нет"
 
 
 @register_sensor(category="investor")

@@ -307,6 +307,11 @@ class AIService:
         """Check if any provider is configured."""
         return len(self.providers) > 0
 
+    async def is_available(self) -> bool:
+        """Check if any provider is available."""
+        provider = await self.get_available_provider()
+        return provider is not None
+
 
 def create_ai_service(
     ai_enabled: bool = False,

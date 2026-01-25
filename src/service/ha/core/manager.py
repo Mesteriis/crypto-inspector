@@ -6,7 +6,7 @@ with modular architecture and Pydantic validation.
 
 import logging
 import os
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -18,34 +18,216 @@ from service.ha.core.registry import SensorRegistry
 logger = logging.getLogger(__name__)
 
 
-def get_currency_list() -> list[str]:
-    """Get the dynamic currency list from Home Assistant input_select helper.
+# =============================================================================
+# DYNAMIC CURRENCY LIST WITH BYBIT INTEGRATION
+# =============================================================================
 
-    This is the single source of truth for currency selections across the application.
-    Falls back to environment variable or defaults if helper is not available.
+
+class DynamicCurrencyManager:
+    """
+    Dynamic currency list manager that combines:
+    1. User-configured symbols (from env/config) OR defaults
+    2. Symbols from Bybit balances (wallet + earn)
+    
+    Refreshes Bybit symbols at runtime, not just at startup.
+    Automatically triggers historical data backfill for new symbols.
+    """
+    
+    _instance: "DynamicCurrencyManager | None" = None
+    
+    def __init__(self):
+        self._configured_symbols: list[str] = []
+        self._bybit_symbols: set[str] = set()
+        self._backfilled_symbols: set[str] = set()  # Track backfilled symbols
+        self._last_bybit_refresh: datetime | None = None
+        self._bybit_refresh_interval = timedelta(minutes=5)
+        self._bybit_configured: bool | None = None  # Cached config check
+        self._backfill_in_progress: set[str] = set()  # Prevent duplicate backfills
+    
+    @classmethod
+    def get_instance(cls) -> "DynamicCurrencyManager":
+        """Get singleton instance."""
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+    
+    def _load_configured_symbols(self) -> list[str]:
+        """Load user-configured symbols from env or defaults."""
+        # Check environment variable first
+        symbols_env = os.environ.get("HA_SYMBOLS", "")
+        if symbols_env:
+            symbols = [s.strip() for s in symbols_env.split(",") if s.strip()]
+            # Ensure /USDT suffix
+            return [s if "/" in s else f"{s}/USDT" for s in symbols]
+        
+        # Fallback to defaults
+        return DEFAULT_SYMBOLS.copy()
+    
+    async def _refresh_bybit_symbols(self) -> None:
+        """Fetch symbols from Bybit wallet and earn positions."""
+        try:
+            from service.exchange import get_bybit_portfolio
+            
+            portfolio = get_bybit_portfolio()
+            
+            # Cache the configured check
+            if self._bybit_configured is None:
+                self._bybit_configured = portfolio.is_configured
+            
+            if not self._bybit_configured:
+                return
+            
+            account = await portfolio.get_account()
+            
+            new_symbols: set[str] = set()
+            
+            # Add symbols from wallet balances (non-zero balance)
+            for balance in account.balances:
+                if balance.wallet_balance > 0 or balance.usd_value > 1:  # Min $1 value
+                    coin = balance.coin
+                    if coin not in ("USDT", "USDC", "USD"):  # Skip stablecoins
+                        new_symbols.add(f"{coin}/USDT")
+            
+            # Add symbols from earn positions
+            for earn in account.earn_positions:
+                coin = earn.coin
+                if coin not in ("USDT", "USDC", "USD"):
+                    new_symbols.add(f"{coin}/USDT")
+            
+            if new_symbols != self._bybit_symbols:
+                added = new_symbols - self._bybit_symbols
+                removed = self._bybit_symbols - new_symbols
+                if added:
+                    logger.info(f"Bybit symbols added: {added}")
+                    # Trigger backfill for new symbols
+                    await self._backfill_new_symbols(added)
+                if removed:
+                    logger.info(f"Bybit symbols removed: {removed}")
+                self._bybit_symbols = new_symbols
+            
+            self._last_bybit_refresh = datetime.now(UTC)
+            
+        except Exception as e:
+            logger.debug(f"Failed to refresh Bybit symbols: {e}")
+    
+    async def _backfill_new_symbols(self, symbols: set[str]) -> None:
+        """Trigger historical data backfill for newly discovered symbols."""
+        import asyncio
+        
+        for symbol in symbols:
+            # Skip if already backfilled or in progress
+            if symbol in self._backfilled_symbols or symbol in self._backfill_in_progress:
+                continue
+            
+            self._backfill_in_progress.add(symbol)
+            logger.info(f"Triggering historical backfill for new Bybit symbol: {symbol}")
+            
+            try:
+                from service.backfill.crypto_backfill import CryptoBackfill
+                
+                backfill = CryptoBackfill()
+                
+                # Backfill key intervals for analysis
+                intervals = [
+                    ("4h", 1),    # 1 year of 4h data (for divergence/S-R)
+                    ("1d", 2),    # 2 years of daily data
+                    ("1h", 0.5),  # 6 months of hourly data
+                    ("15m", 0.25),  # 3 months of 15m data
+                ]
+                
+                total_candles = 0
+                for interval, years in intervals:
+                    try:
+                        count = await backfill.backfill_symbol(
+                            symbol=symbol,
+                            interval=interval,
+                            years=years,
+                        )
+                        total_candles += count
+                        logger.info(f"Backfilled {count} {interval} candles for {symbol}")
+                        await asyncio.sleep(0.5)  # Rate limiting
+                    except Exception as e:
+                        logger.warning(f"Failed to backfill {interval} for {symbol}: {e}")
+                
+                self._backfilled_symbols.add(symbol)
+                logger.info(f"Backfill complete for {symbol}: {total_candles} total candles")
+                
+            except Exception as e:
+                logger.error(f"Backfill failed for {symbol}: {e}")
+            finally:
+                self._backfill_in_progress.discard(symbol)
+    
+    def _needs_bybit_refresh(self) -> bool:
+        """Check if Bybit symbols need refresh."""
+        if self._last_bybit_refresh is None:
+            return True
+        return datetime.now(UTC) - self._last_bybit_refresh > self._bybit_refresh_interval
+    
+    async def get_symbols_async(self) -> list[str]:
+        """Get combined currency list (async version for runtime refresh)."""
+        # Refresh Bybit symbols if needed
+        if self._needs_bybit_refresh():
+            await self._refresh_bybit_symbols()
+        
+        return self._get_combined_symbols()
+    
+    def get_symbols_sync(self) -> list[str]:
+        """Get combined currency list (sync version - uses cached Bybit data)."""
+        return self._get_combined_symbols()
+    
+    def _get_combined_symbols(self) -> list[str]:
+        """Combine configured and Bybit symbols."""
+        configured = self._load_configured_symbols()
+        
+        # Merge: configured + bybit (deduped, maintaining order)
+        combined: list[str] = list(configured)
+        for sym in sorted(self._bybit_symbols):
+            if sym not in combined:
+                combined.append(sym)
+        
+        return combined
+    
+    def force_refresh(self) -> None:
+        """Force Bybit refresh on next call."""
+        self._last_bybit_refresh = None
+        self._bybit_configured = None
+
+
+def get_currency_list() -> list[str]:
+    """Get the dynamic currency list.
+    
+    Combines:
+    1. User-configured symbols (from HA_SYMBOLS env) OR defaults
+    2. Symbols from Bybit wallet/earn positions (cached)
+    
+    This is the single source of truth for currency selections.
+    For async contexts, use get_currency_list_async() for fresh Bybit data.
 
     Returns:
         List of currency symbols (e.g., ["BTC/USDT", "ETH/USDT"])
     """
-    try:
-        # Try to get from HA input_select helper
-        from service.ha_integration import get_supervisor_client
+    manager = DynamicCurrencyManager.get_instance()
+    return manager.get_symbols_sync()
 
-        supervisor_client = get_supervisor_client()
-        if supervisor_client.is_available:
-            # In a real implementation, we would fetch the current value from the helper
-            # For now, we'll fall back to the environment/default approach
-            pass
-    except Exception:
-        pass
 
-    # Fallback to environment variable
-    symbols_env = os.environ.get("HA_SYMBOLS", "")
-    if symbols_env:
-        return [s.strip() for s in symbols_env.split(",") if s.strip()]
+async def get_currency_list_async() -> list[str]:
+    """Get the dynamic currency list with fresh Bybit data.
+    
+    Use this in async contexts (scheduler jobs, API handlers) to get
+    up-to-date Bybit symbols.
 
-    # Fallback to default symbols
-    return DEFAULT_SYMBOLS.copy()
+    Returns:
+        List of currency symbols (e.g., ["BTC/USDT", "ETH/USDT"])
+    """
+    manager = DynamicCurrencyManager.get_instance()
+    return await manager.get_symbols_async()
+
+
+def refresh_currency_list() -> None:
+    """Force refresh of Bybit symbols on next call."""
+    manager = DynamicCurrencyManager.get_instance()
+    manager.force_refresh()
+
 
 
 class HAIntegrationManager:
@@ -119,7 +301,7 @@ class HAIntegrationManager:
                 success = await self.publisher.create_sensor(
                     sensor_id=sensor_id,
                     registration_data=sensor.get_registration_data(),
-                    initial_state="unknown",
+                    initial_state="Загрузка...",
                 )
                 if success:
                     count += 1

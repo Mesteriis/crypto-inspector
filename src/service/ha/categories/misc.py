@@ -365,3 +365,76 @@ class UnlocksNextEventSensor(StatusSensor):
         description_ru="Ближайшая разблокировка токенов",
     )
 
+
+# === Unified/Consolidated Sensors ===
+
+
+@register_sensor(category="unified")
+class PricePredictionsSensor(DictSensor):
+    """Price predictions for all currencies."""
+
+    config = SensorConfig(
+        sensor_id="price_predictions",
+        name="Price Predictions",
+        name_ru="Прогнозы цен",
+        icon="mdi:crystal-ball",
+        description='Price predictions for all currencies. Format: {"BTC": 95000, "ETH": 3200}',
+        description_ru='Прогнозы цен для всех валют. Формат: {"BTC": 95000, "ETH": 3200}',
+    )
+
+
+@register_sensor(category="unified")
+class AiTrendDirectionsSensor(DictSensor):
+    """AI trend directions for all currencies."""
+
+    config = SensorConfig(
+        sensor_id="ai_trend_directions",
+        name="AI Trend Directions",
+        name_ru="AI направления трендов",
+        icon="mdi:trending-up",
+        description='AI trend directions. Format: {"BTC": "Bullish", "ETH": "Neutral"}',
+        description_ru='AI направления трендов. Формат: {"BTC": "Bullish", "ETH": "Neutral"}',
+    )
+
+
+@register_sensor(category="unified")
+class TechnicalIndicatorsSensor(DictSensor):
+    """Technical indicators for all currencies."""
+
+    config = SensorConfig(
+        sensor_id="technical_indicators",
+        name="Technical Indicators",
+        name_ru="Технические индикаторы",
+        icon="mdi:chart-line",
+        description='Technical indicators. Format: {"BTC": {"RSI": 55, "MACD": "buy"}}',
+        description_ru='Технические индикаторы. Формат: {"BTC": {"RSI": 55, "MACD": "buy"}}',
+    )
+
+
+@register_sensor(category="unified")
+class MarketVolatilitySensor(DictSensor):
+    """Market volatility for all currencies."""
+
+    config = SensorConfig(
+        sensor_id="market_volatility",
+        name="Market Volatility",
+        name_ru="Волатильность рынка",
+        icon="mdi:chart-bell-curve-cumulative",
+        description='Market volatility. Format: {"BTC": 3.5, "ETH": 4.2}',
+        description_ru='Волатильность рынка. Формат: {"BTC": 3.5, "ETH": 4.2}',
+    )
+
+
+@register_sensor(category="unified")
+class MarketSentimentUnifiedSensor(DictSensor):
+    """Market sentiment for all currencies."""
+
+    config = SensorConfig(
+        sensor_id="market_sentiment",
+        name="Market Sentiment",
+        name_ru="Настроение рынка",
+        icon="mdi:emoticon-outline",
+        description='Market sentiment. Format: {"BTC": 65, "ETH": 58}',
+        description_ru='Настроение рынка. Формат: {"BTC": 65, "ETH": 58}',
+    )
+

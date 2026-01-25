@@ -2,7 +2,26 @@
 
 from service.ha.core.base import SensorConfig
 from service.ha.core.registry import register_sensor
+from service.ha.sensors.dict import DictSensor
 from service.ha.sensors.scalar import ScalarSensor
+
+
+@register_sensor(category="traditional")
+class TraditionalHistoryStatusSensor(DictSensor):
+    """History data status for traditional assets.
+
+    Returns dict with start/stop timestamps for each symbol:
+    {"GOLD": {"start": 1704067200000, "stop": 1737849600000}, ...}
+    """
+
+    config = SensorConfig(
+        sensor_id="traditional_history_status",
+        name="Traditional History Status",
+        name_ru="Статус истории традиционных активов",
+        icon="mdi:database-clock",
+        description="History data range for each traditional asset",
+        description_ru="Диапазон исторических данных по каждому активу",
+    )
 
 
 @register_sensor(category="traditional")

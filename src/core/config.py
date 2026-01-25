@@ -50,74 +50,43 @@ def resolve_secret(value: str | None, secrets: dict) -> str | None:
 
 
 def load_ha_configuration() -> dict:
-    """Load crypto_inspect config from Home Assistant.
+    """Load crypto_inspect config from dedicated crypto_inspect.yaml file.
 
-    Reads from:
-    1. /config/crypto_inspect.yaml (preferred, separate file)
-    2. /config/configuration.yaml crypto_inspect: section (fallback)
-    
-    Resolves !secret references from secrets.yaml.
-    Priority: crypto_inspect.yaml > configuration.yaml > options.json > env > defaults
+    Reads /config/crypto_inspect.yaml and resolves !secret references.
+    Priority: crypto_inspect.yaml > options.json > env > defaults
     """
-    secrets = load_ha_secrets()
-    
-    # Custom YAML loader to handle !secret tags
-    class SecretLoader(yaml.SafeLoader):
-        pass
-
-    def secret_constructor(loader, node):
-        return f"!secret {loader.construct_scalar(node)}"
-
-    def skip_constructor(loader, node):  # noqa: ARG001
-        return None
-
-    SecretLoader.add_constructor("!secret", secret_constructor)
-    SecretLoader.add_constructor("!include", skip_constructor)
-    SecretLoader.add_constructor("!include_dir_list", skip_constructor)
-    SecretLoader.add_constructor("!include_dir_merge_list", skip_constructor)
-    SecretLoader.add_constructor("!include_dir_named", skip_constructor)
-    SecretLoader.add_constructor("!include_dir_merge_named", skip_constructor)
-
-    # Try separate crypto_inspect.yaml first (no HA validation warnings)
-    crypto_config_path = Path("/config/crypto_inspect.yaml")
-    if crypto_config_path.exists():
-        try:
-            content = crypto_config_path.read_text()
-            config = yaml.load(content, Loader=SecretLoader) or {}
-            
-            # Resolve secrets
-            resolved = {}
-            for key, value in config.items():
-                resolved[key] = resolve_secret(value, secrets)
-            
-            logger.info(f"Loaded {len(resolved)} settings from crypto_inspect.yaml")
-            return resolved
-        except (yaml.YAMLError, OSError) as e:
-            logger.warning(f"Failed to load crypto_inspect.yaml: {e}")
-
-    # Fallback: read from configuration.yaml crypto_inspect: section
-    config_path = Path("/config/configuration.yaml")
+    config_path = Path("/config/crypto_inspect.yaml")
     if not config_path.exists():
+        logger.info("crypto_inspect.yaml not found, using defaults")
         return {}
 
     try:
-        content = config_path.read_text()
-        config = yaml.load(content, Loader=SecretLoader) or {}
+        # Custom loader to handle !secret tags
+        class SecretLoader(yaml.SafeLoader):
+            pass
 
-        crypto_config = config.get("crypto_inspect", {})
+        def secret_constructor(loader, node):
+            return f"!secret {loader.construct_scalar(node)}"
+
+        SecretLoader.add_constructor("!secret", secret_constructor)
+
+        content = config_path.read_text()
+        crypto_config = yaml.load(content, Loader=SecretLoader) or {}
+
         if not crypto_config:
             return {}
 
-        # Resolve secrets
+        # Load secrets and resolve references
+        secrets = load_ha_secrets()
         resolved = {}
         for key, value in crypto_config.items():
             resolved[key] = resolve_secret(value, secrets)
 
-        logger.info(f"Loaded {len(resolved)} settings from configuration.yaml")
+        logger.info(f"Loaded {len(resolved)} settings from crypto_inspect.yaml")
         return resolved
 
     except (yaml.YAMLError, OSError) as e:
-        logger.warning(f"Failed to load configuration.yaml: {e}")
+        logger.warning(f"Failed to load crypto_inspect.yaml: {e}")
         return {}
 
 
@@ -132,10 +101,11 @@ class Settings(BaseSettings):
     # Application
     APP_NAME: str = "crypto-inspect"
     DEBUG: bool = False
+    LOG_LEVEL: str = "INFO"  # DEBUG, INFO, WARNING, ERROR
 
     # Database
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/crypto_inspect"
-    DATABASE_URL_SYNC: str = "postgresql://postgres:postgres@localhost:5432/crypto_inspect"
+    DATABASE_URL: str = "postgresql+asyncpg://crypto_user:C3uX%WNa8#J!0^OR@192.168.1.25:5432/crypto_inspector"
+    DATABASE_URL_SYNC: str = "postgresql://crypto_user:C3uX%WNa8#J!0^OR@192.168.1.25:5432/crypto_inspector"
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
@@ -213,6 +183,15 @@ class Settings(BaseSettings):
         """Apply configuration from dict (options.json or configuration.yaml)."""
         if not config:
             return
+
+        # Database settings (highest priority - from crypto_inspect.yaml)
+        if config.get("database_url"):
+            self.DATABASE_URL = config["database_url"]
+            # Also set sync URL if async URL provided
+            if "asyncpg" in self.DATABASE_URL:
+                self.DATABASE_URL_SYNC = self.DATABASE_URL.replace("+asyncpg", "")
+        if config.get("database_url_sync"):
+            self.DATABASE_URL_SYNC = config["database_url_sync"]
 
         # Bybit settings
         if config.get("bybit_api_key"):

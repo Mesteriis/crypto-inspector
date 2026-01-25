@@ -11,7 +11,7 @@ Runs on startup to ensure data completeness.
 import asyncio
 import logging
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
@@ -42,16 +42,19 @@ class BackfillProgress:
     # Crypto progress
     crypto_symbols_total: int = 0
     crypto_symbols_done: int = 0
+    crypto_symbols_failed: int = 0
     crypto_candles_total: int = 0
 
     # Traditional progress
     traditional_assets_total: int = 0
     traditional_assets_done: int = 0
+    traditional_assets_failed: int = 0
     traditional_records_total: int = 0
 
     # Current task
     current_task: str = ""
     error_message: str | None = None
+    failed_symbols: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
@@ -61,15 +64,18 @@ class BackfillProgress:
             "crypto": {
                 "symbols_total": self.crypto_symbols_total,
                 "symbols_done": self.crypto_symbols_done,
+                "symbols_failed": self.crypto_symbols_failed,
                 "candles_total": self.crypto_candles_total,
             },
             "traditional": {
                 "assets_total": self.traditional_assets_total,
                 "assets_done": self.traditional_assets_done,
+                "assets_failed": self.traditional_assets_failed,
                 "records_total": self.traditional_records_total,
             },
             "current_task": self.current_task,
             "error": self.error_message,
+            "failed_symbols": self.failed_symbols,
         }
 
 
@@ -183,17 +189,25 @@ class BackfillManager:
             self._is_running = False
 
     async def _backfill_crypto(self):
-        """Backfill crypto candlesticks."""
+        """
+        Backfill crypto candlesticks.
+        
+        Raises:
+            RuntimeError: If any symbol fails to backfill (strict mode)
+        """
         symbols = self._get_currency_list()
         intervals = self.crypto_intervals
 
         self._progress.crypto_symbols_total = len(symbols) * len(intervals)
         self._progress.crypto_symbols_done = 0
+        self._progress.crypto_symbols_failed = 0
+        self._progress.failed_symbols = []
 
         crypto_backfill = get_crypto_backfill()
 
         for symbol in symbols:
             for interval in intervals:
+                key = f"{symbol}_{interval}"
                 self._progress.current_task = f"Crypto: {symbol} {interval}"
                 logger.info(f"Backfilling {symbol} {interval}...")
 
@@ -204,22 +218,42 @@ class BackfillManager:
                         years=self.crypto_years,
                     )
 
-                    self._progress.crypto_candles_total += count
-                    self._progress.crypto_symbols_done += 1
+                    if count == 0:
+                        # No data received - consider as failure
+                        logger.error(f"No data received for {key}")
+                        self._progress.crypto_symbols_failed += 1
+                        self._progress.failed_symbols.append(key)
+                    else:
+                        self._progress.crypto_candles_total += count
+                        self._progress.crypto_symbols_done += 1
 
                 except Exception as e:
-                    logger.error(f"Error backfilling {symbol} {interval}: {e}")
-                    self._progress.crypto_symbols_done += 1
+                    logger.error(f"Error backfilling {key}: {e}")
+                    self._progress.crypto_symbols_failed += 1
+                    self._progress.failed_symbols.append(key)
 
                 # Small delay between requests
                 await asyncio.sleep(0.5)
 
+        # Check if all symbols were successfully backfilled
+        if self._progress.crypto_symbols_failed > 0:
+            raise RuntimeError(
+                f"Crypto backfill FAILED: {self._progress.crypto_symbols_failed}/{self._progress.crypto_symbols_total} "
+                f"symbols failed. Failed: {self._progress.failed_symbols}"
+            )
+
     async def _backfill_traditional(self):
-        """Backfill traditional assets."""
+        """
+        Backfill traditional assets.
+        
+        Raises:
+            RuntimeError: If any asset fails to backfill (strict mode)
+        """
         from service.backfill.traditional_backfill import TRADITIONAL_ASSETS
 
         self._progress.traditional_assets_total = len(TRADITIONAL_ASSETS)
         self._progress.traditional_assets_done = 0
+        self._progress.traditional_assets_failed = 0
 
         traditional_backfill = get_traditional_backfill()
 
@@ -233,14 +267,28 @@ class BackfillManager:
                     years=self.traditional_years,
                 )
 
-                self._progress.traditional_records_total += count
-                self._progress.traditional_assets_done += 1
+                if count == 0:
+                    logger.error(f"No data received for traditional asset: {symbol}")
+                    self._progress.traditional_assets_failed += 1
+                    self._progress.failed_symbols.append(f"traditional:{symbol}")
+                else:
+                    self._progress.traditional_records_total += count
+                    self._progress.traditional_assets_done += 1
 
             except Exception as e:
                 logger.error(f"Error backfilling {symbol}: {e}")
-                self._progress.traditional_assets_done += 1
+                self._progress.traditional_assets_failed += 1
+                self._progress.failed_symbols.append(f"traditional:{symbol}")
 
-            await asyncio.sleep(0.3)
+            # Longer delay to avoid Yahoo Finance rate limiting
+            await asyncio.sleep(3.0)
+
+        # Check if all assets were successfully backfilled
+        if self._progress.traditional_assets_failed > 0:
+            raise RuntimeError(
+                f"Traditional backfill FAILED: {self._progress.traditional_assets_failed}/{self._progress.traditional_assets_total} "
+                f"assets failed"
+            )
 
     async def backfill_crypto(
         self,

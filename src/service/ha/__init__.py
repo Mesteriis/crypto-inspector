@@ -13,10 +13,13 @@ Usage:
 
 from service.ha.core.base import BaseSensor, SensorConfig
 from service.ha.core.manager import (
+    DynamicCurrencyManager,
     HAIntegrationManager,
     get_currency_list,
+    get_currency_list_async,
     get_ha_manager,
     get_sensors_manager,
+    refresh_currency_list,
 )
 from service.ha.core.publisher import SupervisorPublisher
 from service.ha.core.registry import SensorRegistry, register_sensor
@@ -26,7 +29,11 @@ __all__ = [
     "HAIntegrationManager",
     "get_ha_manager",
     "get_sensors_manager",  # Backward compatibility
-    "get_currency_list",  # Backward compatibility
+    # Currency list (dynamic with Bybit)
+    "get_currency_list",
+    "get_currency_list_async",
+    "refresh_currency_list",
+    "DynamicCurrencyManager",
     # Core classes
     "BaseSensor",
     "SensorConfig",

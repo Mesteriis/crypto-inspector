@@ -23,17 +23,8 @@ class FearGreedSensor(ScalarSensor):
     )
 
     def format_state(self, value: int) -> str:
-        """Format with emoji and classification."""
-        if value <= 25:
-            return f"🔴 {value} (Extreme Fear)"
-        elif value <= 45:
-            return f"🟠 {value} (Fear)"
-        elif value <= 55:
-            return f"⚪ {value} (Neutral)"
-        elif value <= 75:
-            return f"🟢 {value} (Greed)"
-        else:
-            return f"🟢 {value} (Extreme Greed)"
+        """Format numeric value only (emoji forbidden per project rules)."""
+        return str(value)
 
 
 @register_sensor(category="market")
@@ -63,6 +54,13 @@ class DerivativesSensor(CompositeSensor):
         description="Futures and options data",
         description_ru="Данные по фьючерсам и опционам",
     )
+
+    def format_state(self, value: dict) -> str:
+        """Format derivatives state from funding rate."""
+        funding = value.get("funding_rate")
+        if funding is not None:
+            return f"{funding:.6f}"
+        return "N/A"
 
 
 @register_sensor(category="market")
@@ -140,8 +138,8 @@ class StablecoinDominanceSensor(PercentSensor):
 
 
 @register_sensor(category="market")
-class StablecoinFlow24hSensor(PercentSensor):
-    """Stablecoin 24h flow percentage."""
+class StablecoinFlow24hSensor(ScalarSensor):
+    """Stablecoin 24h flow percentage (can be negative for outflow)."""
 
     config = SensorConfig(
         sensor_id="stablecoin_flow_24h",
@@ -149,7 +147,8 @@ class StablecoinFlow24hSensor(PercentSensor):
         name_ru="Поток стейблкоинов 24ч",
         icon="mdi:swap-horizontal",
         unit="%",
-        description="24h stablecoin flow percentage",
-        description_ru="Поток стейблкоинов за 24ч (%)",
+        description="24h stablecoin flow percentage (positive=inflow, negative=outflow)",
+        description_ru="Поток стейблкоинов за 24ч (положительный=приток, отрицательный=отток)",
+        value_type="float",
     )
 

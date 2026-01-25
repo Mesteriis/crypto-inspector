@@ -235,8 +235,19 @@ class SyncDefaults:
 # DEFAULT SYMBOLS
 # =============================================================================
 
-DEFAULT_SYMBOLS = ["BTC/USDT", "ETH/USDT"]
-DEFAULT_SYMBOLS_STR = "BTC/USDT,ETH/USDT,SOL/USDT,TON/USDT,AR/USDT"
+DEFAULT_SYMBOLS = [
+    "BTC/USDT",
+    "ETH/USDT",
+    "SOL/USDT",
+    "TON/USDT",
+    "RENDER/USDT",
+    "TAO/USDT",
+    "AR/USDT",
+    "FET/USDT",
+    "NEAR/USDT",
+    "INJ/USDT",
+]
+DEFAULT_SYMBOLS_STR = ",".join(DEFAULT_SYMBOLS)
 
 
 # =============================================================================

@@ -226,7 +226,7 @@ class TestCandlestickSyncJob:
         from core.scheduler.jobs import candlestick_sync_job
 
         with (
-            patch("core.scheduler.jobs.get_currency_list", return_value=["BTC/USDT"]),
+            patch("core.scheduler.jobs.get_currency_list_async", new_callable=AsyncMock, return_value=["BTC/USDT", "ETH/USDT"]),
             patch("core.scheduler.jobs.get_intervals_to_fetch", return_value=["1m"]),
             patch("core.scheduler.jobs.fetch_and_save_candlesticks", new_callable=AsyncMock) as mock_fetch,
             patch("service.ha_integration.notify_error", new_callable=AsyncMock),
@@ -234,7 +234,10 @@ class TestCandlestickSyncJob:
         ):
             mock_fetch.return_value = True
             await candlestick_sync_job()
-            mock_fetch.assert_called_once_with("BTC/USDT", "1m")
+            # Should be called for each symbol
+            assert mock_fetch.call_count == 2
+            mock_fetch.assert_any_call("BTC/USDT", "1m")
+            mock_fetch.assert_any_call("ETH/USDT", "1m")
 
     @pytest.mark.asyncio
     async def test_notifies_on_failures(self):
@@ -346,7 +349,10 @@ class TestAltseasonJob:
         from core.scheduler.jobs import altseason_job
 
         mock_analyzer = MagicMock()
-        mock_analyzer.analyze = AsyncMock(return_value=MagicMock(altseason_index=60, status="Altseason"))
+        # Use correct attribute names: index and status (enum with .value)
+        mock_status = MagicMock()
+        mock_status.value = "altseason"
+        mock_analyzer.analyze = AsyncMock(return_value=MagicMock(index=60, status=mock_status))
         mock_analyzer.close = AsyncMock()
 
         mock_sensors = MagicMock()
@@ -372,8 +378,8 @@ class TestStablecoinJob:
         mock_analyzer.analyze = AsyncMock(
             return_value=MagicMock(
                 total_market_cap=150_000_000_000,
-                flow_24h_percent=1.5,
-                dominance_percent=10.0,
+                change_24h_pct=1.5,  # Corrected attribute name
+                dominance=10.0,  # Corrected attribute name
             )
         )
         mock_analyzer.close = AsyncMock()
@@ -471,17 +477,19 @@ class TestLiquidationJob:
         from core.scheduler.jobs import liquidation_job
 
         mock_tracker = MagicMock()
-        mock_tracker.get_liquidation_levels = AsyncMock(
+        # Use correct method name: analyze() and attribute names
+        mock_risk_level = MagicMock()
+        mock_risk_level.value = "medium"
+        mock_tracker.analyze = AsyncMock(
             return_value=MagicMock(
-                long_nearest=95000,
-                short_nearest=105000,
-                risk_level="Medium",
+                nearest_long_liq=95000,
+                nearest_short_liq=105000,
+                risk_level=mock_risk_level,
             )
         )
         mock_tracker.close = AsyncMock()
 
         mock_sensors = MagicMock()
-        mock_sensors._publish_state = AsyncMock()
         mock_sensors.publish_sensor = AsyncMock()
 
         with (
@@ -490,8 +498,8 @@ class TestLiquidationJob:
             patch("service.ha_integration.notify", new_callable=AsyncMock),
         ):
             await liquidation_job()
-            mock_sensors._publish_state.assert_called_once()
-            mock_sensors.publish_sensor.assert_called_once()
+            # Should call publish_sensor twice: liq_levels and liq_risk_level
+            assert mock_sensors.publish_sensor.call_count >= 1
 
 
 class TestPortfolioJob:

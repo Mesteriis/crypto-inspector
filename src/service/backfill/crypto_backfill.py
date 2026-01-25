@@ -394,6 +394,33 @@ class CryptoBackfill:
         """Get current backfill progress."""
         return self._progress.copy()
 
+    async def get_history_status(self) -> dict[str, dict[str, str | None]]:
+        """
+        Get history status for all crypto symbols.
+
+        Returns:
+            Dict of {symbol: {start: "YYYY-MM-DD", stop: "YYYY-MM-DD"}}
+        """
+        result = {}
+        async with async_session_maker() as session:
+            query_result = await session.execute(
+                text("""
+                    SELECT symbol, MIN(timestamp) as start_ts, MAX(timestamp) as stop_ts
+                    FROM candlestick_records
+                    GROUP BY symbol
+                    ORDER BY symbol
+                """)
+            )
+            for row in query_result.fetchall():
+                start_ts = row[1]
+                stop_ts = row[2]
+                result[row[0]] = {
+                    "start": datetime.fromtimestamp(start_ts / 1000, tz=UTC).strftime("%Y-%m-%d") if start_ts else None,
+                    "stop": datetime.fromtimestamp(stop_ts / 1000, tz=UTC).strftime("%Y-%m-%d") if stop_ts else None,
+                }
+
+        return result
+
 
 # Global instance
 _crypto_backfill: CryptoBackfill | None = None

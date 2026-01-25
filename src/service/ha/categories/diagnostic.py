@@ -2,7 +2,27 @@
 
 from service.ha.core.base import SensorConfig
 from service.ha.core.registry import register_sensor
+from service.ha.sensors.dict import DictSensor
 from service.ha.sensors.scalar import CountSensor, ScalarSensor, StatusSensor
+
+
+@register_sensor(category="diagnostic")
+class CryptoHistoryStatusSensor(DictSensor):
+    """History data status for crypto assets.
+
+    Returns dict with start/stop dates for each symbol:
+    {"BTC/USDT": {"start": "2015-01-01", "stop": "2025-01-25"}, ...}
+    """
+
+    config = SensorConfig(
+        sensor_id="crypto_history_status",
+        name="Crypto History Status",
+        name_ru="Статус истории криптовалют",
+        icon="mdi:database-clock",
+        entity_category="diagnostic",
+        description="History data range for each crypto symbol",
+        description_ru="Диапазон исторических данных по каждой криптовалюте",
+    )
 
 
 @register_sensor(category="diagnostic")

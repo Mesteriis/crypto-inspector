@@ -6,8 +6,7 @@ Tracks stablecoin market caps and flows:
 - 24h/7d changes indicating money flow
 - Stablecoin dominance % of total crypto market
 
-Inflow (rising stablecoin mcap) = bullish (dry powder ready)
-Outflow (falling stablecoin mcap) = bearish or rotation into crypto
+Data source: CoinGecko API with retry and backoff
 """
 
 import logging
@@ -15,11 +14,9 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 
-import httpx
+from core.http_client import get_coingecko_client
 
 logger = logging.getLogger(__name__)
-
-COINGECKO_BASE_URL = "https://api.coingecko.com/api/v3"
 
 # Major stablecoins to track
 STABLECOINS = [
@@ -87,7 +84,6 @@ class StablecoinFlowData:
             "dominance": round(self.dominance, 2),
             "flow_signal": self.flow_signal.value,
             "flow_signal_ru": self.flow_signal_ru,
-            "flow_emoji": self._get_flow_emoji(),
             "usdt_dominance": round(self.usdt_dominance, 2),
             "total_volume_24h": self.total_volume_24h,
             "stablecoins": [
@@ -104,17 +100,6 @@ class StablecoinFlowData:
             "summary": self._get_summary(),
             "summary_ru": self._get_summary_ru(),
         }
-
-    def _get_flow_emoji(self) -> str:
-        """Get emoji for flow signal."""
-        emoji_map = {
-            FlowSignal.STRONG_INFLOW: "🟢🟢",
-            FlowSignal.INFLOW: "🟢",
-            FlowSignal.NEUTRAL: "⚪",
-            FlowSignal.OUTFLOW: "🔴",
-            FlowSignal.STRONG_OUTFLOW: "🔴🔴",
-        }
-        return emoji_map.get(self.flow_signal, "⚪")
 
     def _format_number(self, num: float) -> str:
         """Format large number to B/M notation."""
@@ -141,38 +126,28 @@ class StablecoinFlowData:
 class StablecoinAnalyzer:
     """
     Analyzer for stablecoin flows.
-
-    Tracks major stablecoins and calculates flow signals.
+    
+    Uses resilient HTTP client with retry and backoff.
     """
 
-    def __init__(self, timeout: float = 30.0):
-        self._client: httpx.AsyncClient | None = None
-        self._timeout = timeout
-        self._prev_total_mcap: float | None = None
-
-    async def _get_client(self) -> httpx.AsyncClient:
-        """Get or create HTTP client."""
-        if self._client is None:
-            self._client = httpx.AsyncClient(
-                timeout=self._timeout,
-                headers={"Accept": "application/json"},
-            )
-        return self._client
+    # Minimum stablecoins required for valid analysis
+    MIN_STABLECOINS_REQUIRED = 3
 
     async def close(self) -> None:
-        """Close HTTP client."""
-        if self._client:
-            await self._client.aclose()
-            self._client = None
+        """Close HTTP client (managed by global client)."""
+        pass  # Client is managed globally
 
     async def analyze(self) -> StablecoinFlowData:
         """
         Analyze stablecoin market caps and flows.
-
+        
         Returns:
             StablecoinFlowData with analysis
+            
+        Raises:
+            RuntimeError: If not enough stablecoin data received
         """
-        client = await self._get_client()
+        client = get_coingecko_client()
 
         # Fetch stablecoin data
         stablecoins = await self._fetch_stablecoin_data(client)
@@ -180,8 +155,10 @@ class StablecoinAnalyzer:
         # Fetch total crypto market cap for dominance calculation
         total_crypto_mcap = await self._fetch_total_market_cap(client)
 
-        if not stablecoins:
-            return self._create_empty_result()
+        if len(stablecoins) < self.MIN_STABLECOINS_REQUIRED:
+            raise RuntimeError(
+                f"Not enough stablecoin data: got {len(stablecoins)}, need {self.MIN_STABLECOINS_REQUIRED}"
+            )
 
         # Calculate totals
         total_stable_mcap = sum(s.market_cap for s in stablecoins)
@@ -213,6 +190,8 @@ class StablecoinAnalyzer:
         # Format total market cap
         total_formatted = self._format_large_number(total_stable_mcap)
 
+        logger.info(f"Stablecoin analysis: total={total_formatted}, change_24h={weighted_change_24h:.2f}%")
+
         return StablecoinFlowData(
             timestamp=datetime.now(),
             total_market_cap=total_stable_mcap,
@@ -227,10 +206,9 @@ class StablecoinAnalyzer:
             total_volume_24h=total_volume,
         )
 
-    async def _fetch_stablecoin_data(self, client: httpx.AsyncClient) -> list[StablecoinData]:
+    async def _fetch_stablecoin_data(self, client) -> list[StablecoinData]:
         """Fetch stablecoin market data."""
         ids = ",".join(STABLECOINS)
-        url = f"{COINGECKO_BASE_URL}/coins/markets"
         params = {
             "vs_currency": "usd",
             "ids": ids,
@@ -239,46 +217,37 @@ class StablecoinAnalyzer:
             "price_change_percentage": "24h,7d",
         }
 
-        try:
-            response = await client.get(url, params=params)
-            response.raise_for_status()
-            data = response.json()
-
-            stablecoins = []
-            for coin in data:
-                stablecoins.append(
-                    StablecoinData(
-                        id=coin["id"],
-                        symbol=coin["symbol"].upper(),
-                        name=coin["name"],
-                        market_cap=coin.get("market_cap", 0) or 0,
-                        market_cap_change_24h=coin.get("market_cap_change_percentage_24h", 0) or 0,
-                        market_cap_change_7d=coin.get("price_change_percentage_7d_in_currency"),
-                        price=coin.get("current_price", 1) or 1,
-                        volume_24h=coin.get("total_volume", 0) or 0,
-                    )
-                )
-
-            return stablecoins
-
-        except Exception as e:
-            logger.error(f"Failed to fetch stablecoin data: {e}")
+        data = await client.get("/coins/markets", params=params)
+        
+        if not data:
             return []
 
-    async def _fetch_total_market_cap(self, client: httpx.AsyncClient) -> float:
+        stablecoins = []
+        for coin in data:
+            stablecoins.append(
+                StablecoinData(
+                    id=coin["id"],
+                    symbol=coin["symbol"].upper(),
+                    name=coin["name"],
+                    market_cap=coin.get("market_cap", 0) or 0,
+                    market_cap_change_24h=coin.get("market_cap_change_percentage_24h", 0) or 0,
+                    market_cap_change_7d=coin.get("price_change_percentage_7d_in_currency"),
+                    price=coin.get("current_price", 1) or 1,
+                    volume_24h=coin.get("total_volume", 0) or 0,
+                )
+            )
+
+        return stablecoins
+
+    async def _fetch_total_market_cap(self, client) -> float:
         """Fetch total crypto market cap."""
-        url = f"{COINGECKO_BASE_URL}/global"
-
-        try:
-            response = await client.get(url)
-            response.raise_for_status()
-            data = response.json()
-
-            return data.get("data", {}).get("total_market_cap", {}).get("usd", 0)
-
-        except Exception as e:
-            logger.warning(f"Failed to fetch total market cap: {e}")
+        data = await client.get("/global")
+        
+        if not data:
+            logger.warning("Failed to fetch global market data, using 0")
             return 0
+
+        return data.get("data", {}).get("total_market_cap", {}).get("usd", 0)
 
     def _calculate_flow_signal(self, change_pct: float) -> tuple[FlowSignal, str]:
         """Calculate flow signal based on percentage change."""
@@ -301,22 +270,6 @@ class StablecoinAnalyzer:
         if num >= 1_000_000:
             return f"${num / 1_000_000:.1f}M"
         return f"${num:,.0f}"
-
-    def _create_empty_result(self) -> StablecoinFlowData:
-        """Create empty result when data fetch fails."""
-        return StablecoinFlowData(
-            timestamp=datetime.now(),
-            total_market_cap=0,
-            total_market_cap_formatted="$0",
-            change_24h_pct=0,
-            change_7d_pct=None,
-            dominance=0,
-            flow_signal=FlowSignal.NEUTRAL,
-            flow_signal_ru="Нет данных",
-            stablecoins=[],
-            usdt_dominance=0,
-            total_volume_24h=0,
-        )
 
 
 # Global instance

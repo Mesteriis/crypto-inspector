@@ -75,8 +75,8 @@ class DailyDigestReadySensor(BoolSensor):
         description_ru="Готов ли дневной дайджест",
     )
 
-    true_text = "Ready"
-    false_text = "Not Ready"
+    true_text = "Готов"
+    false_text = "Не готов"
 
 
 @register_sensor(category="alerts")

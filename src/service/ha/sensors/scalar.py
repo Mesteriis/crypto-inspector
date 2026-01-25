@@ -200,8 +200,8 @@ class BoolSensor(ScalarSensor):
     Formats as human-readable text for HA display.
     """
 
-    true_text: str = "Yes"
-    false_text: str = "No"
+    true_text: str = "Да"
+    false_text: str = "Нет"
 
     def validate(self, data: Any) -> bool:
         """Validate boolean value.

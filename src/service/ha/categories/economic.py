@@ -85,15 +85,15 @@ class EconomicSentimentScoreSensor(ScalarSensor):
     def format_state(self, value: int) -> str:
         """Format with emoji based on sentiment."""
         if value <= -50:
-            return f"🔴 {value} (Very Negative)"
+            return f"🔴 {value} (Очень негативный)"
         elif value <= -20:
-            return f"🟠 {value} (Negative)"
+            return f"🟠 {value} (Негативный)"
         elif value <= 20:
-            return f"⚪ {value} (Neutral)"
+            return f"⚪ {value} (Нейтральный)"
         elif value <= 50:
-            return f"🔵 {value} (Positive)"
+            return f"🔵 {value} (Позитивный)"
         else:
-            return f"🟢 {value} (Very Positive)"
+            return f"🟢 {value} (Очень позитивный)"
 
 
 @register_sensor(category="economic")

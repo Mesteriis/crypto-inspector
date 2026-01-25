@@ -162,7 +162,11 @@ class DerivativesAnalyzer:
 
     def _get_binance_symbol(self, symbol: str) -> str:
         """Convert symbol to Binance format."""
-        return self.SYMBOL_MAP.get(symbol.upper(), f"{symbol.upper()}USDT")
+        symbol_upper = symbol.upper()
+        # If symbol already contains USDT/USDC, use it as-is
+        if symbol_upper.endswith("USDT") or symbol_upper.endswith("USDC"):
+            return symbol_upper
+        return self.SYMBOL_MAP.get(symbol_upper, f"{symbol_upper}USDT")
 
     async def fetch_funding_rate(self, symbol: str) -> FundingData | None:
         """

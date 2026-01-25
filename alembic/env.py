@@ -11,6 +11,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from core.config import settings
 from models.base import Base
 
+# Import all models to register them with Base.metadata
+from models import (  # noqa: F401
+    CandlestickRecord,
+    MLModelPerformance,
+    MLPredictionRecord,
+    SensorState,
+    TraditionalAssetRecord,
+)
+
 config = context.config
 
 if config.config_file_name is not None:

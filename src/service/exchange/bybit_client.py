@@ -24,6 +24,17 @@ from core.config import settings
 
 logger = logging.getLogger(__name__)
 
+
+def _safe_float(value: Any, default: float = 0.0) -> float:
+    """Safely convert value to float, handling empty strings and None."""
+    if value is None or value == "":
+        return default
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return default
+
+
 # Bybit API endpoints
 BYBIT_MAINNET = "https://api.bybit.com"
 BYBIT_TESTNET = "https://api-testnet.bybit.com"
@@ -328,9 +339,12 @@ class BybitClient:
         await self._rate_limit()
         client = await self._get_client()
 
-        # Build query string for GET requests
+        # Build sorted query string for signature calculation
+        # IMPORTANT: params must be sorted and consistent for signature to match
         if method == "GET" and params:
-            query_string = "&".join(f"{k}={v}" for k, v in sorted(params.items()))
+            # Sort params and convert all values to strings
+            sorted_params = sorted((k, str(v)) for k, v in params.items())
+            query_string = "&".join(f"{k}={v}" for k, v in sorted_params)
         else:
             query_string = ""
 
@@ -346,7 +360,11 @@ class BybitClient:
 
         try:
             if method == "GET":
-                response = await client.get(endpoint, params=params, headers=headers)
+                # Use the exact same query string for the request
+                url = endpoint
+                if query_string:
+                    url = f"{endpoint}?{query_string}"
+                response = await client.get(url, headers=headers)
             else:
                 response = await client.post(endpoint, json=params, headers=headers)
 
@@ -400,25 +418,26 @@ class BybitClient:
         balances = []
 
         for coin_data in account.get("coin", []):
-            if float(coin_data.get("walletBalance", 0)) > 0:
+            wallet_bal = _safe_float(coin_data.get("walletBalance"))
+            if wallet_bal > 0:
                 balances.append(
                     Balance(
                         coin=coin_data.get("coin", ""),
-                        wallet_balance=float(coin_data.get("walletBalance", 0)),
-                        available_balance=float(coin_data.get("availableToWithdraw", 0)),
-                        locked_balance=float(coin_data.get("locked", 0)),
-                        usd_value=float(coin_data.get("usdValue", 0)),
-                        unrealized_pnl=float(coin_data.get("unrealisedPnl", 0)),
-                        cumulative_pnl=float(coin_data.get("cumRealisedPnl", 0)),
+                        wallet_balance=wallet_bal,
+                        available_balance=_safe_float(coin_data.get("availableToWithdraw")),
+                        locked_balance=_safe_float(coin_data.get("locked")),
+                        usd_value=_safe_float(coin_data.get("usdValue")),
+                        unrealized_pnl=_safe_float(coin_data.get("unrealisedPnl")),
+                        cumulative_pnl=_safe_float(coin_data.get("cumRealisedPnl")),
                     )
                 )
 
         return AccountSummary(
-            total_equity=float(account.get("totalEquity", 0)),
-            total_available=float(account.get("totalAvailableBalance", 0)),
-            total_margin_used=float(account.get("totalMarginBalance", 0))
-            - float(account.get("totalAvailableBalance", 0)),
-            total_unrealized_pnl=float(account.get("totalPerpUPL", 0)),
+            total_equity=_safe_float(account.get("totalEquity")),
+            total_available=_safe_float(account.get("totalAvailableBalance")),
+            total_margin_used=_safe_float(account.get("totalMarginBalance"))
+            - _safe_float(account.get("totalAvailableBalance")),
+            total_unrealized_pnl=_safe_float(account.get("totalPerpUPL")),
             account_type=account_type.value,
             balances=balances,
         )
@@ -442,24 +461,28 @@ class BybitClient:
 
         positions = []
         for pos_data in data.get("list", []):
-            size = float(pos_data.get("size", 0))
+            size = _safe_float(pos_data.get("size"))
             if size == 0:
                 continue
+
+            liq_price = _safe_float(pos_data.get("liqPrice"))
+            take_profit = _safe_float(pos_data.get("takeProfit"))
+            stop_loss = _safe_float(pos_data.get("stopLoss"))
 
             positions.append(
                 Position(
                     symbol=pos_data.get("symbol", ""),
                     side=pos_data.get("side", ""),
                     size=size,
-                    entry_price=float(pos_data.get("avgPrice", 0)),
-                    mark_price=float(pos_data.get("markPrice", 0)),
-                    leverage=float(pos_data.get("leverage", 1)),
-                    unrealized_pnl=float(pos_data.get("unrealisedPnl", 0)),
-                    realized_pnl=float(pos_data.get("cumRealisedPnl", 0)),
-                    liq_price=float(pos_data.get("liqPrice", 0)) or None,
-                    take_profit=float(pos_data.get("takeProfit", 0)) or None,
-                    stop_loss=float(pos_data.get("stopLoss", 0)) or None,
-                    position_value=float(pos_data.get("positionValue", 0)),
+                    entry_price=_safe_float(pos_data.get("avgPrice")),
+                    mark_price=_safe_float(pos_data.get("markPrice")),
+                    leverage=_safe_float(pos_data.get("leverage"), 1.0),
+                    unrealized_pnl=_safe_float(pos_data.get("unrealisedPnl")),
+                    realized_pnl=_safe_float(pos_data.get("cumRealisedPnl")),
+                    liq_price=liq_price or None,
+                    take_profit=take_profit or None,
+                    stop_loss=stop_loss or None,
+                    position_value=_safe_float(pos_data.get("positionValue")),
                     created_time=datetime.fromtimestamp(int(pos_data.get("createdTime", 0)) / 1000)
                     if pos_data.get("createdTime")
                     else None,
@@ -508,12 +531,12 @@ class BybitClient:
                     order_id=trade_data.get("orderId", ""),
                     symbol=trade_data.get("symbol", ""),
                     side=trade_data.get("side", ""),
-                    price=float(trade_data.get("execPrice", 0)),
-                    qty=float(trade_data.get("execQty", 0)),
-                    value=float(trade_data.get("execValue", 0)),
-                    fee=float(trade_data.get("execFee", 0)),
+                    price=_safe_float(trade_data.get("execPrice")),
+                    qty=_safe_float(trade_data.get("execQty")),
+                    value=_safe_float(trade_data.get("execValue")),
+                    fee=_safe_float(trade_data.get("execFee")),
                     fee_currency=trade_data.get("feeCurrency", "USDT"),
-                    realized_pnl=float(trade_data.get("closedPnl", 0)),
+                    realized_pnl=_safe_float(trade_data.get("closedPnl")),
                     exec_time=datetime.fromtimestamp(int(trade_data.get("execTime", 0)) / 1000),
                     is_maker=trade_data.get("isMaker", False),
                 )
@@ -559,10 +582,10 @@ class BybitClient:
                 {
                     "symbol": record.get("symbol", ""),
                     "side": record.get("side", ""),
-                    "qty": float(record.get("qty", 0)),
-                    "entry_price": float(record.get("avgEntryPrice", 0)),
-                    "exit_price": float(record.get("avgExitPrice", 0)),
-                    "closed_pnl": float(record.get("closedPnl", 0)),
+                    "qty": _safe_float(record.get("qty")),
+                    "entry_price": _safe_float(record.get("avgEntryPrice")),
+                    "exit_price": _safe_float(record.get("avgExitPrice")),
+                    "closed_pnl": _safe_float(record.get("closedPnl")),
                     "created_time": datetime.fromtimestamp(int(record.get("createdTime", 0)) / 1000).isoformat(),
                     "updated_time": datetime.fromtimestamp(int(record.get("updatedTime", 0)) / 1000).isoformat(),
                 }
@@ -586,14 +609,14 @@ class BybitClient:
             ticker = tickers[0]
             return {
                 "symbol": ticker.get("symbol"),
-                "last_price": float(ticker.get("lastPrice", 0)),
-                "mark_price": float(ticker.get("markPrice", 0)),
-                "index_price": float(ticker.get("indexPrice", 0)),
-                "change_24h": float(ticker.get("price24hPcnt", 0)) * 100,
-                "volume_24h": float(ticker.get("volume24h", 0)),
-                "turnover_24h": float(ticker.get("turnover24h", 0)),
-                "funding_rate": float(ticker.get("fundingRate", 0)),
-                "open_interest": float(ticker.get("openInterest", 0)),
+                "last_price": _safe_float(ticker.get("lastPrice")),
+                "mark_price": _safe_float(ticker.get("markPrice")),
+                "index_price": _safe_float(ticker.get("indexPrice")),
+                "change_24h": _safe_float(ticker.get("price24hPcnt")) * 100,
+                "volume_24h": _safe_float(ticker.get("volume24h")),
+                "turnover_24h": _safe_float(ticker.get("turnover24h")),
+                "funding_rate": _safe_float(ticker.get("fundingRate")),
+                "open_interest": _safe_float(ticker.get("openInterest")),
             }
         return {}
 
@@ -615,11 +638,11 @@ class BybitClient:
                 continue
 
             result[sym] = {
-                "last_price": float(ticker.get("lastPrice", 0)),
-                "mark_price": float(ticker.get("markPrice", 0)),
-                "change_24h": float(ticker.get("price24hPcnt", 0)) * 100,
-                "volume_24h": float(ticker.get("volume24h", 0)),
-                "funding_rate": float(ticker.get("fundingRate", 0)),
+                "last_price": _safe_float(ticker.get("lastPrice")),
+                "mark_price": _safe_float(ticker.get("markPrice")),
+                "change_24h": _safe_float(ticker.get("price24hPcnt")) * 100,
+                "volume_24h": _safe_float(ticker.get("volume24h")),
+                "funding_rate": _safe_float(ticker.get("fundingRate")),
             }
 
         return result
@@ -660,9 +683,9 @@ class BybitClient:
                         "product_id": product.get("productId", ""),
                         "coin": product.get("coin", ""),
                         "category": product.get("category", ""),
-                        "estimated_apy": float(product.get("estimateApr", 0)) * 100,
-                        "min_stake": float(product.get("minStakeAmount", 0)),
-                        "max_stake": float(product.get("maxStakeAmount", 0)),
+                        "estimated_apy": _safe_float(product.get("estimateApr")) * 100,
+                        "min_stake": _safe_float(product.get("minStakeAmount")),
+                        "max_stake": _safe_float(product.get("maxStakeAmount")),
                         "status": product.get("status", ""),
                     }
                 )
@@ -710,7 +733,7 @@ class BybitClient:
 
             positions = []
             for pos in data.get("list", []):
-                amount = float(pos.get("amount", 0))
+                amount = _safe_float(pos.get("amount"))
                 if amount <= 0:
                     continue
 
@@ -731,8 +754,8 @@ class BybitClient:
                         coin=coin_name,
                         product_id=product_id,
                         amount=amount,
-                        total_pnl=float(pos.get("totalPnl", 0)),
-                        claimable_yield=float(pos.get("claimableYield", 0)),
+                        total_pnl=_safe_float(pos.get("totalPnl")),
+                        claimable_yield=_safe_float(pos.get("claimableYield")),
                         category=category,
                         status=pos.get("status", "Active"),
                         estimated_apy=product_apys.get(product_id, 0),

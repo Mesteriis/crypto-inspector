@@ -41,6 +41,17 @@ class TestUnifiedSensorManager:
 
         assert manager.is_initialized() is True
 
+    def test_consolidated_sensors_list(self):
+        """Test CONSOLIDATED_SENSORS class attribute."""
+        expected = [
+            "price_predictions",
+            "ai_trend_directions",
+            "technical_indicators",
+            "market_volatility",
+            "market_sentiment",
+        ]
+        assert UnifiedSensorManager.CONSOLIDATED_SENSORS == expected
+
 
 class TestUnifiedSensorManagerCreateSensors:
     """Tests for sensor creation methods."""
@@ -49,103 +60,23 @@ class TestUnifiedSensorManagerCreateSensors:
     async def test_create_consolidated_sensors_success(self):
         """Test successful consolidated sensor creation."""
         mock_sensors_manager = MagicMock()
-        mock_sensors_manager.register_sensor = AsyncMock()
         manager = UnifiedSensorManager(mock_sensors_manager)
 
         await manager.create_consolidated_sensors()
 
         assert manager._consolidated_sensors_created is True
-        assert mock_sensors_manager.register_sensor.call_count == 5
 
     @pytest.mark.asyncio
     async def test_create_consolidated_sensors_already_created(self):
         """Test that sensors are not recreated if already created."""
         mock_sensors_manager = MagicMock()
-        mock_sensors_manager.register_sensor = AsyncMock()
         manager = UnifiedSensorManager(mock_sensors_manager)
         manager._consolidated_sensors_created = True
 
+        # Should return early without doing anything
         await manager.create_consolidated_sensors()
 
-        mock_sensors_manager.register_sensor.assert_not_called()
-
-    @pytest.mark.asyncio
-    async def test_create_consolidated_sensors_handles_error(self):
-        """Test error handling during sensor creation."""
-        mock_sensors_manager = MagicMock()
-        mock_sensors_manager.register_sensor = AsyncMock(side_effect=Exception("Test error"))
-        manager = UnifiedSensorManager(mock_sensors_manager)
-
-        await manager.create_consolidated_sensors()
-
-        # Should not raise, flag should remain False
-        assert manager._consolidated_sensors_created is False
-
-    @pytest.mark.asyncio
-    async def test_create_price_predictions_sensor(self):
-        """Test price predictions sensor creation."""
-        mock_sensors_manager = MagicMock()
-        mock_sensors_manager.register_sensor = AsyncMock()
-        manager = UnifiedSensorManager(mock_sensors_manager)
-
-        await manager._create_price_predictions_sensor()
-
-        mock_sensors_manager.register_sensor.assert_called_once()
-        call_args = mock_sensors_manager.register_sensor.call_args
-        assert call_args[0][0] == "price_predictions"
-        assert "Price Predictions" in call_args[0][1]["name"]
-
-    @pytest.mark.asyncio
-    async def test_create_ai_trend_sensor(self):
-        """Test AI trend sensor creation."""
-        mock_sensors_manager = MagicMock()
-        mock_sensors_manager.register_sensor = AsyncMock()
-        manager = UnifiedSensorManager(mock_sensors_manager)
-
-        await manager._create_ai_trend_sensor()
-
-        mock_sensors_manager.register_sensor.assert_called_once()
-        call_args = mock_sensors_manager.register_sensor.call_args
-        assert call_args[0][0] == "ai_trend_directions"
-
-    @pytest.mark.asyncio
-    async def test_create_technical_indicators_sensor(self):
-        """Test technical indicators sensor creation."""
-        mock_sensors_manager = MagicMock()
-        mock_sensors_manager.register_sensor = AsyncMock()
-        manager = UnifiedSensorManager(mock_sensors_manager)
-
-        await manager._create_technical_indicators_sensor()
-
-        mock_sensors_manager.register_sensor.assert_called_once()
-        call_args = mock_sensors_manager.register_sensor.call_args
-        assert call_args[0][0] == "technical_indicators"
-
-    @pytest.mark.asyncio
-    async def test_create_volatility_sensor(self):
-        """Test volatility sensor creation."""
-        mock_sensors_manager = MagicMock()
-        mock_sensors_manager.register_sensor = AsyncMock()
-        manager = UnifiedSensorManager(mock_sensors_manager)
-
-        await manager._create_volatility_sensor()
-
-        mock_sensors_manager.register_sensor.assert_called_once()
-        call_args = mock_sensors_manager.register_sensor.call_args
-        assert call_args[0][0] == "market_volatility"
-
-    @pytest.mark.asyncio
-    async def test_create_market_sentiment_sensor(self):
-        """Test market sentiment sensor creation."""
-        mock_sensors_manager = MagicMock()
-        mock_sensors_manager.register_sensor = AsyncMock()
-        manager = UnifiedSensorManager(mock_sensors_manager)
-
-        await manager._create_market_sentiment_sensor()
-
-        mock_sensors_manager.register_sensor.assert_called_once()
-        call_args = mock_sensors_manager.register_sensor.call_args
-        assert call_args[0][0] == "market_sentiment"
+        assert manager._consolidated_sensors_created is True
 
 
 class TestUnifiedSensorManagerUpdateSensors:
@@ -155,12 +86,10 @@ class TestUnifiedSensorManagerUpdateSensors:
     async def test_update_consolidated_sensors_creates_first(self):
         """Test that update creates sensors if not created."""
         mock_sensors_manager = MagicMock()
-        mock_sensors_manager.register_sensor = AsyncMock()
-        mock_sensors_manager._update_sensor_state = AsyncMock()
-        mock_sensors_manager._update_sensor_attributes = AsyncMock()
+        mock_sensors_manager.publish_sensor = AsyncMock()
         manager = UnifiedSensorManager(mock_sensors_manager)
 
-        with patch("service.unified_sensors.get_currency_list", new_callable=AsyncMock, return_value=["BTC/USDT"]):
+        with patch("service.unified_sensors.get_currency_list", return_value=["BTC/USDT"]):
             await manager.update_consolidated_sensors()
 
         assert manager._consolidated_sensors_created is True
@@ -169,17 +98,15 @@ class TestUnifiedSensorManagerUpdateSensors:
     async def test_update_consolidated_sensors_success(self):
         """Test successful sensor update."""
         mock_sensors_manager = MagicMock()
-        mock_sensors_manager._update_sensor_state = AsyncMock()
-        mock_sensors_manager._update_sensor_attributes = AsyncMock()
+        mock_sensors_manager.publish_sensor = AsyncMock()
         manager = UnifiedSensorManager(mock_sensors_manager)
         manager._consolidated_sensors_created = True
 
-        with patch("service.unified_sensors.get_currency_list", new_callable=AsyncMock, return_value=["BTC/USDT", "ETH/USDT"]):
+        with patch("service.unified_sensors.get_currency_list", return_value=["BTC/USDT", "ETH/USDT"]):
             await manager.update_consolidated_sensors()
 
-        # 5 sensors updated: state + attributes for each
-        assert mock_sensors_manager._update_sensor_state.call_count == 5
-        assert mock_sensors_manager._update_sensor_attributes.call_count == 5
+        # 5 sensors updated via publish_sensor
+        assert mock_sensors_manager.publish_sensor.call_count == 5
 
     @pytest.mark.asyncio
     async def test_update_consolidated_sensors_handles_error(self):
@@ -188,7 +115,7 @@ class TestUnifiedSensorManagerUpdateSensors:
         manager = UnifiedSensorManager(mock_sensors_manager)
         manager._consolidated_sensors_created = True
 
-        with patch("service.unified_sensors.get_currency_list", new_callable=AsyncMock, side_effect=Exception("Test error")):
+        with patch("service.unified_sensors.get_currency_list", side_effect=Exception("Test error")):
             # Should not raise
             await manager.update_consolidated_sensors()
 
@@ -196,20 +123,21 @@ class TestUnifiedSensorManagerUpdateSensors:
     async def test_update_price_predictions(self):
         """Test price predictions update."""
         mock_sensors_manager = MagicMock()
-        mock_sensors_manager._update_sensor_state = AsyncMock()
-        mock_sensors_manager._update_sensor_attributes = AsyncMock()
+        mock_sensors_manager.publish_sensor = AsyncMock()
         manager = UnifiedSensorManager(mock_sensors_manager)
 
         await manager._update_price_predictions(["BTC/USDT", "ETH/USDT"])
 
-        mock_sensors_manager._update_sensor_state.assert_called_once_with("price_predictions", "0")
-        mock_sensors_manager._update_sensor_attributes.assert_called_once()
+        mock_sensors_manager.publish_sensor.assert_called_once()
+        call_args = mock_sensors_manager.publish_sensor.call_args
+        assert call_args[0][0] == "price_predictions"
+        assert call_args[0][1] == {}  # Empty dict (placeholders return None)
 
     @pytest.mark.asyncio
     async def test_update_price_predictions_handles_error(self):
         """Test error handling in price predictions update."""
         mock_sensors_manager = MagicMock()
-        mock_sensors_manager._update_sensor_state = AsyncMock(side_effect=Exception("Test error"))
+        mock_sensors_manager.publish_sensor = AsyncMock(side_effect=Exception("Test error"))
         manager = UnifiedSensorManager(mock_sensors_manager)
 
         # Should not raise
@@ -219,19 +147,20 @@ class TestUnifiedSensorManagerUpdateSensors:
     async def test_update_ai_trends(self):
         """Test AI trends update."""
         mock_sensors_manager = MagicMock()
-        mock_sensors_manager._update_sensor_state = AsyncMock()
-        mock_sensors_manager._update_sensor_attributes = AsyncMock()
+        mock_sensors_manager.publish_sensor = AsyncMock()
         manager = UnifiedSensorManager(mock_sensors_manager)
 
         await manager._update_ai_trends(["BTC/USDT"])
 
-        mock_sensors_manager._update_sensor_state.assert_called_once_with("ai_trend_directions", "0")
+        mock_sensors_manager.publish_sensor.assert_called_once()
+        call_args = mock_sensors_manager.publish_sensor.call_args
+        assert call_args[0][0] == "ai_trend_directions"
 
     @pytest.mark.asyncio
     async def test_update_ai_trends_handles_error(self):
         """Test error handling in AI trends update."""
         mock_sensors_manager = MagicMock()
-        mock_sensors_manager._update_sensor_state = AsyncMock(side_effect=Exception("Test"))
+        mock_sensors_manager.publish_sensor = AsyncMock(side_effect=Exception("Test"))
         manager = UnifiedSensorManager(mock_sensors_manager)
 
         await manager._update_ai_trends(["BTC/USDT"])
@@ -240,19 +169,20 @@ class TestUnifiedSensorManagerUpdateSensors:
     async def test_update_technical_indicators(self):
         """Test technical indicators update."""
         mock_sensors_manager = MagicMock()
-        mock_sensors_manager._update_sensor_state = AsyncMock()
-        mock_sensors_manager._update_sensor_attributes = AsyncMock()
+        mock_sensors_manager.publish_sensor = AsyncMock()
         manager = UnifiedSensorManager(mock_sensors_manager)
 
         await manager._update_technical_indicators(["BTC/USDT"])
 
-        mock_sensors_manager._update_sensor_state.assert_called_once_with("technical_indicators", "0")
+        mock_sensors_manager.publish_sensor.assert_called_once()
+        call_args = mock_sensors_manager.publish_sensor.call_args
+        assert call_args[0][0] == "technical_indicators"
 
     @pytest.mark.asyncio
     async def test_update_technical_indicators_handles_error(self):
         """Test error handling in technical indicators update."""
         mock_sensors_manager = MagicMock()
-        mock_sensors_manager._update_sensor_state = AsyncMock(side_effect=Exception("Test"))
+        mock_sensors_manager.publish_sensor = AsyncMock(side_effect=Exception("Test"))
         manager = UnifiedSensorManager(mock_sensors_manager)
 
         await manager._update_technical_indicators(["BTC/USDT"])
@@ -261,19 +191,20 @@ class TestUnifiedSensorManagerUpdateSensors:
     async def test_update_volatility_data(self):
         """Test volatility data update."""
         mock_sensors_manager = MagicMock()
-        mock_sensors_manager._update_sensor_state = AsyncMock()
-        mock_sensors_manager._update_sensor_attributes = AsyncMock()
+        mock_sensors_manager.publish_sensor = AsyncMock()
         manager = UnifiedSensorManager(mock_sensors_manager)
 
         await manager._update_volatility_data(["BTC/USDT"])
 
-        mock_sensors_manager._update_sensor_state.assert_called_once_with("market_volatility", "0")
+        mock_sensors_manager.publish_sensor.assert_called_once()
+        call_args = mock_sensors_manager.publish_sensor.call_args
+        assert call_args[0][0] == "market_volatility"
 
     @pytest.mark.asyncio
     async def test_update_volatility_data_handles_error(self):
         """Test error handling in volatility update."""
         mock_sensors_manager = MagicMock()
-        mock_sensors_manager._update_sensor_state = AsyncMock(side_effect=Exception("Test"))
+        mock_sensors_manager.publish_sensor = AsyncMock(side_effect=Exception("Test"))
         manager = UnifiedSensorManager(mock_sensors_manager)
 
         await manager._update_volatility_data(["BTC/USDT"])
@@ -282,19 +213,20 @@ class TestUnifiedSensorManagerUpdateSensors:
     async def test_update_market_sentiment(self):
         """Test market sentiment update."""
         mock_sensors_manager = MagicMock()
-        mock_sensors_manager._update_sensor_state = AsyncMock()
-        mock_sensors_manager._update_sensor_attributes = AsyncMock()
+        mock_sensors_manager.publish_sensor = AsyncMock()
         manager = UnifiedSensorManager(mock_sensors_manager)
 
         await manager._update_market_sentiment(["BTC/USDT"])
 
-        mock_sensors_manager._update_sensor_state.assert_called_once_with("market_sentiment", "0")
+        mock_sensors_manager.publish_sensor.assert_called_once()
+        call_args = mock_sensors_manager.publish_sensor.call_args
+        assert call_args[0][0] == "market_sentiment"
 
     @pytest.mark.asyncio
     async def test_update_market_sentiment_handles_error(self):
         """Test error handling in market sentiment update."""
         mock_sensors_manager = MagicMock()
-        mock_sensors_manager._update_sensor_state = AsyncMock(side_effect=Exception("Test"))
+        mock_sensors_manager.publish_sensor = AsyncMock(side_effect=Exception("Test"))
         manager = UnifiedSensorManager(mock_sensors_manager)
 
         await manager._update_market_sentiment(["BTC/USDT"])
@@ -361,16 +293,15 @@ class TestUnifiedSensorManagerCurrencyParsing:
     async def test_parses_currency_pair_with_slash(self):
         """Test that BTC/USDT is parsed to BTC."""
         mock_sensors_manager = MagicMock()
-        mock_sensors_manager._update_sensor_state = AsyncMock()
-        mock_sensors_manager._update_sensor_attributes = AsyncMock()
+        mock_sensors_manager.publish_sensor = AsyncMock()
         manager = UnifiedSensorManager(mock_sensors_manager)
 
         # We can verify parsing by checking the attributes dict keys
         with patch.object(manager, "_get_price_prediction", new_callable=AsyncMock, return_value=95000.0):
             await manager._update_price_predictions(["BTC/USDT"])
 
-        call_args = mock_sensors_manager._update_sensor_attributes.call_args
-        predictions_data = call_args[0][1]
+        call_args = mock_sensors_manager.publish_sensor.call_args
+        predictions_data = call_args[0][1]  # Second argument is dict data
         assert "BTC" in predictions_data
         assert "USDT" not in predictions_data
 
@@ -378,14 +309,13 @@ class TestUnifiedSensorManagerCurrencyParsing:
     async def test_parses_currency_without_slash(self):
         """Test that BTC without slash stays as BTC."""
         mock_sensors_manager = MagicMock()
-        mock_sensors_manager._update_sensor_state = AsyncMock()
-        mock_sensors_manager._update_sensor_attributes = AsyncMock()
+        mock_sensors_manager.publish_sensor = AsyncMock()
         manager = UnifiedSensorManager(mock_sensors_manager)
 
         with patch.object(manager, "_get_price_prediction", new_callable=AsyncMock, return_value=95000.0):
             await manager._update_price_predictions(["BTC"])
 
-        call_args = mock_sensors_manager._update_sensor_attributes.call_args
+        call_args = mock_sensors_manager.publish_sensor.call_args
         predictions_data = call_args[0][1]
         assert "BTC" in predictions_data
 
@@ -397,8 +327,7 @@ class TestUnifiedSensorManagerErrorInLoop:
     async def test_continues_on_currency_error_in_predictions(self):
         """Test that loop continues if one currency fails."""
         mock_sensors_manager = MagicMock()
-        mock_sensors_manager._update_sensor_state = AsyncMock()
-        mock_sensors_manager._update_sensor_attributes = AsyncMock()
+        mock_sensors_manager.publish_sensor = AsyncMock()
         manager = UnifiedSensorManager(mock_sensors_manager)
 
         call_count = 0
@@ -416,7 +345,7 @@ class TestUnifiedSensorManagerErrorInLoop:
         # Both currencies were processed
         assert call_count == 2
         # Only ETH should be in the data
-        call_args = mock_sensors_manager._update_sensor_attributes.call_args
+        call_args = mock_sensors_manager.publish_sensor.call_args
         predictions_data = call_args[0][1]
         assert "ETH" in predictions_data
         assert "BTC" not in predictions_data
@@ -425,8 +354,7 @@ class TestUnifiedSensorManagerErrorInLoop:
     async def test_continues_on_currency_error_in_ai_trends(self):
         """Test that AI trends loop continues if one currency fails."""
         mock_sensors_manager = MagicMock()
-        mock_sensors_manager._update_sensor_state = AsyncMock()
-        mock_sensors_manager._update_sensor_attributes = AsyncMock()
+        mock_sensors_manager.publish_sensor = AsyncMock()
         manager = UnifiedSensorManager(mock_sensors_manager)
 
         call_count = 0
@@ -442,7 +370,7 @@ class TestUnifiedSensorManagerErrorInLoop:
             await manager._update_ai_trends(["BTC/USDT", "ETH/USDT"])
 
         assert call_count == 2
-        call_args = mock_sensors_manager._update_sensor_attributes.call_args
+        call_args = mock_sensors_manager.publish_sensor.call_args
         trends_data = call_args[0][1]
         assert "ETH" in trends_data
         assert "BTC" not in trends_data
@@ -451,8 +379,7 @@ class TestUnifiedSensorManagerErrorInLoop:
     async def test_continues_on_currency_error_in_technical_indicators(self):
         """Test that technical indicators loop continues if one currency fails."""
         mock_sensors_manager = MagicMock()
-        mock_sensors_manager._update_sensor_state = AsyncMock()
-        mock_sensors_manager._update_sensor_attributes = AsyncMock()
+        mock_sensors_manager.publish_sensor = AsyncMock()
         manager = UnifiedSensorManager(mock_sensors_manager)
 
         call_count = 0
@@ -468,7 +395,7 @@ class TestUnifiedSensorManagerErrorInLoop:
             await manager._update_technical_indicators(["BTC/USDT", "ETH/USDT"])
 
         assert call_count == 2
-        call_args = mock_sensors_manager._update_sensor_attributes.call_args
+        call_args = mock_sensors_manager.publish_sensor.call_args
         tech_data = call_args[0][1]
         assert "ETH" in tech_data
         assert "BTC" not in tech_data
@@ -477,8 +404,7 @@ class TestUnifiedSensorManagerErrorInLoop:
     async def test_continues_on_currency_error_in_volatility(self):
         """Test that volatility loop continues if one currency fails."""
         mock_sensors_manager = MagicMock()
-        mock_sensors_manager._update_sensor_state = AsyncMock()
-        mock_sensors_manager._update_sensor_attributes = AsyncMock()
+        mock_sensors_manager.publish_sensor = AsyncMock()
         manager = UnifiedSensorManager(mock_sensors_manager)
 
         call_count = 0
@@ -494,7 +420,7 @@ class TestUnifiedSensorManagerErrorInLoop:
             await manager._update_volatility_data(["BTC/USDT", "ETH/USDT"])
 
         assert call_count == 2
-        call_args = mock_sensors_manager._update_sensor_attributes.call_args
+        call_args = mock_sensors_manager.publish_sensor.call_args
         vol_data = call_args[0][1]
         assert "ETH" in vol_data
         assert "BTC" not in vol_data
@@ -503,8 +429,7 @@ class TestUnifiedSensorManagerErrorInLoop:
     async def test_continues_on_currency_error_in_sentiment(self):
         """Test that sentiment loop continues if one currency fails."""
         mock_sensors_manager = MagicMock()
-        mock_sensors_manager._update_sensor_state = AsyncMock()
-        mock_sensors_manager._update_sensor_attributes = AsyncMock()
+        mock_sensors_manager.publish_sensor = AsyncMock()
         manager = UnifiedSensorManager(mock_sensors_manager)
 
         call_count = 0
@@ -520,7 +445,7 @@ class TestUnifiedSensorManagerErrorInLoop:
             await manager._update_market_sentiment(["BTC/USDT", "ETH/USDT"])
 
         assert call_count == 2
-        call_args = mock_sensors_manager._update_sensor_attributes.call_args
+        call_args = mock_sensors_manager.publish_sensor.call_args
         sentiment_data = call_args[0][1]
         assert "ETH" in sentiment_data
         assert "BTC" not in sentiment_data
