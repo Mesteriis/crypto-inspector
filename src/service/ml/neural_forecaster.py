@@ -27,7 +27,7 @@ class NeuralProphetForecaster(BaseForecaster):
     def __init__(self):
         """Initialize NeuralProphet forecaster."""
         if not NEURALPROPHET_AVAILABLE:
-            raise ImportError("neuralprophet not installed. " "Install with: pip install neuralprophet")
+            raise ImportError("neuralprophet not installed. Install with: pip install neuralprophet")
 
         self.model = None
         self._initialize_model()

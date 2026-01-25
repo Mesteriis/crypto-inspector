@@ -14,12 +14,12 @@ from typing import Any
 
 import numpy as np
 from scipy import stats
-from service.technical import TechnicalAnalyzer
 
 from core.constants import DEFAULT_SYMBOLS
 from service.candlestick import CandleInterval, fetch_candlesticks
 from service.ml.forecaster import PriceForecaster
 from service.ml.models import ForecastResult
+from service.technical import TechnicalAnalyzer
 
 logger = logging.getLogger(__name__)
 

@@ -699,10 +699,7 @@ async def install_blueprints() -> dict[str, int]:
 
     # Add-on не может записывать в /config (read-only filesystem)
     # Blueprint-ы доступны в /blueprints директории add-on
-    logger.debug(
-        f"Blueprint-ы доступны в {BLUEPRINTS_SOURCE_DIR}. "
-        f"Скопируйте их вручную в {BLUEPRINTS_TARGET_DIR}"
-    )
+    logger.debug(f"Blueprint-ы доступны в {BLUEPRINTS_SOURCE_DIR}. Скопируйте их вручную в {BLUEPRINTS_TARGET_DIR}")
 
     return stats
 

@@ -9,7 +9,6 @@ from service.unified_sensors import (
     get_unified_sensor_manager,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════════════
 #                      UnifiedSensorManager Tests
 # ═══════════════════════════════════════════════════════════════════════════
@@ -174,7 +173,9 @@ class TestUnifiedSensorManagerUpdateSensors:
         manager = UnifiedSensorManager(mock_sensors_manager)
         manager._consolidated_sensors_created = True
 
-        with patch("service.unified_sensors.get_currency_list", new_callable=AsyncMock, return_value=["BTC/USDT", "ETH/USDT"]):
+        with patch(
+            "service.unified_sensors.get_currency_list", new_callable=AsyncMock, return_value=["BTC/USDT", "ETH/USDT"]
+        ):
             await manager.update_consolidated_sensors()
 
         # 5 sensors updated: state + attributes for each
@@ -188,7 +189,9 @@ class TestUnifiedSensorManagerUpdateSensors:
         manager = UnifiedSensorManager(mock_sensors_manager)
         manager._consolidated_sensors_created = True
 
-        with patch("service.unified_sensors.get_currency_list", new_callable=AsyncMock, side_effect=Exception("Test error")):
+        with patch(
+            "service.unified_sensors.get_currency_list", new_callable=AsyncMock, side_effect=Exception("Test error")
+        ):
             # Should not raise
             await manager.update_consolidated_sensors()
 

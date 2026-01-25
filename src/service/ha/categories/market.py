@@ -152,4 +152,3 @@ class StablecoinFlow24hSensor(PercentSensor):
         description="24h stablecoin flow percentage",
         description_ru="Поток стейблкоинов за 24ч (%)",
     )
-

@@ -55,12 +55,12 @@ def load_ha_configuration() -> dict:
     Reads from:
     1. /config/crypto_inspect.yaml (preferred, separate file)
     2. /config/configuration.yaml crypto_inspect: section (fallback)
-    
+
     Resolves !secret references from secrets.yaml.
     Priority: crypto_inspect.yaml > configuration.yaml > options.json > env > defaults
     """
     secrets = load_ha_secrets()
-    
+
     # Custom YAML loader to handle !secret tags
     class SecretLoader(yaml.SafeLoader):
         pass
@@ -84,12 +84,12 @@ def load_ha_configuration() -> dict:
         try:
             content = crypto_config_path.read_text()
             config = yaml.load(content, Loader=SecretLoader) or {}
-            
+
             # Resolve secrets
             resolved = {}
             for key, value in config.items():
                 resolved[key] = resolve_secret(value, secrets)
-            
+
             logger.info(f"Loaded {len(resolved)} settings from crypto_inspect.yaml")
             return resolved
         except (yaml.YAMLError, OSError) as e:

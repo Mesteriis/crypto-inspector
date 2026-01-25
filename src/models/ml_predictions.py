@@ -282,9 +282,5 @@ class MLModelPerformance(Base):
 
     def __repr__(self) -> str:
         return (
-            f"<MLModelPerformance("
-            f"symbol={self.symbol!r}, "
-            f"model={self.model_name!r}, "
-            f"MAE={self.mean_absolute_error}"
-            f")>"
+            f"<MLModelPerformance(symbol={self.symbol!r}, model={self.model_name!r}, MAE={self.mean_absolute_error})>"
         )

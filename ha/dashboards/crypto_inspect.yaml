@@ -17,7 +17,7 @@ views:
       mediaquery:
         "(max-width: 800px)":
           grid-template-columns: 1fr
-    
+
     cards:
       # =========================================================================
       # ROW 1: MAIN STATUS CARD
@@ -32,7 +32,7 @@ views:
           {{ phase }} • F&G: {{ fg }}
         icon: mdi:chart-finance
         theme: glass
-        
+
         badges:
           - entity: sensor.crypto_inspect_do_nothing_ok
             icon: mdi:meditation
@@ -47,13 +47,13 @@ views:
               {{ 'red' if states('sensor.crypto_inspect_red_flags')|int(0) > 0 else 'green' }}
           - entity: sensor.crypto_inspect_dca_signal
             icon: mdi:cash-plus
-        
+
         body_mode: none
 
       # =========================================================================
       # ROW 2: PRICES + LAZY INVESTOR + MARKET
       # =========================================================================
-      
+
       # --- PRICES ---
       - type: custom:universal-card
         title: "💰 Цены"
@@ -117,7 +117,7 @@ views:
                       {% if l not in ['unknown','unavailable',''] %}{% set d = l|from_json %}${{ '{:,.0f}'.format(d.get('BTC/USDT',0)|float) }}{% else %}—{% endif %}
                     icon: mdi:arrow-down
                     icon_color: red
-        
+
         # Collapsed view
         grid:
           columns: 2
@@ -180,7 +180,7 @@ views:
                   - type: custom:mushroom-entity-card
                     entity: sensor.crypto_inspect_hold_signal
                     name: "Hold сигнал"
-        
+
         header:
           cards:
             - type: custom:mushroom-template-card
@@ -234,7 +234,7 @@ views:
                   - type: custom:mushroom-entity-card
                     entity: sensor.crypto_inspect_exchange_flow_signal
                     name: "Exchange Flow"
-        
+
         header:
           cards:
             - type: custom:mushroom-template-card
@@ -248,7 +248,7 @@ views:
       # =========================================================================
       # ROW 3: TECHNICAL + RISK + PORTFOLIO
       # =========================================================================
-      
+
       # --- TECHNICAL ANALYSIS ---
       - type: custom:universal-card
         title: "📈 Тех. анализ"
@@ -313,7 +313,7 @@ views:
                   - type: custom:mushroom-entity-card
                     entity: sensor.crypto_inspect_divergences_active
                     name: "Дивергенции"
-        
+
         header:
           cards:
             - type: custom:mushroom-template-card
@@ -367,7 +367,7 @@ views:
                   - type: custom:mushroom-entity-card
                     entity: sensor.crypto_inspect_macro_risk_week
                     name: "Macro Risk"
-        
+
         header:
           cards:
             - type: custom:mushroom-template-card
@@ -427,7 +427,7 @@ views:
                   - type: custom:mushroom-entity-card
                     entity: sensor.crypto_inspect_goal_days_estimate
                     name: "Дней до цели"
-        
+
         header:
           cards:
             - type: custom:mushroom-template-card
@@ -441,7 +441,7 @@ views:
       # =========================================================================
       # ROW 4: TRADFI + WHALES + GAS
       # =========================================================================
-      
+
       # --- TRADITIONAL MARKETS ---
       - type: custom:universal-card
         title: "🏛 TradFi"
@@ -483,7 +483,7 @@ views:
                   - type: custom:mushroom-entity-card
                     entity: sensor.crypto_inspect_natural_gas
                     name: "Gas"
-        
+
         header:
           cards:
             - type: custom:mushroom-template-card
@@ -523,7 +523,7 @@ views:
                   - type: custom:mushroom-entity-card
                     entity: sensor.crypto_inspect_whale_signal
                     name: "Сигнал"
-        
+
         header:
           cards:
             - type: custom:mushroom-template-card
@@ -577,7 +577,7 @@ views:
                   - type: custom:mushroom-entity-card
                     entity: sensor.crypto_inspect_correlation_status
                     name: "Status"
-        
+
         header:
           cards:
             - type: custom:mushroom-template-card
@@ -593,7 +593,7 @@ views:
       # =========================================================================
       # ROW 5: AI + ALERTS + SYSTEM (conditional)
       # =========================================================================
-      
+
       # --- AI ANALYSIS ---
       - type: custom:universal-card
         title: "🤖 AI"
@@ -629,7 +629,7 @@ views:
                   - type: custom:mushroom-entity-card
                     entity: sensor.crypto_inspect_ai_provider
                     name: "Provider"
-        
+
         header:
           cards:
             - type: custom:mushroom-template-card
@@ -675,7 +675,7 @@ views:
                   - type: custom:mushroom-entity-card
                     entity: sensor.crypto_inspect_notification_mode
                     name: "Режим"
-        
+
         header:
           cards:
             - type: custom:mushroom-template-card
@@ -723,7 +723,7 @@ views:
                   - type: custom:mushroom-entity-card
                     entity: sensor.crypto_inspect_version
                     name: "Version"
-        
+
         header:
           cards:
             - type: custom:mushroom-template-card

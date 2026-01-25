@@ -20,7 +20,11 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
-from service.exchange.bybit_portfolio import BybitPortfolio, PnlPeriod, get_bybit_portfolio
+from service.exchange.bybit_portfolio import (
+    BybitPortfolio,
+    PnlPeriod,
+    get_bybit_portfolio,
+)
 
 logger = logging.getLogger(__name__)
 

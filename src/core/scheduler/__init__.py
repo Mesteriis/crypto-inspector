@@ -395,7 +395,6 @@ async def _set_initial_sensor_values() -> None:
     from service.ha import get_sensors_manager
 
     sensors = get_sensors_manager()
-    disabled_text = "Disabled"
     disabled_dict = {}
 
     # AI sensors - depends on AI_ENABLED

@@ -333,12 +333,16 @@ class HAIntegrationManager:
             flags_count = int(flags_data) if flags_data else 0
             flags_list = ""
         emoji = "🟢" if flags_count == 0 else ("🟡" if flags_count <= 2 else "🔴")
-        await self.publish_sensor("red_flags", flags_count, {
-            "status_emoji": emoji,
-            "count": flags_count,
-            "flags_list": flags_list,
-            "last_updated": timestamp,
-        })
+        await self.publish_sensor(
+            "red_flags",
+            flags_count,
+            {
+                "status_emoji": emoji,
+                "count": flags_count,
+                "flags_list": flags_list,
+                "last_updated": timestamp,
+            },
+        )
 
         # market_tension - handle nested dict format
         tension = status_data.get("tension", {})
@@ -427,20 +431,32 @@ class HAIntegrationManager:
         timestamp = datetime.now(UTC).isoformat()
 
         if fear_greed is not None:
-            await self.publish_sensor("fear_greed", fear_greed, {
-                "value": fear_greed,
-                "last_updated": timestamp,
-            })
+            await self.publish_sensor(
+                "fear_greed",
+                fear_greed,
+                {
+                    "value": fear_greed,
+                    "last_updated": timestamp,
+                },
+            )
 
         if btc_dominance is not None:
-            await self.publish_sensor("btc_dominance", btc_dominance, {
-                "last_updated": timestamp,
-            })
+            await self.publish_sensor(
+                "btc_dominance",
+                btc_dominance,
+                {
+                    "last_updated": timestamp,
+                },
+            )
 
         if derivatives_data is not None:
-            await self.publish_sensor("derivatives", derivatives_data, {
-                "last_updated": timestamp,
-            })
+            await self.publish_sensor(
+                "derivatives",
+                derivatives_data,
+                {
+                    "last_updated": timestamp,
+                },
+            )
 
     # === Sync Status Methods ===
 
@@ -461,11 +477,15 @@ class HAIntegrationManager:
         """
         timestamp = datetime.now(UTC).isoformat()
 
-        await self.publish_sensor("sync_status", status, {
-            "success_count": success_count,
-            "failure_count": failure_count,
-            "last_updated": timestamp,
-        })
+        await self.publish_sensor(
+            "sync_status",
+            status,
+            {
+                "success_count": success_count,
+                "failure_count": failure_count,
+                "last_updated": timestamp,
+            },
+        )
 
         await self.publish_sensor("last_sync", timestamp)
 
@@ -486,11 +506,15 @@ class HAIntegrationManager:
         if "pulse" in summary_data:
             pulse = summary_data["pulse"]
             confidence = summary_data.get("pulse_confidence")
-            await self.publish_sensor("market_pulse", pulse, {
-                "confidence": confidence,
-                "pulse_ru": summary_data.get("pulse_ru", pulse),
-                "last_updated": timestamp,
-            })
+            await self.publish_sensor(
+                "market_pulse",
+                pulse,
+                {
+                    "confidence": confidence,
+                    "pulse_ru": summary_data.get("pulse_ru", pulse),
+                    "last_updated": timestamp,
+                },
+            )
             if confidence is not None:
                 await self.publish_sensor("market_pulse_confidence", confidence)
 
@@ -498,11 +522,15 @@ class HAIntegrationManager:
         if "health" in summary_data:
             health = summary_data["health"]
             score = summary_data.get("health_score")
-            await self.publish_sensor("portfolio_health", health, {
-                "score": score,
-                "health_ru": summary_data.get("health_ru", health),
-                "last_updated": timestamp,
-            })
+            await self.publish_sensor(
+                "portfolio_health",
+                health,
+                {
+                    "score": score,
+                    "health_ru": summary_data.get("health_ru", health),
+                    "last_updated": timestamp,
+                },
+            )
             if score is not None:
                 await self.publish_sensor("portfolio_health_score", score)
 
@@ -510,20 +538,28 @@ class HAIntegrationManager:
         if "action" in summary_data:
             action = summary_data["action"]
             priority = summary_data.get("action_priority", "low")
-            await self.publish_sensor("today_action", action, {
-                "priority": priority,
-                "action_ru": summary_data.get("action_ru", action),
-                "last_updated": timestamp,
-            })
+            await self.publish_sensor(
+                "today_action",
+                action,
+                {
+                    "priority": priority,
+                    "action_ru": summary_data.get("action_ru", action),
+                    "last_updated": timestamp,
+                },
+            )
             await self.publish_sensor("today_action_priority", priority)
 
         # Weekly outlook
         if "outlook" in summary_data:
             outlook = summary_data["outlook"]
-            await self.publish_sensor("weekly_outlook", outlook, {
-                "outlook_ru": summary_data.get("outlook_ru", outlook),
-                "last_updated": timestamp,
-            })
+            await self.publish_sensor(
+                "weekly_outlook",
+                outlook,
+                {
+                    "outlook_ru": summary_data.get("outlook_ru", outlook),
+                    "last_updated": timestamp,
+                },
+            )
 
     # === Notification Status Methods ===
 
@@ -545,9 +581,13 @@ class HAIntegrationManager:
             await self.publish_sensor("daily_digest_ready", status_data["daily_digest_ready"])
 
         if "mode" in status_data:
-            await self.publish_sensor("notification_mode", status_data["mode"], {
-                "last_updated": timestamp,
-            })
+            await self.publish_sensor(
+                "notification_mode",
+                status_data["mode"],
+                {
+                    "last_updated": timestamp,
+                },
+            )
 
     # === ML/AI Methods ===
 
@@ -560,13 +600,17 @@ class HAIntegrationManager:
         timestamp = datetime.now(UTC).isoformat()
 
         if "portfolio_sentiment" in ml_data:
-            await self.publish_sensor("portfolio_health", ml_data["portfolio_sentiment"], {
-                "opportunity_signals": ml_data.get("opportunity_signals", 0),
-                "risk_signals": ml_data.get("risk_signals", 0),
-                "hold_signals": ml_data.get("hold_signals", 0),
-                "recommendation": ml_data.get("recommendation", ""),
-                "last_updated": timestamp,
-            })
+            await self.publish_sensor(
+                "portfolio_health",
+                ml_data["portfolio_sentiment"],
+                {
+                    "opportunity_signals": ml_data.get("opportunity_signals", 0),
+                    "risk_signals": ml_data.get("risk_signals", 0),
+                    "hold_signals": ml_data.get("hold_signals", 0),
+                    "recommendation": ml_data.get("recommendation", ""),
+                    "last_updated": timestamp,
+                },
+            )
 
     def _get_accuracy_rating(self, accuracy: float) -> str:
         """Get Russian accuracy rating label.
@@ -598,27 +642,39 @@ class HAIntegrationManager:
 
         # Latest predictions
         if "latest_predictions" in prediction_data:
-            await self.publish_sensor("ml_latest_predictions", prediction_data["latest_predictions"], {
-                "last_updated": timestamp,
-            })
+            await self.publish_sensor(
+                "ml_latest_predictions",
+                prediction_data["latest_predictions"],
+                {
+                    "last_updated": timestamp,
+                },
+            )
 
         # Correct predictions count
         if "correct_predictions" in prediction_data:
-            await self.publish_sensor("ml_correct_predictions", prediction_data["correct_predictions"], {
-                "incorrect": prediction_data.get("incorrect_predictions", 0),
-                "total": prediction_data.get("total_predictions", 0),
-                "last_updated": timestamp,
-            })
+            await self.publish_sensor(
+                "ml_correct_predictions",
+                prediction_data["correct_predictions"],
+                {
+                    "incorrect": prediction_data.get("incorrect_predictions", 0),
+                    "total": prediction_data.get("total_predictions", 0),
+                    "last_updated": timestamp,
+                },
+            )
 
         # Accuracy rate
         if "accuracy_percentage" in prediction_data:
             accuracy = prediction_data["accuracy_percentage"]
             rating = self._get_accuracy_rating(accuracy)
-            await self.publish_sensor("ml_accuracy_rate", accuracy, {
-                "rating": rating,
-                "rating_ru": rating,
-                "last_updated": timestamp,
-            })
+            await self.publish_sensor(
+                "ml_accuracy_rate",
+                accuracy,
+                {
+                    "rating": rating,
+                    "rating_ru": rating,
+                    "last_updated": timestamp,
+                },
+            )
 
     async def update_ai_trend_sensors(self) -> None:
         """Update AI trend analysis sensors."""
@@ -650,20 +706,32 @@ class HAIntegrationManager:
             timestamp = datetime.now(UTC).isoformat()
 
             if ai_trends:
-                await self.publish_sensor("ai_trends", ai_trends, {
-                    "details": ai_details,
-                    "last_updated": timestamp,
-                })
+                await self.publish_sensor(
+                    "ai_trends",
+                    ai_trends,
+                    {
+                        "details": ai_details,
+                        "last_updated": timestamp,
+                    },
+                )
 
             if ai_confidences:
-                await self.publish_sensor("ai_confidences", ai_confidences, {
-                    "last_updated": timestamp,
-                })
+                await self.publish_sensor(
+                    "ai_confidences",
+                    ai_confidences,
+                    {
+                        "last_updated": timestamp,
+                    },
+                )
 
             if ai_forecasts:
-                await self.publish_sensor("ai_price_forecasts_24h", ai_forecasts, {
-                    "last_updated": timestamp,
-                })
+                await self.publish_sensor(
+                    "ai_price_forecasts_24h",
+                    ai_forecasts,
+                    {
+                        "last_updated": timestamp,
+                    },
+                )
 
         except ImportError:
             logger.debug("Trend analyzer not available")
