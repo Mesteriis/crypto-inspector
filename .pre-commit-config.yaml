@@ -27,6 +27,14 @@ repos:
   # Local hooks
   - repo: local
     hooks:
+      # Check version sync between pyproject.toml and config.yaml
+      - id: check-version-sync
+        name: Check version synchronization
+        entry: scripts/check-version-sync.sh
+        language: script
+        files: ^(pyproject\.toml|config\.yaml)$
+        pass_filenames: false
+
       # Sync requirements.txt from pyproject.toml
       - id: sync-requirements
         name: Sync requirements.txt from pyproject.toml
