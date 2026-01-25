@@ -805,12 +805,13 @@ class HAIntegrationManager:
     async def update_ai_trend_sensors(self) -> None:
         """Update AI trend analysis sensors."""
         try:
-            from service.analysis.trend_analyzer import get_trend_analyzer
+            from service.trend_analyzer import get_trend_analyzer
 
             analyzer = get_trend_analyzer()
             symbols = list(self._prices.keys()) if self._prices else []
 
             if not symbols:
+                logger.debug("No price data available for AI trend analysis")
                 return
 
             ai_trends = {}
@@ -822,10 +823,11 @@ class HAIntegrationManager:
                 try:
                     result = await analyzer.analyze_trend(symbol)
                     if result:
-                        ai_trends[symbol] = result.get("trend", "Neutral")
-                        ai_confidences[symbol] = result.get("confidence", 50)
-                        ai_forecasts[symbol] = result.get("price_forecast_24h")
-                        ai_details[symbol] = result
+                        # TrendAnalysis object - access attributes directly
+                        ai_trends[symbol] = result.direction.value if hasattr(result, 'direction') else "Neutral"
+                        ai_confidences[symbol] = round(result.confidence, 1) if hasattr(result, 'confidence') else 50
+                        ai_forecasts[symbol] = round(result.predicted_price_24h, 2) if hasattr(result, 'predicted_price_24h') else None
+                        ai_details[symbol] = result.to_dict() if hasattr(result, 'to_dict') else {}
                 except Exception as e:
                     logger.debug(f"AI trend analysis failed for {symbol}: {e}")
 
@@ -846,9 +848,11 @@ class HAIntegrationManager:
                 await self.publish_sensor("ai_price_forecasts_24h", ai_forecasts, {
                     "last_updated": timestamp,
                 })
+            
+            logger.info(f"AI trend sensors updated for {len(ai_trends)} symbols")
 
-        except ImportError:
-            logger.debug("Trend analyzer not available")
+        except ImportError as e:
+            logger.debug(f"Trend analyzer not available: {e}")
         except Exception as e:
             logger.error(f"Failed to update AI trend sensors: {e}")
 

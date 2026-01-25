@@ -1980,6 +1980,9 @@ async def ai_analysis_job() -> None:
             await sensors.publish_sensor("ai_last_analysis", analyzer.get_last_analysis_time())
             await sensors.publish_sensor("ai_provider", f"{result.provider}/{result.model}")
 
+            # Update AI trend sensors for all currencies
+            await sensors.update_ai_trend_sensors()
+
             logger.info(
                 f"AI analysis completed: sentiment={result.sentiment}, "
                 f"provider={result.provider}, model={result.model}"
