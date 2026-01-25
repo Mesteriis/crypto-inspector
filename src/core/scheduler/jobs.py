@@ -490,10 +490,23 @@ async def investor_analysis_job() -> None:
             onchain_data = await onchain.analyze()
             if onchain_data.fear_greed:
                 fear_greed = onchain_data.fear_greed.value
-            # Note: dominance is not available in OnChainMetrics, would need separate API
             logger.info(f"On-chain: F&G={fear_greed}")
         except Exception as e:
             logger.warning(f"On-chain fetch failed: {e}")
+
+        # Fetch BTC dominance from CoinGecko global
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get("https://api.coingecko.com/api/v3/global")
+                if resp.status_code == 200:
+                    data = resp.json()
+                    btc_dominance = data.get("data", {}).get("market_cap_percentage", {}).get("btc")
+                    if btc_dominance:
+                        btc_dominance = round(btc_dominance, 2)
+                        logger.info(f"BTC dominance: {btc_dominance}%")
+        except Exception as e:
+            logger.warning(f"BTC dominance fetch failed: {e}")
 
         # Fetch derivatives data
         try:
@@ -1040,11 +1053,10 @@ async def divergence_job() -> None:
                     trend_data[symbol] = "—"
                 
                 # Bollinger Band position
-                bb = ta.calc_bollinger_bands(closes)
-                if bb and bb.get("upper") and bb.get("lower"):
-                    bb_upper = bb["upper"]
-                    bb_lower = bb["lower"]
-                    bb_middle = bb.get("middle", (bb_upper + bb_lower) / 2)
+                # calc_bollinger_bands returns tuple (upper, middle, lower, position)
+                bb_result = ta.calc_bollinger_bands(closes)
+                if bb_result and bb_result[0] is not None:
+                    bb_upper, bb_middle, bb_lower, _ = bb_result
                     
                     if current_price >= bb_upper:
                         bb_position_data[symbol] = "Above Upper"
