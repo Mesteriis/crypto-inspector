@@ -12,8 +12,7 @@ arch:
   - aarch64
 homeassistant_api: true
 ingress: true
-ingress_port: 0
-host_network: true
+ingress_port: 9999
 panel_icon: "mdi:bitcoin"
 panel_title: "Crypto Inspect"
 

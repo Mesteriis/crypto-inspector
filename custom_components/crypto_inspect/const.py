@@ -11,7 +11,9 @@ CONF_LANGUAGE: Final = "language"
 CONF_UPDATE_INTERVAL: Final = "update_interval"
 
 # Defaults
-DEFAULT_HOST: Final = "localhost"
+# For HA Add-on: use addon hostname (e.g. a0d7b954_crypto_inspect)
+# For standalone: use localhost or actual IP
+DEFAULT_HOST: Final = "a0d7b954_crypto_inspect"
 DEFAULT_PORT: Final = 9999
 DEFAULT_LANGUAGE: Final = "ru"
 DEFAULT_UPDATE_INTERVAL: Final = 60  # seconds

@@ -7,14 +7,27 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from api.middleware import setup_exception_handlers
 from api.router import api_router
 from core.config import settings
 from core.logging_config import setup_logging
+
+
+class IngressMiddleware(BaseHTTPMiddleware):
+    """Middleware to handle HA Ingress path prefix."""
+
+    async def dispatch(self, request: Request, call_next):
+        """Handle ingress path from X-Ingress-Path header."""
+        ingress_path = request.headers.get("X-Ingress-Path", "")
+        if ingress_path:
+            # Set root_path for correct URL generation
+            request.scope["root_path"] = ingress_path
+        return await call_next(request)
 from core.scheduler import scheduler_lifespan
 
 # Configure logging with file rotation
@@ -225,6 +238,9 @@ app = FastAPI(
     debug=settings.DEBUG,
     lifespan=lifespan,
 )
+
+# Add ingress middleware for HA Add-on support
+app.add_middleware(IngressMiddleware)
 
 # Setup global exception handlers with HA notifications
 setup_exception_handlers(app)
