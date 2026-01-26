@@ -57,8 +57,25 @@ class DynamicCurrencyManager:
         symbols_env = os.environ.get("HA_SYMBOLS", "")
         if symbols_env:
             symbols = [s.strip() for s in symbols_env.split(",") if s.strip()]
-            # Ensure /USDT suffix
-            return [s if "/" in s else f"{s}/USDT" for s in symbols]
+            # Normalize symbol format: BTCUSDT -> BTC/USDT
+            normalized = []
+            for s in symbols:
+                if "/" in s:
+                    # Already has slash, use as-is
+                    normalized.append(s)
+                elif s.endswith("USDT"):
+                    # BTCUSDT -> BTC/USDT
+                    normalized.append(s[:-4] + "/USDT")
+                elif s.endswith("USDC"):
+                    # BTCUSDC -> BTC/USDC
+                    normalized.append(s[:-4] + "/USDC")
+                elif s.endswith("BUSD"):
+                    # BTCBUSD -> BTC/BUSD
+                    normalized.append(s[:-4] + "/BUSD")
+                else:
+                    # Assume USDT pair
+                    normalized.append(f"{s}/USDT")
+            return normalized
         
         # Fallback to defaults
         return DEFAULT_SYMBOLS.copy()

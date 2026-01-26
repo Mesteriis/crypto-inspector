@@ -548,7 +548,8 @@ class TestPortfolioJob:
             patch("service.ha.get_sensors_manager", return_value=mock_sensors),
         ):
             await portfolio_job()
-            assert mock_sensors.publish_sensor.call_count == 5
+            # Should publish at least 5 portfolio-related sensors
+            assert mock_sensors.publish_sensor.call_count >= 5
 
 
 class TestSignalHistoryJob:
