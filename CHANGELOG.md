@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.0 - ESPHome Native API
+- **Date**: 2026-01-27
+- **Feature**: ESPHome-compatible Native API server (port 6053)
+- **Feature**: mDNS/Zeroconf discovery - HA auto-detects as ESPHome device
+- **Feature**: No custom_component needed - plug and play integration
+- **Technical**: Plaintext protobuf protocol, 189 sensors exposed
+
 ## 1.0.1 - Symbol Format Fix
 - **Date**: 2026-01-27
 - **Fixed**: Symbol normalization - `BTCUSDT` now correctly converts to `BTC/USDT` (was `BTCUSDT/USDT`)

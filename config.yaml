@@ -3,7 +3,7 @@
 
 name: "Crypto Inspect"
 description: "Сбор и анализ данных криптовалютных свечей"
-version: "1.0.1"
+version: "1.1.0"
 slug: "crypto_inspect"
 url: "https://github.com/Mesteriis/crypto-inspector"
 init: false
