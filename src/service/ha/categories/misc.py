@@ -321,6 +321,23 @@ class GoalStatusSensor(StatusSensor):
     )
 
 
+@register_sensor(category="misc")
+class GoalCurrentSensor(ScalarSensor):
+    """Current value towards goal."""
+
+    config = SensorConfig(
+        sensor_id="goal_current",
+        name="Goal Current",
+        name_ru="Текущее значение",
+        icon="mdi:cash",
+        unit="USDT",
+        description="Current value towards goal",
+        description_ru="Текущее значение к цели",
+        value_type="float",
+        min_value=0,
+    )
+
+
 # === System ===
 
 

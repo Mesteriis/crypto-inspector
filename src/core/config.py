@@ -7,6 +7,7 @@ import yaml
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from core.constants import (
+    APP_VERSION,
     DEFAULT_SYMBOLS_STR,
     MAX_RETRIES,
     RETRY_DELAY_SECONDS,
@@ -100,6 +101,7 @@ class Settings(BaseSettings):
 
     # Application
     APP_NAME: str = "crypto-inspect"
+    VERSION: str = APP_VERSION  # Version from constants.py
     DEBUG: bool = False
     LOG_LEVEL: str = "INFO"  # DEBUG, INFO, WARNING, ERROR
 

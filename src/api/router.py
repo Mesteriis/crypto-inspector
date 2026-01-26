@@ -11,6 +11,7 @@ from api.routes import (
     candles,
     goals,
     health,
+    integration,
     investor,
     portfolio,
     sensors,
@@ -36,3 +37,4 @@ api_router.include_router(goals.router)
 api_router.include_router(ai.router)
 api_router.include_router(backtest.router)
 api_router.include_router(sensors.router)
+api_router.include_router(integration.router)

@@ -3,7 +3,7 @@
 from service.ha.core.base import SensorConfig
 from service.ha.core.registry import register_sensor
 from service.ha.sensors.composite import CompositeSensor
-from service.ha.sensors.scalar import PercentSensor, ScalarSensor
+from service.ha.sensors.scalar import PnlPercentSensor, ScalarSensor, StatusSensor
 
 
 @register_sensor(category="portfolio")
@@ -24,7 +24,7 @@ class PortfolioValueSensor(ScalarSensor):
 
 
 @register_sensor(category="portfolio")
-class PortfolioPnlSensor(PercentSensor):
+class PortfolioPnlSensor(PnlPercentSensor):
     """Total portfolio P&L."""
 
     config = SensorConfig(
@@ -39,7 +39,7 @@ class PortfolioPnlSensor(PercentSensor):
 
 
 @register_sensor(category="portfolio")
-class PortfolioPnl24hSensor(PercentSensor):
+class PortfolioPnl24hSensor(PnlPercentSensor):
     """24h portfolio change."""
 
     config = SensorConfig(
@@ -64,4 +64,32 @@ class PortfolioAllocationSensor(CompositeSensor):
         icon="mdi:chart-donut",
         description="Asset allocation in portfolio",
         description_ru="Распределение активов в портфеле",
+    )
+
+
+@register_sensor(category="portfolio")
+class PortfolioBestSensor(StatusSensor):
+    """Best performing asset in portfolio."""
+
+    config = SensorConfig(
+        sensor_id="portfolio_best",
+        name="Best Performer",
+        name_ru="Лучший актив",
+        icon="mdi:trophy",
+        description="Best performing asset in portfolio",
+        description_ru="Лучший актив в портфеле",
+    )
+
+
+@register_sensor(category="portfolio")
+class PortfolioWorstSensor(StatusSensor):
+    """Worst performing asset in portfolio."""
+
+    config = SensorConfig(
+        sensor_id="portfolio_worst",
+        name="Worst Performer",
+        name_ru="Худший актив",
+        icon="mdi:arrow-down-bold",
+        description="Worst performing asset in portfolio",
+        description_ru="Худший актив в портфеле",
     )

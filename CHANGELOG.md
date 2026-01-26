@@ -1,111 +1,93 @@
 # Changelog
 
-## 0.2.28 - Sensor Validation Fixes
-- **Date**: 2026-01-21
-- **Fixed**: `red_flags` now sends int value (CountSensor), emoji moved to attributes.
-- **Fixed**: `greed_level` sends `greed_score` (0-100) instead of text (PercentSensor).
-- **Fixed**: Gas sensor names corrected to `eth_gas_*` prefix.
-- **Fixed**: Eliminates "Invalid count value" and "Invalid percentage value" validation errors.
+## 1.0.0 - Stable Release
+- **Date**: 2026-01-26
+- **Status**: Stable (removed experimental flag)
 
-## 0.2.27 - Fast Startup Fix
-- **Date**: 2026-01-21
-- **Fixed**: Removed heavy external API calls from startup to prevent slow boot and restarts.
-- **Changed**: Startup now only sets placeholder values ("Loading...", "Disabled").
-- **Note**: Actual sensor data comes from scheduled jobs (first run within 5-15 min).
+### Highlights
+- **150+ sensors** for Home Assistant covering crypto, traditional finance, and on-chain data
+- **AI Analysis** with ChatGPT and Ollama integration
+- **Technical Analysis** with RSI, MACD, Bollinger Bands, and confluence scoring
+- **Risk Management** with Sharpe/Sortino ratios, VaR, and drawdown tracking
+- **DCA Backtesting** comparing Fixed DCA, Smart DCA, and Lump Sum strategies
+- **MCP Server** for AI agent integration (Claude, Gemini, OpenAI)
+- **Bybit Integration** for portfolio tracking and P&L analysis
+- **Lazy Investor Mode** with market phase detection and red flag alerts
 
-## 0.2.26 - Sensor Initialization & Startup Improvements
-- **Date**: 2026-01-20
-- **Fixed**: Divergence job now uses correct `DivergenceDetector.detect()` API.
-- **Feature**: Run startup jobs immediately to populate sensors (no more 'unknown' state).
-- **Feature**: Set informative initial values for disabled features:
-  - AI sensors show "AI disabled" when `AI_ENABLED=false`
-  - Bybit sensors show 0 with "not_configured" status when no credentials
-  - Goal sensors show "Goal disabled" when `GOAL_ENABLED=false`
-  - Other sensors show "Loading..." until startup jobs complete
+### Features
+- Market indicators: Fear & Greed, BTC Dominance, Altseason Index, Volatility
+- Trading tools: DCA Calculator, Take Profit Advisor, Arbitrage Scanner
+- On-chain data: Whale Alerts, Exchange Flow, Gas Tracker
+- Macro events: FOMC, CPI, NFP calendar with risk assessment
+- Traditional finance: Gold, Silver, S&P 500, NASDAQ, Forex, Oil
 
-## 0.2.25 - Fix Sensor Registration (152 sensors)
-- **Date**: 2026-01-20
-- **Fixed**: Changed sensor registration to use `HAIntegrationManager.register_sensors()` instead of legacy `ha_integration.register_sensors()`.
-- **Result**: Now all 152 sensors from SensorRegistry are registered (was 10).
+### Technical
+- SQLite and PostgreSQL database support
+- Docker and Home Assistant Add-on deployment
+- Standalone mode for development
+- Comprehensive API with 50+ endpoints
 
-## 0.2.24 - Unified Sensors Fix & Test Coverage
-- **Date**: 2026-01-20
-- **Fixed**: NameError in `unified_sensors.py` - `CryptoSensorsManager` replaced with `HAIntegrationManager`.
-- **Tests**: Added 100% test coverage for `unified_sensors.py` (39 tests).
-- **Policy**: Added `unified_sensors.py` to critical HA files requiring 100% coverage.
+---
 
-## 0.2.23 - HA Init Graceful Degradation
-- **Date**: 2026-01-20
-- **Fixed**: Removed input_helpers creation via REST API (not supported by HA).
-- **Fixed**: Removed blueprint file copying (read-only filesystem in add-on).
-- **Logging**: Changed all HA init warnings to DEBUG level.
-- **Note**: Input helpers and blueprints must be created manually via HA UI.
+## 0.2.x - Development Phase
 
-## 0.2.22 - HA Automation Fix
-- **Date**: 2026-01-20
-- **Fixed**: Removed automation creation via REST API (not supported by HA).
-- **Note**: Automations should be created manually via UI: Settings → Automations → Create from Blueprint → Crypto Inspect.
+### 0.2.28 - Sensor Validation Fixes (2026-01-21)
+- Fixed: `red_flags` now sends int value (CountSensor), emoji moved to attributes.
+- Fixed: `greed_level` sends `greed_score` (0-100) instead of text (PercentSensor).
+- Fixed: Gas sensor names corrected to `eth_gas_*` prefix.
 
-## 0.2.21 - Logging Improvements
-- **Date**: 2026-01-20
-- **Logging**: Changed candlestick fetch operations from INFO to DEBUG level to reduce log noise.
-- **Fixed**: Resolved "Task exception was never retrieved" asyncio warnings in fetcher.
-- **Fixed**: Changed expected API 404 errors (derivatives) from ERROR to DEBUG.
-- **Logging**: Set httpx, httpcore, apscheduler loggers to WARNING level.
+### 0.2.27 - Fast Startup Fix (2026-01-21)
+- Fixed: Removed heavy external API calls from startup to prevent slow boot.
+- Changed: Startup now only sets placeholder values, data comes from scheduled jobs.
 
-## 0.2.20 - HA Connection Retry
-- **Date**: 2026-01-20
-- **Feature**: Added HA connection retry with graceful fallback to standalone mode.
+### 0.2.26 - Sensor Initialization (2026-01-20)
+- Fixed: Divergence job now uses correct `DivergenceDetector.detect()` API.
+- Feature: Run startup jobs immediately to populate sensors.
+- Feature: Set informative initial values for disabled features.
 
-## 0.2.19 - Python Environment Fix
-- **Date**: 2026-01-20
-- **Fixed**: Use system-wide Python install, lower requirement to Python 3.11.
-- **Fixed**: Install dependencies system-wide instead of venv.
+### 0.2.25 - Sensor Registration Fix (2026-01-20)
+- Fixed: Changed sensor registration to use `HAIntegrationManager.register_sensors()`.
+- Result: All 152 sensors from SensorRegistry now registered (was 10).
 
-## 0.2.18 - Docker Build Fixes
-- **Date**: 2026-01-20
-- **Fixed**: Use venv python explicitly in run script.
-- **Fixed**: Add python3 to runtime image, fix import paths.
-- **Fixed**: Add uv.lock to repository for Docker builds.
+### 0.2.24 - Test Coverage (2026-01-20)
+- Fixed: NameError in `unified_sensors.py`.
+- Tests: Added 100% test coverage for `unified_sensors.py` (39 tests).
 
-## 0.2.17 - Documentation & Maintenance
-- **Date**: 2026-01-20
-- **Documentation**: Comprehensive README.md (1900+ lines) and DOCS.md (2000+ lines).
-- **Features**: 30+ automation blueprints, Lovelace card examples, MCP Server guide.
-- **Sensors**: Refactored to Supervisor REST API (removed MQTT dependency).
-- **Architecture**: Consolidated all configurations into `pyproject.toml`.
+### 0.2.23 - HA Init Graceful Degradation (2026-01-20)
+- Fixed: Removed unsupported REST API calls for input_helpers and blueprints.
+- Note: Input helpers and blueprints must be created manually via HA UI.
 
-## 0.2.16 - Enhanced Dashboard & Localization
-- **Date**: 2026-01-20
-- **Sensors**: Complete bilingual localization (RU/EN) for all Home Assistant sensors.
-- **Configuration**: Curated default list of 10 coins (Majors, L1, AI infrastructure).
-- **UI**: Enhanced sensor dashboard coverage and improved documentation.
+### 0.2.22 - HA Automation Fix (2026-01-20)
+- Fixed: Removed automation creation via REST API (not supported by HA).
 
-## 0.2.2 - Standalone Support & Infrastructure
-- **Date**: 2026-01-18
-- **Docker**: Added standalone Dockerfile support for non-HA environments.
-- **Testing**: Massive test suite expansion (added 325 tests), increasing coverage to 45%.
-- **Infrastructure**: Migrated to s6-overlay v3 for better process management.
-- **CI/CD**: Improved release workflows for both standalone and HA Add-on builds.
-- **GitHub**: Added GitHub Pages with a card gallery for dashboard visualization.
+### 0.2.21 - Logging Improvements (2026-01-20)
+- Logging: Changed candlestick fetch from INFO to DEBUG to reduce noise.
+- Fixed: Resolved asyncio "Task exception was never retrieved" warnings.
 
-## 0.2.1 - Bugfixes & Polish
-- **Date**: 2026-01-18
-- **Fixed**: Resolved `datetime.utcnow()` deprecation warnings and import issues.
-- **Refactoring**: Cleaned up `PYTHONPATH` imports and improved API compatibility.
-- **Assets**: Added custom icons for the application.
-- **Workflows**: Initial setup of linting and formatting with Ruff.
+### 0.2.20 - HA Connection Retry (2026-01-20)
+- Feature: Added HA connection retry with graceful fallback to standalone mode.
 
-## 0.2.0 - UX Enhancement Suite
-- **Date**: 2026-01-18
-- **Sensors**: 100+ sensors via Supervisor REST API with auto-discovery.
-- **Modules**: Added Lazy Investor Mode, Smart Summary, and Briefing systems.
-- **Analysis**: Integrated ChatGPT/Ollama, Portfolio Analytics, and On-Chain data.
-- **Dashboard**: Added `crypto_master.yaml` and progressive disclosure views.
-- **Architecture**: Migrated legacy `crypto_analyzer/` to modern `src/services/` structure.
+### 0.2.17 - Documentation (2026-01-20)
+- Documentation: Comprehensive README.md (1900+ lines) and DOCS.md (2000+ lines).
+- Features: 30+ automation blueprints, Lovelace card examples, MCP Server guide.
 
-## 0.1.0 - Initial Release
-- **Date**: 2026-01-17
-- **Core**: Multi-exchange candlestick collection (Binance, Bybit, etc.).
-- **Storage**: SQLite and PostgreSQL support.
-- **HA**: Initial Home Assistant Ingress integration and basic config.
+### 0.2.16 - Localization (2026-01-20)
+- Sensors: Complete bilingual localization (RU/EN) for all Home Assistant sensors.
+- Configuration: Curated default list of 10 coins.
+
+### 0.2.2 - Standalone Support (2026-01-18)
+- Docker: Added standalone Dockerfile support for non-HA environments.
+- Testing: Test suite expansion (325 tests), 45% coverage.
+- Infrastructure: Migrated to s6-overlay v3.
+
+### 0.2.0 - UX Enhancement Suite (2026-01-18)
+- Sensors: 100+ sensors via Supervisor REST API with auto-discovery.
+- Modules: Added Lazy Investor Mode, Smart Summary, and Briefing systems.
+- Analysis: Integrated ChatGPT/Ollama, Portfolio Analytics, On-Chain data.
+
+---
+
+## 0.1.0 - Initial Release (2026-01-17)
+- Core: Multi-exchange candlestick collection (Binance, Bybit, etc.).
+- Storage: SQLite and PostgreSQL support.
+- HA: Initial Home Assistant Ingress integration.

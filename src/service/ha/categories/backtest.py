@@ -2,11 +2,11 @@
 
 from service.ha.core.base import SensorConfig
 from service.ha.core.registry import register_sensor
-from service.ha.sensors.scalar import PercentSensor, StatusSensor
+from service.ha.sensors.scalar import PnlPercentSensor, StatusSensor
 
 
 @register_sensor(category="backtest")
-class BacktestDcaRoiSensor(PercentSensor):
+class BacktestDcaRoiSensor(PnlPercentSensor):
     """DCA strategy backtest ROI."""
 
     config = SensorConfig(
@@ -21,7 +21,7 @@ class BacktestDcaRoiSensor(PercentSensor):
 
 
 @register_sensor(category="backtest")
-class BacktestSmartDcaRoiSensor(PercentSensor):
+class BacktestSmartDcaRoiSensor(PnlPercentSensor):
     """Smart DCA strategy backtest ROI."""
 
     config = SensorConfig(
@@ -36,7 +36,7 @@ class BacktestSmartDcaRoiSensor(PercentSensor):
 
 
 @register_sensor(category="backtest")
-class BacktestLumpSumRoiSensor(PercentSensor):
+class BacktestLumpSumRoiSensor(PnlPercentSensor):
     """Lump sum strategy backtest ROI."""
 
     config = SensorConfig(

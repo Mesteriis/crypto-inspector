@@ -340,6 +340,8 @@ class UnifiedSensorManager:
 
     async def _get_market_sentiment(self, currency: str) -> str | None:
         """Get market sentiment for a currency."""
+        from core.translations import t
+        
         base = currency.split("/")[0] if "/" in currency else currency
         data = self._cache.get(base)
         if not data:
@@ -353,13 +355,13 @@ class UnifiedSensorManager:
 
         # Composite sentiment from change and ATH distance
         if change > 3 and ath_dist > -20:
-            return "Greedy"
+            return t("Greedy")
         elif change > 0:
-            return "Optimistic"
+            return t("Optimistic")
         elif change > -3:
-            return "Cautious"
+            return t("Cautious")
         else:
-            return "Fearful"
+            return t("Fearful")
 
     def is_initialized(self) -> bool:
         """Check if consolidated sensors have been created."""

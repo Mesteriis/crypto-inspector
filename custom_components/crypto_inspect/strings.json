@@ -1,0 +1,34 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Crypto Inspect",
+        "description": "Configure connection to Crypto Inspect addon",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "language": "Language"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to Crypto Inspect API",
+      "unknown": "Unexpected error occurred"
+    },
+    "abort": {
+      "already_configured": "This Crypto Inspect instance is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Crypto Inspect Options",
+        "description": "Configure integration options",
+        "data": {
+          "update_interval": "Update interval (seconds)",
+          "language": "Language"
+        }
+      }
+    }
+  }
+}

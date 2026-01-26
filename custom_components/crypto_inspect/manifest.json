@@ -1,0 +1,13 @@
+{
+  "domain": "crypto_inspect",
+  "name": "Crypto Inspect",
+  "codeowners": ["@avm"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/avm/crypto-inspect",
+  "integration_type": "hub",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/avm/crypto-inspect/issues",
+  "requirements": ["aiohttp>=3.8.0"],
+  "version": "1.0.0"
+}

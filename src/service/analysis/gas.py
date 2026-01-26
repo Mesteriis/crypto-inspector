@@ -133,7 +133,8 @@ class GasTracker:
     def __init__(self, etherscan_api_key: str | None = None, timeout: float = 15.0):
         self._client: httpx.AsyncClient | None = None
         self._timeout = timeout
-        self._etherscan_key = etherscan_api_key or os.environ.get("ETHERSCAN_API_KEY")
+        # Support both ENV formats: ETHERSCAN_API_KEY and etherscan_api_key
+        self._etherscan_key = etherscan_api_key or os.environ.get("ETHERSCAN_API_KEY") or os.environ.get("etherscan_api_key")
 
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create HTTP client."""
@@ -160,24 +161,29 @@ class GasTracker:
         3. Public endpoints
 
         Returns:
-            GasData with current prices
+            GasData with current prices (always returns a value, defaults if all fail)
         """
         client = await self._get_client()
 
         # Try Etherscan first if API key available
         if self._etherscan_key:
             try:
-                return await self._fetch_etherscan(client)
+                result = await self._fetch_etherscan(client)
+                logger.info(f"Gas prices from Etherscan: {result.standard} Gwei")
+                return result
             except Exception as e:
                 logger.warning(f"Etherscan fetch failed: {e}")
 
         # Try public endpoints
         try:
-            return await self._fetch_public_api(client)
+            result = await self._fetch_public_api(client)
+            logger.info(f"Gas prices from {result.source}: {result.standard} Gwei")
+            return result
         except Exception as e:
             logger.warning(f"Public API fetch failed: {e}")
 
-        # Return default values
+        # Return default values - always return something
+        logger.info("Using default gas values")
         return self._create_default_result()
 
     async def _fetch_etherscan(self, client: httpx.AsyncClient) -> GasData:
@@ -218,6 +224,46 @@ class GasTracker:
 
     async def _fetch_public_api(self, client: httpx.AsyncClient) -> GasData:
         """Fetch from public API (no key required)."""
+        # Try Beaconcha.in first (most reliable free API)
+        try:
+            response = await client.get("https://beaconcha.in/api/v1/execution/gasnow")
+            response.raise_for_status()
+            data = response.json()
+            logger.debug(f"Beaconcha.in response: {data}")
+            
+            # Beaconcha.in returns data directly, not nested under "data"
+            gas_data = data.get("data", data)  # Try both formats
+            rapid = gas_data.get("rapid", 35e9)
+            fast = gas_data.get("fast", 30e9)
+            standard = gas_data.get("standard", 25e9)
+            slow = gas_data.get("slow", 20e9)
+            
+            # Convert Wei to Gwei if values are large (> 1000)
+            if slow > 1000:
+                slow = slow / 1e9
+            if standard > 1000:
+                standard = standard / 1e9
+            if fast > 1000:
+                fast = fast / 1e9
+            if rapid > 1000:
+                rapid = rapid / 1e9
+            
+            return GasData(
+                timestamp=datetime.now(),
+                slow=slow,
+                standard=standard,
+                fast=fast,
+                instant=rapid,
+                base_fee=None,
+                priority_fee_slow=None,
+                priority_fee_fast=None,
+                status=self._classify_status(standard),
+                status_ru=self._get_status_ru(standard),
+                source="beaconcha.in",
+            )
+        except Exception as e:
+            logger.warning(f"Beaconcha.in fetch failed: {e}")
+
         # Try ETH Gas API
         try:
             response = await client.get("https://api.ethgasstation.info/api/ethgasAPI.json")

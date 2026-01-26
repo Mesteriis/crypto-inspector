@@ -33,6 +33,7 @@ async def run_all_jobs() -> dict[str, Any]:
         ai_analysis_job,
         altseason_job,
         arbitrage_job,
+        backtest_job,
         bybit_sync_job,
         correlation_job,
         dca_job,
@@ -43,6 +44,7 @@ async def run_all_jobs() -> dict[str, Any]:
         liquidation_job,
         macro_job,
         market_analysis_job,
+        portfolio_job,
         profit_taking_job,
         signal_history_job,
         stablecoin_job,
@@ -75,6 +77,8 @@ async def run_all_jobs() -> dict[str, Any]:
         ("unlocks", unlocks_job),
         ("macro", macro_job),
         ("ai_analysis", ai_analysis_job),
+        ("portfolio", portfolio_job),
+        ("backtest", backtest_job),
     ]
 
     results = {}

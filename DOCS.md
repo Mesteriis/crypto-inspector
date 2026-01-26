@@ -4,13 +4,125 @@
 
 Crypto Inspect - это профессиональный криптовалютный анализатор, интегрированный с Home Assistant. Add-on собирает рыночные данные, анализирует тренды, отслеживает ваш портфель на Bybit и отправляет все данные в виде сенсоров.
 
+**Version:** 1.0.0 (Stable)
+
 ## Быстрый старт
 
-1. Установите add-on
+1. Установите add-on или custom component
 2. Настройте Bybit API ключи (опционально)
 3. Запустите add-on
 4. Сенсоры появятся автоматически в Home Assistant
 5. Настройте input helpers и blueprints (см. ниже)
+
+---
+
+## Варианты установки
+
+### Вариант 1: Home Assistant Add-on (рекомендуется)
+
+Самый простой способ - использовать как Home Assistant Add-on.
+
+1. Добавьте репозиторий в Supervisor:
+   ```
+   https://github.com/Mesteriis/crypto-inspector
+   ```
+
+2. Установите add-on "Crypto Inspect"
+
+3. Настройте параметры в UI
+
+4. Запустите add-on
+
+### Вариант 2: Custom Component
+
+Custom Component позволяет использовать Crypto Inspect как нативную интеграцию Home Assistant. Полезно если:
+- Вы не используете Home Assistant OS/Supervised
+- Хотите запустить API сервер отдельно (на другом сервере)
+- Используете Home Assistant Container
+
+#### Установка через HACS
+
+1. Откройте HACS в Home Assistant
+2. Перейдите в "Integrations"
+3. Нажмите меню (три точки) -> "Custom repositories"
+4. Добавьте URL: `https://github.com/Mesteriis/crypto-inspector`
+5. Выберите категорию: Integration
+6. Найдите "Crypto Inspect" и установите
+7. Перезапустите Home Assistant
+
+#### Ручная установка Custom Component
+
+1. Скачайте или клонируйте репозиторий:
+   ```bash
+   git clone https://github.com/Mesteriis/crypto-inspector
+   ```
+
+2. Скопируйте папку `custom_components/crypto_inspect/` в `/config/custom_components/`:
+   ```bash
+   cp -r crypto-inspector/custom_components/crypto_inspect /config/custom_components/
+   ```
+
+3. Структура должна быть:
+   ```
+   /config/custom_components/crypto_inspect/
+   ├── __init__.py
+   ├── config_flow.py
+   ├── const.py
+   ├── coordinator.py
+   ├── manifest.json
+   ├── sensor.py
+   ├── strings.json
+   └── translations/
+       ├── en.json
+       └── ru.json
+   ```
+
+4. Перезапустите Home Assistant
+
+5. Добавьте интеграцию:
+   - Settings -> Devices & Services -> Add Integration
+   - Найдите "Crypto Inspect"
+   - Введите URL API сервера
+
+#### Настройка Custom Component
+
+При добавлении интеграции нужно указать:
+
+| Параметр | Описание | По умолчанию |
+|----------|----------|--------------|
+| Host | URL API сервера | `http://localhost:9999` |
+| Update interval | Интервал обновления (сек) | `60` |
+
+**Примеры URL:**
+- Add-on в том же HA: `http://localhost:9999`
+- Add-on по IP: `http://192.168.1.100:9999`
+- Docker контейнер: `http://crypto-inspect:9999`
+- Удалённый сервер: `http://myserver.local:9999`
+
+### Вариант 3: Standalone (Docker)
+
+Запустите API сервер отдельно без Home Assistant Add-on:
+
+```bash
+git clone https://github.com/Mesteriis/crypto-inspector
+cd crypto-inspector
+docker-compose up -d
+```
+
+Затем подключите Custom Component к этому серверу.
+
+### Вариант 4: Standalone (разработка)
+
+Для локальной разработки с использованием `uv`:
+
+```bash
+git clone https://github.com/Mesteriis/crypto-inspector
+cd crypto-inspector
+uv sync
+uv run python -m src.main
+```
+
+API сервер будет доступен на `http://localhost:9999`.
 
 ---
 

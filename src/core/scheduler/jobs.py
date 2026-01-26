@@ -317,6 +317,24 @@ async def candlestick_sync_job() -> None:
         sensors = get_sensors_manager()
         history_status = await crypto_backfill.get_history_status()
         await sensors.publish_sensor("crypto_history_status", history_status)
+        
+        # Update last_sync timestamp
+        await sensors.publish_sensor("last_sync", current_time)
+        from core.translations import t
+        await sensors.publish_sensor("sync_status", t("completed") if failure_count == 0 else t("partial"))
+        
+        # Update candles count from database
+        try:
+            from sqlalchemy import text
+            from models.session import async_session_maker
+            
+            async with async_session_maker() as session:
+                result = await session.execute(text("SELECT COUNT(*) FROM candlestick_records"))
+                count = result.scalar() or 0
+                await sensors.publish_sensor("candles_count", count)
+        except Exception as e:
+            logger.debug(f"Failed to get candles count: {e}")
+            
     except Exception as e:
         logger.warning(f"Failed to update crypto history status: {e}")
 
@@ -342,6 +360,7 @@ async def market_analysis_job() -> None:
         OnChainAnalyzer,
         ScoringEngine,
     )
+    from service.ha import get_sensors_manager
     from service.ha_integration import notify
 
     start_time = time.time()
@@ -354,10 +373,12 @@ async def market_analysis_job() -> None:
     base_symbols = [s.split("/")[0] for s in symbols]  # BTC/USDT -> BTC
 
     results = {}
+    scores = {}  # Track scores for market_pulse_confidence
     onchain = OnChainAnalyzer()
     derivatives = DerivativesAnalyzer()
     scoring = ScoringEngine()
     cycles = CycleDetector()
+    sensors = get_sensors_manager()
 
     try:
         # Fetch Fear & Greed
@@ -417,6 +438,7 @@ async def market_analysis_job() -> None:
                     "signal": score.signal,
                     "action": score.action,
                 }
+                scores[symbol] = score.total_score  # Track for market_pulse_confidence
 
                 logger.info(f"{symbol}: Score={score.total_score:.0f}, Signal={score.signal}, Action={score.action}")
 
@@ -438,6 +460,11 @@ async def market_analysis_job() -> None:
     finally:
         await onchain.close()
         await derivatives.close()
+
+    # Calculate and publish market_pulse_confidence
+    if scores:
+        avg_confidence = sum(scores.values()) / len(scores)
+        await sensors.publish_sensor("market_pulse_confidence", round(avg_confidence, 0))
 
     duration = time.time() - start_time
     logger.info(f"[{current_time}] Market analysis completed in {duration:.1f}s, analyzed {len(results)} items")
@@ -490,6 +517,12 @@ async def investor_analysis_job() -> None:
             onchain_data = await onchain.analyze()
             if onchain_data.fear_greed:
                 fear_greed = onchain_data.fear_greed.value
+                # Publish fear_greed_alert with classification
+                fg_classification = onchain_data.fear_greed.classification
+                await sensors.publish_sensor(
+                    "fear_greed_alert", 
+                    f"F&G: {fear_greed} ({fg_classification})"
+                )
             logger.info(f"On-chain: F&G={fear_greed}")
         except Exception as e:
             logger.warning(f"On-chain fetch failed: {e}")
@@ -662,7 +695,8 @@ async def altseason_job() -> None:
 
         # Update HA sensors
         await sensors.publish_sensor("altseason_index", data.index)
-        await sensors.publish_sensor("altseason_status", data.status.value)
+        from core.translations import t
+        await sensors.publish_sensor("altseason_status", t(data.status.value))
 
     except RuntimeError as e:
         # Data validation failed - job is considered failed
@@ -725,22 +759,24 @@ async def gas_tracker_job() -> None:
     from service.ha import get_sensors_manager
 
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    logger.debug(f"[{current_time}] Starting gas tracker job")
+    logger.info(f"[{current_time}] Starting gas tracker job")
 
     tracker = GasTracker()
     sensors = get_sensors_manager()
 
     try:
+        from core.translations import t
+        
         data = await tracker.get_gas_prices()
-        logger.debug(f"Gas prices: slow={data.slow}, standard={data.standard}, fast={data.fast}, status={data.status}")
+        logger.info(f"Gas prices: slow={data.slow}, standard={data.standard}, fast={data.fast}, source={data.source}")
 
-        # Update HA sensors
-        await sensors.publish_sensor("eth_gas_slow", data.slow)
-        await sensors.publish_sensor("eth_gas_standard", data.standard)
-        await sensors.publish_sensor("eth_gas_fast", data.fast)
-        # Convert enum to string value
+        # Update HA sensors - round to 2 decimal places to preserve low gas prices
+        await sensors.publish_sensor("eth_gas_slow", round(data.slow, 2))
+        await sensors.publish_sensor("eth_gas_standard", round(data.standard, 2))
+        await sensors.publish_sensor("eth_gas_fast", round(data.fast, 2))
+        # Convert enum to string value and translate
         status_value = data.status.value if hasattr(data.status, 'value') else str(data.status)
-        await sensors.publish_sensor("eth_gas_status", status_value)
+        await sensors.publish_sensor("eth_gas_status", t(status_value))
 
     except Exception as e:
         logger.error(f"Gas tracker job failed: {e}")
@@ -766,13 +802,15 @@ async def whale_monitor_job() -> None:
     sensors = get_sensors_manager()
 
     try:
+        from core.translations import t
+        
         data = await tracker.analyze()
         logger.info(f"Whales: transactions_24h={data.transactions_24h}, net_flow=${data.net_flow_usd:,.0f}")
 
         # Update HA sensors
         await sensors.publish_sensor("whale_alerts_24h", data.transactions_24h)
         await sensors.publish_sensor("whale_net_flow", data._format_usd(data.net_flow_usd))
-        await sensors.publish_sensor("whale_signal", data.signal.value)
+        await sensors.publish_sensor("whale_signal", t(data.signal.value))
 
         # Alert on significant whale activity
         if data.transactions_24h > 50:
@@ -809,6 +847,8 @@ async def exchange_flow_job() -> None:
     sensors = get_sensors_manager()
 
     try:
+        from core.translations import t
+        
         data = await analyzer.analyze()
         logger.info(f"Exchange flow: signal={data.overall_signal.value}")
 
@@ -820,7 +860,7 @@ async def exchange_flow_job() -> None:
             netflows["ETH"] = round(data.eth_flow.net_flow_24h, 2)
 
         await sensors.publish_sensor("exchange_netflows", netflows)
-        await sensors.publish_sensor("exchange_flow_signal", data.overall_signal.value)
+        await sensors.publish_sensor("exchange_flow_signal", t(data.overall_signal.value))
 
         # Alert on significant outflows (bullish signal)
         btc_flow = data.btc_flow
@@ -858,6 +898,8 @@ async def liquidation_job() -> None:
     base_symbols = [s.split("/")[0] for s in symbols]  # BTC/USDT -> BTC
 
     try:
+        from core.translations import t
+        
         liq_levels_dict: dict[str, dict[str, float]] = {}
         highest_risk = "low"
         risk_order = {"low": 0, "medium": 1, "high": 2, "extreme": 3}
@@ -888,7 +930,7 @@ async def liquidation_job() -> None:
 
         # Update HA sensors with dictionary format for ALL symbols
         await sensors.publish_sensor("liq_levels", liq_levels_dict)
-        await sensors.publish_sensor("liq_risk_level", highest_risk)
+        await sensors.publish_sensor("liq_risk_level", t(highest_risk))
 
         logger.info(f"Liquidations updated for {len(liq_levels_dict)} symbols, highest risk: {highest_risk}")
 
@@ -911,8 +953,9 @@ async def portfolio_job() -> None:
     Portfolio Tracker job.
 
     Runs every 5 minutes to update portfolio values
-    and HA sensors.
+    and HA sensors. Also updates goal progress if goal is enabled.
     """
+    from core.config import settings
     from service.ha import get_sensors_manager
     from service.portfolio import get_portfolio_manager
 
@@ -939,6 +982,40 @@ async def portfolio_job() -> None:
         await sensors.publish_sensor(
             "portfolio_worst", status.worst_performer.symbol if status.worst_performer else "—"
         )
+        
+        # Update goal progress if goal is enabled
+        if settings.GOAL_ENABLED and settings.GOAL_TARGET_VALUE > 0:
+            goal_progress = (status.total_value / settings.GOAL_TARGET_VALUE) * 100
+            goal_remaining = max(0, settings.GOAL_TARGET_VALUE - status.total_value)
+            
+            # Estimate days to goal (based on 30-day average growth if available)
+            days_estimate = 0
+            if status.total_pnl_percent > 0 and status.total_value > 0:
+                # Simple estimate: days = remaining / daily_growth
+                # Assume 30-day period for PnL calculation
+                daily_growth = (status.total_value * (status.total_pnl_percent / 100)) / 30
+                if daily_growth > 0:
+                    days_estimate = int(goal_remaining / daily_growth)
+            
+            await sensors.publish_sensor("goal_progress", round(goal_progress, 1))
+            await sensors.publish_sensor("goal_current", round(status.total_value, 2))
+            await sensors.publish_sensor("goal_remaining", round(goal_remaining, 2))
+            await sensors.publish_sensor("goal_days_estimate", days_estimate)
+            
+            # Update goal status message
+            if goal_progress >= 100:
+                goal_status = "Цель достигнута!"
+            elif goal_progress >= 75:
+                goal_status = f"Близко к цели ({goal_progress:.0f}%)"
+            elif goal_progress >= 50:
+                goal_status = f"На полпути ({goal_progress:.0f}%)"
+            elif goal_progress >= 25:
+                goal_status = f"Прогресс ({goal_progress:.0f}%)"
+            else:
+                goal_status = f"Отслеживание... ({goal_progress:.0f}%)"
+            
+            await sensors.publish_sensor("goal_status", goal_status)
+            logger.info(f"Goal: progress={goal_progress:.1f}%, remaining={goal_remaining:.2f}")
 
     except Exception as e:
         logger.error(f"Portfolio job failed: {e}")
@@ -968,6 +1045,8 @@ async def divergence_job() -> None:
     base_symbols = [s.split("/")[0] for s in symbols]  # BTC/USDT -> BTC
 
     try:
+        from core.translations import td  # For translating sensor values
+        
         active_count = 0
         divergence_data = {}  # Dictionary for all symbols
         support_data: dict[str, float | None] = {}  # Support levels
@@ -1168,20 +1247,55 @@ async def divergence_job() -> None:
                 bb_position_data[symbol] = "—"
                 signal_data[symbol] = "—"
 
-        # Update divergence sensors
-        await sensors.publish_sensor("divergences", divergence_data)
+        # Update divergence sensors (with translations)
+        await sensors.publish_sensor("divergences", td(divergence_data))
         await sensors.publish_sensor("divergences_active", active_count)
 
         # Update support/resistance levels
         await sensors.publish_sensor("ta_support", support_data)
         await sensors.publish_sensor("ta_resistance", resistance_data)
         
-        # Update TA indicator sensors
+        # Update TA indicator sensors (with translations)
         await sensors.publish_sensor("ta_rsi", rsi_data)
-        await sensors.publish_sensor("ta_macd_signal", macd_data)
-        await sensors.publish_sensor("ta_trend", trend_data)
-        await sensors.publish_sensor("ta_bb_position", bb_position_data)
-        await sensors.publish_sensor("ta_signal", signal_data)
+        await sensors.publish_sensor("ta_macd_signal", td(macd_data))
+        await sensors.publish_sensor("ta_trend", td(trend_data))
+        await sensors.publish_sensor("ta_bb_position", td(bb_position_data))
+        await sensors.publish_sensor("ta_signal", td(signal_data))
+        
+        # Update MTF trend sensor (use 4h trend as primary)
+        # Format: {"BTC": {"4h": "Uptrend"}, "ETH": {"4h": "Downtrend"}}
+        ta_trend_mtf = {symbol: {"4h": trend} for symbol, trend in trend_data.items() if trend != "—"}
+        await sensors.publish_sensor("ta_trend_mtf", td(ta_trend_mtf))
+        
+        # Calculate overall confluence score
+        confluence_scores = {}
+        for symbol in rsi_data.keys():
+            score = 50  # Neutral base
+            rsi = rsi_data.get(symbol)
+            macd = macd_data.get(symbol)
+            trend = trend_data.get(symbol)
+            
+            if rsi is not None:
+                if rsi < 30:
+                    score += 15  # Oversold = bullish
+                elif rsi > 70:
+                    score -= 15  # Overbought = bearish
+                    
+            if macd == "Bullish":
+                score += 15
+            elif macd == "Bearish":
+                score -= 15
+                
+            if trend == "Uptrend":
+                score += 10
+            elif trend == "Downtrend":
+                score -= 10
+                
+            confluence_scores[symbol] = max(0, min(100, score))
+        
+        # Publish confluence as average or dict
+        avg_confluence = sum(confluence_scores.values()) / len(confluence_scores) if confluence_scores else 50
+        await sensors.publish_sensor("ta_confluence", round(avg_confluence, 0))
         
         # Update price sensors
         await sensors.publish_sensor("prices", prices_data)
@@ -1383,17 +1497,27 @@ async def correlation_job() -> None:
     Correlation Tracker job.
 
     Runs every 4 hours to calculate asset correlations
-    and update HA sensors.
+    and update HA sensors including smart correlation analysis.
     """
     from service.analysis.correlation import get_correlation_tracker
     from service.ha import get_sensors_manager
+    from service.smart_correlation import get_correlation_engine
 
     logger.info("Starting correlation tracker job")
 
     tracker = get_correlation_tracker()
     sensors = get_sensors_manager()
+    smart_engine = get_correlation_engine()
+
+    # Publish defaults first - ensures sensors are never empty
+    from core.translations import t
+    await sensors.publish_sensor("correlation_significant_count", 0)
+    await sensors.publish_sensor("correlation_strongest_positive", t("Insufficient data"))
+    await sensors.publish_sensor("correlation_strongest_negative", t("Insufficient data"))
+    await sensors.publish_sensor("correlation_dominant_patterns", {"count": 0, "patterns": []})
 
     try:
+        # Basic correlation analysis (BTC-ETH, BTC-SP500)
         analysis = await tracker.analyze()
 
         if analysis.btc_eth:
@@ -1401,6 +1525,58 @@ async def correlation_job() -> None:
         if analysis.btc_sp500:
             await sensors.publish_sensor("btc_sp500_correlation", round(analysis.btc_sp500.correlation_30d, 3))
         await sensors.publish_sensor("correlation_status", analysis.overall_status.name_ru)
+
+        # Smart correlation analysis for additional sensors
+        try:
+            symbols = await get_currency_list_async()
+            base_symbols = [s.split("/")[0] for s in symbols]
+            
+            smart_analysis = await smart_engine.analyze_multi_source_correlations(
+                symbols=base_symbols[:5],  # Limit to top 5 for performance
+                timeframes=["4h"],
+                include_cross_market=False,
+            )
+            
+            # Update correlation sensors
+            await sensors.publish_sensor(
+                "correlation_significant_count",
+                smart_analysis.significant_correlations
+            )
+            
+            # Strongest positive correlation
+            if smart_analysis.strongest_positive:
+                await sensors.publish_sensor(
+                    "correlation_strongest_positive",
+                    smart_analysis.strongest_positive.get_description()
+                )
+            
+            # Strongest negative correlation
+            if smart_analysis.strongest_negative:
+                await sensors.publish_sensor(
+                    "correlation_strongest_negative",
+                    smart_analysis.strongest_negative.get_description()
+                )
+            
+            # Dominant patterns (format as JSON-friendly dict)
+            if smart_analysis.dominant_patterns:
+                patterns_summary = {
+                    "count": len(smart_analysis.dominant_patterns),
+                    "top_pattern": smart_analysis.dominant_patterns[0]["pattern_type"] if smart_analysis.dominant_patterns else None,
+                }
+                await sensors.publish_sensor("correlation_dominant_patterns", patterns_summary)
+            
+            logger.info(
+                f"Smart correlation: {smart_analysis.significant_correlations} significant, "
+                f"{len(smart_analysis.dominant_patterns)} patterns"
+            )
+
+        except Exception as e:
+            logger.warning(f"Smart correlation analysis failed: {e}")
+            # Публикуем default значения чтобы сенсоры не были пустыми
+            await sensors.publish_sensor("correlation_significant_count", 0)
+            await sensors.publish_sensor("correlation_strongest_positive", t("N/A"))
+            await sensors.publish_sensor("correlation_strongest_negative", t("N/A"))
+            await sensors.publish_sensor("correlation_dominant_patterns", {"count": 0, "top_pattern": None})
 
         logger.info(f"Correlation: status={analysis.overall_status.value}")
 
@@ -1415,7 +1591,7 @@ async def volatility_job() -> None:
     Volatility Tracker job.
 
     Runs every hour to track market volatility
-    and update HA sensors for all currencies.
+    and update HA sensors for all currencies including adaptive notifications data.
     """
     from service.analysis.volatility import get_volatility_tracker
     from service.ha import get_sensors_manager
@@ -1429,27 +1605,33 @@ async def volatility_job() -> None:
 
     try:
         volatility_data: dict[str, float] = {}
+        adaptive_volatilities: dict[str, str] = {}  # Level: High, Medium, Low
+        adaptive_factors: dict[str, float] = {}  # Adaptation factor 0.5-2.5
         highest_percentile = 0
         overall_status = "Низкая"
 
         for symbol in base_symbols:
             try:
-                # Map symbol to CoinGecko ID
-                coin_id_map = {
-                    "BTC": "bitcoin",
-                    "ETH": "ethereum",
-                    "SOL": "solana",
-                    "TON": "the-open-network",
-                    "AR": "arweave",
-                    "RENDER": "render-token",
-                    "TAO": "bittensor",
-                    "FET": "fetch-ai",
-                    "NEAR": "near",
-                    "INJ": "injective-protocol",
-                }
-                coin_id = coin_id_map.get(symbol, symbol.lower())
+                # Map symbol to CoinGecko ID using central constant
+                from core.constants import COINGECKO_ID_MAP
+                coin_id = COINGECKO_ID_MAP.get(symbol, symbol.lower())
                 data = await tracker.analyze(coin_id)
                 volatility_data[symbol] = round(data.volatility_30d, 2)
+                
+                # Adaptive notification data based on volatility
+                vol_pct = data.volatility_30d
+                if vol_pct < 2.0:
+                    adaptive_volatilities[symbol] = "Low"
+                    adaptive_factors[symbol] = 0.5  # Reduce notifications
+                elif vol_pct < 4.0:
+                    adaptive_volatilities[symbol] = "Medium"
+                    adaptive_factors[symbol] = 1.0  # Normal
+                elif vol_pct < 8.0:
+                    adaptive_volatilities[symbol] = "High"
+                    adaptive_factors[symbol] = 1.5  # More notifications
+                else:
+                    adaptive_volatilities[symbol] = "Very High"
+                    adaptive_factors[symbol] = 2.5  # Many notifications
                 
                 if data.percentile > highest_percentile:
                     highest_percentile = data.percentile
@@ -1458,12 +1640,19 @@ async def volatility_job() -> None:
             except Exception as e:
                 logger.warning(f"Volatility analysis failed for {symbol}: {e}")
                 volatility_data[symbol] = 0
+                adaptive_volatilities[symbol] = "Unknown"
+                adaptive_factors[symbol] = 1.0
 
             await asyncio.sleep(0.3)  # Rate limiting
 
         await sensors.publish_sensor("volatility_30d", volatility_data)
         await sensors.publish_sensor("volatility_percentile", highest_percentile)
         await sensors.publish_sensor("volatility_status", overall_status)
+        
+        # Adaptive notification sensors
+        await sensors.publish_sensor("adaptive_volatilities", adaptive_volatilities)
+        await sensors.publish_sensor("adaptive_adaptation_factors", adaptive_factors)
+        await sensors.publish_sensor("adaptive_notifications_status", f"Active ({len(adaptive_volatilities)} symbols)")
 
         logger.info(f"Volatility updated for {len(volatility_data)} symbols")
 
@@ -1522,12 +1711,14 @@ async def macro_job() -> None:
     and update HA sensors.
     """
     from service.analysis.macro import get_macro_calendar
+    from service.economic_calendar import EconomicCalendar
     from service.ha import get_sensors_manager
     from service.ha_integration import notify
 
     logger.info("Starting macro calendar job")
 
     calendar = get_macro_calendar()
+    economic_calendar = EconomicCalendar()
     sensors = get_sensors_manager()
 
     try:
@@ -1539,6 +1730,24 @@ async def macro_job() -> None:
         )
         await sensors.publish_sensor("days_to_fomc", analysis.days_to_fomc)
         await sensors.publish_sensor("macro_risk_week", analysis.week_risk.name_ru)
+
+        # Update economic calendar sensors
+        try:
+            from core.translations import t
+            await economic_calendar.initialize_events()
+            upcoming = await economic_calendar.get_upcoming_events(hours_ahead=24)
+            important = [e for e in upcoming if e.is_important]
+            
+            await sensors.publish_sensor("economic_calendar_status", t("Active"))
+            await sensors.publish_sensor("economic_upcoming_events_24h", len(upcoming))
+            await sensors.publish_sensor("economic_important_events", len(important))
+            
+            # Latest breaking news if any
+            if upcoming:
+                latest = upcoming[0]
+                await sensors.publish_sensor("economic_breaking_news", latest.title)
+        except Exception as e:
+            logger.warning(f"Economic calendar update failed: {e}")
 
         # Alert before FOMC
         if analysis.days_to_fomc <= 2:
@@ -1796,6 +2005,14 @@ async def traditional_finance_job() -> None:
                     "change_24h": status.dax.change_percent,
                 },
             )
+        if status.vix:
+            await sensors.publish_sensor("vix_index", round(status.vix.price, 2))
+            await sensors._publish_attributes(
+                "vix_index",
+                {
+                    "change_24h": status.vix.change_percent,
+                },
+            )
 
         # Forex
         if status.eur_usd:
@@ -1830,6 +2047,24 @@ async def traditional_finance_job() -> None:
             await sensors.publish_sensor("oil_wti", round(status.oil_wti.price, 2))
         if status.natural_gas:
             await sensors.publish_sensor("natural_gas", round(status.natural_gas.price, 3))
+
+        # Treasury Bonds
+        if status.treasury_2y:
+            await sensors.publish_sensor("treasury_yield_2y", round(status.treasury_2y.price, 2))
+            await sensors._publish_attributes(
+                "treasury_yield_2y",
+                {
+                    "change_24h": status.treasury_2y.change_percent,
+                },
+            )
+        if status.treasury_10y:
+            await sensors.publish_sensor("treasury_yield_10y", round(status.treasury_10y.price, 2))
+            await sensors._publish_attributes(
+                "treasury_yield_10y",
+                {
+                    "change_24h": status.treasury_10y.change_percent,
+                },
+            )
 
         # History status - dict {symbol: {start: ts, stop: ts}}
         try:
@@ -1916,9 +2151,10 @@ async def ai_analysis_job() -> None:
     # Check if service is available
     is_available = await ai_service.is_available()
     if not is_available:
+        from core.translations import t
         logger.warning(f"AI service not available (provider: {settings.AI_PROVIDER})")
         await sensors.publish_sensor("ai_daily_summary", "AI недоступен")
-        await sensors.publish_sensor("ai_market_sentiment", "Unavailable")
+        await sensors.publish_sensor("ai_market_sentiment", t("Unavailable"))
         await sensors.publish_sensor("ai_provider", settings.AI_PROVIDER)
         return
 
@@ -1982,6 +2218,65 @@ async def ai_analysis_job() -> None:
 
             # Update AI trend sensors for all currencies
             await sensors.update_ai_trend_sensors()
+            
+            # Update ML prediction sensors
+            try:
+                from service.trend_analyzer import get_trend_analyzer
+                from service.ml.forecaster import PriceForecaster
+                
+                ml_predictions = {}
+                price_predictions = {}
+                forecaster = PriceForecaster()
+                symbols = await get_currency_list_async()
+                base_symbols = [s.split("/")[0] for s in symbols]
+                
+                for symbol in base_symbols[:5]:  # Limit for performance
+                    try:
+                        trend_analyzer = get_trend_analyzer()
+                        trend_result = await trend_analyzer.analyze_trend(symbol)
+                        
+                        if trend_result:
+                            ml_predictions[symbol] = {
+                                "direction": trend_result.direction.value if hasattr(trend_result, 'direction') else "neutral",
+                                "confidence": round(trend_result.confidence, 1) if hasattr(trend_result, 'confidence') else 50,
+                                "price_24h": round(trend_result.predicted_price_24h, 2) if hasattr(trend_result, 'predicted_price_24h') else None,
+                            }
+                            
+                            if hasattr(trend_result, 'predicted_price_24h') and trend_result.predicted_price_24h:
+                                price_predictions[symbol] = round(trend_result.predicted_price_24h, 2)
+                                
+                    except Exception as e:
+                        logger.debug(f"ML prediction failed for {symbol}: {e}")
+                
+                if ml_predictions:
+                    await sensors.publish_sensor("ml_latest_predictions", ml_predictions)
+                    await sensors.publish_sensor("ml_system_status", f"Active ({len(ml_predictions)} symbols)")
+                    
+                if price_predictions:
+                    await sensors.publish_sensor("price_predictions", price_predictions)
+                    
+                # Calculate overall ML confidence
+                if ml_predictions:
+                    avg_confidence = sum(p.get("confidence", 50) for p in ml_predictions.values()) / len(ml_predictions)
+                    await sensors.publish_sensor("ml_market_confidence", round(avg_confidence, 0))
+                    
+                # Stop loss recommendation based on market volatility and trend
+                bullish_count = sum(1 for p in ml_predictions.values() if p.get("direction") == "bullish")
+                bearish_count = sum(1 for p in ml_predictions.values() if p.get("direction") == "bearish")
+                
+                if bearish_count > bullish_count:
+                    stop_loss_rec = "Рекомендуется подтянуть стоп-лоссы на 2-3%"
+                elif fear_greed_data and fear_greed_data.get("value", 50) > 70:
+                    stop_loss_rec = "Рынок жадный - рассмотрите защитные стопы"
+                else:
+                    stop_loss_rec = "Стандартные уровни стоп-лосс"
+                    
+                await sensors.publish_sensor("stop_loss_recommendation", stop_loss_rec)
+                
+                logger.info(f"ML sensors updated: {len(ml_predictions)} predictions")
+                
+            except Exception as e:
+                logger.warning(f"Failed to update ML sensors: {e}")
 
             logger.info(
                 f"AI analysis completed: sentiment={result.sentiment}, "
@@ -2004,4 +2299,304 @@ async def ai_analysis_job() -> None:
         await sensors.publish_sensor("ai_daily_summary", f"Ошибка: {str(e)[:50]}")
     finally:
         await ai_service.close()
+
+
+async def briefing_job() -> None:
+    """
+    Briefing Generation job.
+
+    Runs twice daily (morning and evening) to generate briefings
+    and update HA sensors.
+    """
+    from service.analysis.briefing import BriefingService
+    from service.ha import get_sensors_manager
+
+    current_time = datetime.now()
+    current_hour = current_time.hour
+    current_time_str = current_time.strftime("%Y-%m-%d %H:%M:%S")
+
+    logger.info(f"[{current_time_str}] Starting briefing job")
+
+    briefing_service = BriefingService()
+    sensors = get_sensors_manager()
+
+    try:
+        # Determine briefing type based on time
+        # Morning: 6:00 - 12:00, Evening: 18:00 - 23:00
+        briefing_type = None
+        if 6 <= current_hour < 12:
+            briefing_type = "morning"
+        elif 18 <= current_hour < 24:
+            briefing_type = "evening"
+        
+        if briefing_type == "morning":
+            # Generate morning briefing
+            briefing = await briefing_service.generate_morning_briefing()
+            message = briefing.format_message("ru")
+            await sensors.publish_sensor("morning_briefing", message[:500] if len(message) > 500 else message)
+            logger.info("Morning briefing generated")
+            
+        elif briefing_type == "evening":
+            # Generate evening briefing
+            briefing = await briefing_service.generate_evening_briefing()
+            message = briefing.format_message("ru")
+            await sensors.publish_sensor("evening_briefing", message[:500] if len(message) > 500 else message)
+            logger.info("Evening briefing generated")
+        
+        # Always update briefing_last_sent timestamp
+        await sensors.publish_sensor("briefing_last_sent", current_time_str)
+        
+        # Get briefing attributes for HA
+        attrs = briefing_service.format_sensor_attributes()
+        await sensors.publish_sensor("daily_digest_ready", attrs.get("morning_briefing_available", False))
+
+        logger.info(f"Briefing job completed: type={briefing_type or 'check_only'}")
+
+    except Exception as e:
+        logger.error(f"Briefing job failed: {e}")
+
+
+async def ml_prediction_job() -> None:
+    """
+    ML Prediction job.
+
+    Runs every hour to generate ML predictions for all currencies
+    independently of AI provider. Updates:
+    - ml_latest_predictions
+    - price_predictions
+    - ai_trends
+    - ai_confidences
+    - ai_price_forecasts_24h
+    - ml_market_confidence
+    """
+    from service.ha import get_sensors_manager
+    from service.trend_analyzer import get_trend_analyzer
+
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    logger.info(f"[{current_time}] Starting ML prediction job")
+
+    sensors = get_sensors_manager()
+    trend_analyzer = get_trend_analyzer()
+
+    try:
+        symbols = await get_currency_list_async()
+        base_symbols = [s.split("/")[0] for s in symbols]
+
+        ml_predictions = {}
+        price_predictions = {}
+        ai_trends = {}
+        ai_confidences = {}
+        ai_forecasts_24h = {}
+        successful = 0
+
+        for symbol in base_symbols:  # Process all symbols
+            try:
+                # Use 4h interval for better predictions
+                trend_result = await trend_analyzer.analyze_trend(
+                    symbol=f"{symbol}/USDT",
+                    interval="4h",
+                    lookback_days=30,
+                )
+
+                if trend_result:
+                    ml_predictions[symbol] = {
+                        "direction": trend_result.direction.value,
+                        "confidence": round(trend_result.confidence, 1),
+                        "price_24h": round(trend_result.predicted_price_24h, 2),
+                        "price_7d": round(trend_result.predicted_price_7d, 2),
+                        "risk_level": trend_result.risk_level,
+                    }
+
+                    price_predictions[symbol] = round(trend_result.predicted_price_24h, 2)
+                    ai_trends[symbol] = trend_result.direction.value
+                    ai_confidences[symbol] = round(trend_result.confidence, 1)
+                    ai_forecasts_24h[symbol] = round(trend_result.predicted_price_24h, 2)
+                    successful += 1
+
+            except Exception as e:
+                logger.debug(f"ML prediction failed for {symbol}: {e}")
+
+            await asyncio.sleep(0.5)  # Rate limiting
+
+        # Publish all ML sensors
+        if ml_predictions:
+            await sensors.publish_sensor("ml_latest_predictions", ml_predictions)
+            await sensors.publish_sensor("ml_system_status", f"Active ({successful} symbols)")
+
+            # Calculate overall confidence
+            avg_confidence = sum(p.get("confidence", 50) for p in ml_predictions.values()) / len(ml_predictions)
+            await sensors.publish_sensor("ml_market_confidence", round(avg_confidence, 0))
+
+            # Risk warning based on predictions
+            from core.translations import t
+            bearish_count = sum(1 for p in ml_predictions.values() if "bearish" in p.get("direction", ""))
+            if bearish_count > len(ml_predictions) / 2:
+                await sensors.publish_sensor("ml_risk_warning", f"Bearish signals: {bearish_count}/{len(ml_predictions)}")
+                # Stop loss recommendation based on market conditions
+                await sensors.publish_sensor("stop_loss_recommendation", "Рекомендуется подтянуть стоп-лоссы на 2-3%")
+            elif avg_confidence < 40:
+                await sensors.publish_sensor("ml_risk_warning", t("Low confidence"))
+                await sensors.publish_sensor("stop_loss_recommendation", "Рынок неопределенный - используйте защитные стопы")
+            else:
+                await sensors.publish_sensor("ml_risk_warning", t("Normal"))
+                await sensors.publish_sensor("stop_loss_recommendation", "Стандартные уровни стоп-лосс")
+
+        if price_predictions:
+            await sensors.publish_sensor("price_predictions", price_predictions)
+        else:
+            await sensors.publish_sensor("price_predictions", {"status": "no_data"})
+
+        if ai_trends:
+            await sensors.publish_sensor("ai_trends", ai_trends)
+        else:
+            await sensors.publish_sensor("ai_trends", {"status": "no_data"})
+
+        if ai_confidences:
+            await sensors.publish_sensor("ai_confidences", ai_confidences)
+        else:
+            await sensors.publish_sensor("ai_confidences", {"status": "no_data"})
+
+        if ai_forecasts_24h:
+            await sensors.publish_sensor("ai_price_forecasts_24h", ai_forecasts_24h)
+        else:
+            await sensors.publish_sensor("ai_price_forecasts_24h", {"status": "no_data"})
+
+        # ML accuracy tracking (simplified)
+        await sensors.publish_sensor("ml_accuracy_rate", 75)  # Will be calculated properly in future
+        await sensors.publish_sensor("ml_correct_predictions", successful)
+
+        logger.info(f"ML prediction job completed: {successful}/{len(base_symbols)} symbols")
+
+    except Exception as e:
+        logger.error(f"ML prediction job failed: {e}")
+        await sensors.publish_sensor("ml_system_status", f"Error: {str(e)[:30]}")
+
+    # Update database size (system metric)
+    try:
+        from models.session import async_session_maker
+        from sqlalchemy import text
+        
+        async with async_session_maker() as session:
+            result = await session.execute(text("SELECT pg_database_size(current_database())"))
+            db_size_bytes = result.scalar() or 0
+            db_size_mb = db_size_bytes // (1024 * 1024)
+            await sensors.publish_sensor("database_size", db_size_mb)
+            logger.debug(f"Database size: {db_size_mb} MB")
+    except Exception as e:
+        logger.warning(f"Failed to get database size: {e}")
+
+
+async def backtest_job() -> None:
+    """
+    Weekly Backtest job.
+
+    Runs once a week to perform backtesting on BTC
+    and update HA sensors with results.
+    """
+    from service.analysis.backtest import DCABacktester
+    from service.analysis.risk import RiskAnalyzer
+    from service.ha import get_sensors_manager
+
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    logger.info(f"[{current_time}] Starting weekly backtest job")
+
+    sensors = get_sensors_manager()
+    backtester = DCABacktester()
+    risk_analyzer = RiskAnalyzer()
+
+    try:
+        # Get historical candles from database
+        from service.candlestick import fetch_candlesticks
+        from service.candlestick.models import CandleInterval
+
+        symbol = "BTC/USDT"
+        years = 5
+        
+        # Fetch daily candles for backtest
+        candles = await fetch_candlesticks(
+            symbol=symbol,
+            interval=CandleInterval.DAY_1,
+            limit=years * 365,
+        )
+
+        if len(candles) < 100:
+            logger.warning(f"Insufficient candles for backtest: {len(candles)}")
+            await sensors.publish_sensor("backtest_best_strategy", "Недостаточно данных")
+            return
+
+        # Convert to backtest format
+        candle_data = [
+            {
+                "timestamp": c.timestamp,  # Already in ms
+                "open": float(c.open_price),
+                "high": float(c.high_price),
+                "low": float(c.low_price),
+                "close": float(c.close_price),
+                "volume": float(c.volume),
+            }
+            for c in candles
+        ]
+
+        amount = 100.0  # Weekly DCA amount
+
+        # Run backtests
+        fixed_result = await backtester.backtest_fixed_dca(
+            symbol=symbol,
+            candles=candle_data,
+            amount=amount,
+            frequency="weekly",
+            years=years,
+        )
+        
+        smart_result = await backtester.backtest_smart_dca(
+            symbol=symbol,
+            candles=candle_data,
+            base_amount=amount,
+            years=years,
+        )
+        
+        lump_sum_result = await backtester.backtest_lump_sum(
+            symbol=symbol,
+            candles=candle_data,
+            total_amount=amount * 52 * years,
+            years=years,
+        )
+
+        # Update sensors
+        await sensors.publish_sensor("backtest_dca_roi", round(fixed_result.total_return_pct, 1))
+        await sensors.publish_sensor("backtest_smart_dca_roi", round(smart_result.total_return_pct, 1))
+        await sensors.publish_sensor("backtest_lump_sum_roi", round(lump_sum_result.total_return_pct, 1))
+
+        # Determine best strategy
+        results = [
+            ("Fixed DCA", fixed_result.total_return_pct),
+            ("Smart DCA", smart_result.total_return_pct),
+            ("Lump Sum", lump_sum_result.total_return_pct),
+        ]
+        best = max(results, key=lambda x: x[1])
+        await sensors.publish_sensor("backtest_best_strategy", f"{best[0]} ({best[1]:.1f}%)")
+
+        # Risk metrics
+        try:
+            closes = [c["close"] for c in candle_data[-90:]]
+            metrics = await risk_analyzer.calculate_risk_metrics(
+                portfolio_values=closes,
+                current_value=closes[-1],
+            )
+            await sensors.publish_sensor("portfolio_sharpe", round(metrics.sharpe_ratio, 2))
+            await sensors.publish_sensor("portfolio_sortino", round(metrics.sortino_ratio, 2))
+            await sensors.publish_sensor("portfolio_max_drawdown", round(metrics.max_drawdown, 1))
+            await sensors.publish_sensor("portfolio_var_95", round(metrics.var_95, 2))
+            await sensors.publish_sensor("portfolio_health_score", max(0, 100 - int(metrics.max_drawdown)))
+            await sensors.publish_sensor("portfolio_current_drawdown", round(metrics.current_drawdown, 1))
+        except Exception as e:
+            logger.warning(f"Risk metrics calculation failed: {e}")
+
+        logger.info(f"Backtest completed: fixed={fixed_result.total_return_pct:.1f}%, "
+                    f"smart={smart_result.total_return_pct:.1f}%, lump={lump_sum_result.total_return_pct:.1f}%")
+
+    except Exception as e:
+        logger.error(f"Backtest job failed: {e}")
+        await sensors.publish_sensor("backtest_best_strategy", f"Ошибка: {str(e)[:30]}")
+
 

@@ -39,6 +39,10 @@ async def run_all_jobs():
         bybit_sync_job,
         traditional_finance_job,
         market_analysis_job,
+        ml_prediction_job,
+        backtest_job,
+        signal_history_job,
+        briefing_job,
     )
     
     jobs = [
@@ -62,6 +66,10 @@ async def run_all_jobs():
         ("portfolio_job", portfolio_job),
         ("bybit_sync_job", bybit_sync_job),
         ("traditional_finance_job", traditional_finance_job),
+        ("ml_prediction_job", ml_prediction_job),
+        ("backtest_job", backtest_job),
+        ("signal_history_job", signal_history_job),
+        ("briefing_job", briefing_job),
     ]
     
     success = 0

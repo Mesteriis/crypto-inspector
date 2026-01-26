@@ -53,6 +53,8 @@ def _register_jobs(sched: AsyncIOScheduler) -> None:
         ai_analysis_job,
         altseason_job,
         arbitrage_job,
+        backtest_job,
+        briefing_job,
         bybit_sync_job,
         candlestick_sync_job,
         correlation_job,
@@ -65,6 +67,7 @@ def _register_jobs(sched: AsyncIOScheduler) -> None:
         liquidation_job,
         macro_job,
         market_analysis_job,
+        ml_prediction_job,
         portfolio_job,
         price_alerts_job,
         profit_taking_job,
@@ -354,7 +357,40 @@ def _register_jobs(sched: AsyncIOScheduler) -> None:
         coalesce=True,
     )
 
-    logger.info("Registered scheduled jobs (24 total)")
+    # Briefing job - runs at 7:00 (morning) and 20:00 (evening)
+    sched.add_job(
+        briefing_job,
+        trigger=CronTrigger(hour="7,20", minute=0),
+        id="briefing_job",
+        name="Briefing Job",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+    )
+
+    # Backtest job - runs every Sunday at 2:00 AM
+    sched.add_job(
+        backtest_job,
+        trigger=CronTrigger(day_of_week="sun", hour=2, minute=0),
+        id="backtest_job",
+        name="Weekly Backtest Job",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+    )
+
+    # ML Prediction job - runs every hour to update ML sensors independently
+    sched.add_job(
+        ml_prediction_job,
+        trigger=CronTrigger(minute=20),
+        id="ml_prediction_job",
+        name="ML Prediction Job",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+    )
+
+    logger.info("Registered scheduled jobs (27 total)")
 
 
 @asynccontextmanager
@@ -440,6 +476,17 @@ async def _run_critical_startup_jobs() -> None:
             divergence_job,
             correlation_job,
             ai_analysis_job,
+            briefing_job,
+            portfolio_job,
+            liquidation_job,
+            exchange_flow_job,
+            volatility_job,
+            stablecoin_job,
+            macro_job,
+            traditional_finance_job,
+            ml_prediction_job,
+            backtest_job,
+            profit_taking_job,
         )
         
         jobs_to_run = []
@@ -466,9 +513,42 @@ async def _run_critical_startup_jobs() -> None:
         # Correlation analysis
         jobs_to_run.append(("correlation", correlation_job))
         
+        # Volatility tracker - updates volatility_30d, adaptive_volatilities
+        jobs_to_run.append(("volatility", volatility_job))
+        
+        # Liquidation levels
+        jobs_to_run.append(("liquidation", liquidation_job))
+        
+        # Exchange flow (netflows)
+        jobs_to_run.append(("exchange_flow", exchange_flow_job))
+        
+        # Stablecoin flow
+        jobs_to_run.append(("stablecoin", stablecoin_job))
+        
+        # Macro calendar
+        jobs_to_run.append(("macro", macro_job))
+        
+        # Traditional finance (gold, indices, forex)
+        jobs_to_run.append(("traditional_finance", traditional_finance_job))
+        
         # AI analysis if enabled
         if settings.AI_ENABLED:
             jobs_to_run.append(("ai_analysis", ai_analysis_job))
+        
+        # Briefing sensors
+        jobs_to_run.append(("briefing", briefing_job))
+        
+        # Portfolio tracker - always run to update portfolio values
+        jobs_to_run.append(("portfolio", portfolio_job))
+        
+        # ML predictions - critical for ml_* and price_predictions sensors
+        jobs_to_run.append(("ml_prediction", ml_prediction_job))
+        
+        # Profit taking - updates tp_levels and greed_level
+        jobs_to_run.append(("profit_taking", profit_taking_job))
+        
+        # Backtest - updates backtest_* sensors (normally weekly, but run at startup)
+        jobs_to_run.append(("backtest", backtest_job))
         
         for name, job in jobs_to_run:
             try:
@@ -809,8 +889,8 @@ async def _set_initial_sensor_values() -> None:
         ("adaptive_notification_count_24h", 0),
         ("adaptive_volatilities", {}),
         ("adaptive_adaptation_factors", {}),
-        ("notification_mode", "normal"),
-        ("notification_service", "—"),
+        ("notification_mode", settings.NOTIFICATION_MODE),
+        ("notification_service", f"Active ({settings.NOTIFICATION_MODE})"),
     ]
 
     for sensor_id, value in default_sensors:

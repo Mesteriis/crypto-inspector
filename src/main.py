@@ -1,3 +1,7 @@
+# Load environment variables FIRST, before any other imports
+from dotenv import load_dotenv
+load_dotenv()
+
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager

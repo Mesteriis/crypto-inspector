@@ -15,7 +15,7 @@ Tracks market volatility:
 import logging
 import math
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any
 
@@ -24,6 +24,10 @@ import httpx
 logger = logging.getLogger(__name__)
 
 COINGECKO_API = "https://api.coingecko.com/api/v3"
+
+# Кеш результатов волатильности
+_volatility_cache: dict[str, tuple[datetime, "VolatilityData"]] = {}
+CACHE_TTL_MINUTES = 30  # Кеш живёт 30 минут
 
 
 class VolatilityStatus(Enum):
@@ -152,10 +156,23 @@ class VolatilityTracker:
         Returns:
             VolatilityData with volatility metrics
         """
+        # Проверяем кеш
+        cache_key = symbol.upper()
+        if cache_key in _volatility_cache:
+            cached_time, cached_data = _volatility_cache[cache_key]
+            if datetime.now() - cached_time < timedelta(minutes=CACHE_TTL_MINUTES):
+                logger.debug(f"Volatility cache hit for {symbol}")
+                return cached_data
+
         client = await self._get_client()
 
-        # Fetch price data
+        # Пробуем получить данные из CoinGecko
         prices = await self._fetch_prices(client, symbol, 90)
+
+        # Если CoinGecko не доступен, используем candlestick из БД
+        if len(prices) < 7:
+            logger.info(f"CoinGecko failed for {symbol}, using candlestick fallback")
+            prices = await self._fetch_prices_from_db(symbol, 90)
 
         if len(prices) < 7:
             return self._create_empty_result(symbol)
@@ -184,7 +201,7 @@ class VolatilityTracker:
         hist_ranges = self.HISTORICAL_RANGES.get(symbol.upper(), {"avg": 70})
         avg_historical = hist_ranges["avg"]
 
-        return VolatilityData(
+        result = VolatilityData(
             symbol=symbol,
             timestamp=datetime.now(),
             volatility_7d=vol_7d,
@@ -197,22 +214,30 @@ class VolatilityTracker:
             avg_historical=avg_historical,
             current_price=prices[-1] if prices else 0,
         )
+        
+        # Сохраняем в кеш
+        _volatility_cache[cache_key] = (datetime.now(), result)
+        logger.debug(f"Volatility cached for {symbol}: {vol_30d:.2f}%")
+        
+        return result
 
     async def _fetch_prices(self, client: httpx.AsyncClient, symbol: str, days: int) -> list[float]:
-        """Fetch daily closing prices."""
-        symbol_map = {
-            "BTC": "bitcoin",
-            "ETH": "ethereum",
-            "SOL": "solana",
-        }
+        """Fetch daily closing prices from CoinGecko."""
+        from core.constants import COINGECKO_ID_MAP
 
-        cg_id = symbol_map.get(symbol.upper(), symbol.lower())
+        cg_id = COINGECKO_ID_MAP.get(symbol.upper(), symbol.lower())
 
         try:
             url = f"{COINGECKO_API}/coins/{cg_id}/market_chart"
             params = {"vs_currency": "usd", "days": days}
 
             response = await client.get(url, params=params)
+            
+            # Handle rate limiting
+            if response.status_code == 429:
+                logger.warning(f"CoinGecko rate limited for {symbol}")
+                return []
+            
             response.raise_for_status()
             data = response.json()
 
@@ -222,6 +247,29 @@ class VolatilityTracker:
         except Exception as e:
             logger.error(f"Failed to fetch prices for {symbol}: {e}")
             return []
+
+    async def _fetch_prices_from_db(self, symbol: str, days: int) -> list[float]:
+        """Fallback: получить цены из локальной БД candlestick."""
+        try:
+            from service.candlestick import fetch_candlesticks, CandleInterval
+            
+            # Используем дневные свечи
+            pair = f"{symbol}/USDT"
+            candles = await fetch_candlesticks(
+                symbol=pair,
+                interval=CandleInterval.DAY_1,
+                limit=days,
+            )
+            
+            if candles:
+                prices = [float(c.close) for c in candles]
+                logger.info(f"Got {len(prices)} prices from DB for {symbol}")
+                return prices
+            
+        except Exception as e:
+            logger.warning(f"DB fallback failed for {symbol}: {e}")
+        
+        return []
 
     def _calculate_volatility(self, returns: list[float]) -> float:
         """

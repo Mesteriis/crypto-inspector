@@ -3,7 +3,7 @@
 from service.ha.core.base import SensorConfig
 from service.ha.core.registry import register_sensor
 from service.ha.sensors.dict import IndicatorDictSensor
-from service.ha.sensors.scalar import PercentSensor, StatusSensor
+from service.ha.sensors.scalar import PercentSensor
 
 
 @register_sensor(category="technical")
@@ -94,7 +94,7 @@ class TaResistanceSensor(IndicatorDictSensor):
 
 
 @register_sensor(category="technical")
-class TaTrendMtfSensor(StatusSensor):
+class TaTrendMtfSensor(IndicatorDictSensor):
     """Multi-timeframe trends."""
 
     config = SensorConfig(
@@ -102,8 +102,8 @@ class TaTrendMtfSensor(StatusSensor):
         name="MTF Trends",
         name_ru="MTF тренды",
         icon="mdi:clock-outline",
-        description="Trends across different timeframes",
-        description_ru="Тренды на разных таймфреймах",
+        description='Trends across different timeframes. Format: {"BTC": {"4h": "Uptrend"}}',
+        description_ru='Тренды на разных таймфреймах. Формат: {"BTC": {"4h": "Uptrend"}}',
     )
 
 
@@ -122,7 +122,7 @@ class TaConfluenceSensor(PercentSensor):
 
 
 @register_sensor(category="technical")
-class TaSignalSensor(StatusSensor):
+class TaSignalSensor(IndicatorDictSensor):
     """Overall TA signal."""
 
     config = SensorConfig(
@@ -130,6 +130,6 @@ class TaSignalSensor(StatusSensor):
         name="TA Signal",
         name_ru="TA сигнал",
         icon="mdi:traffic-light",
-        description="Overall TA signal: buy/sell/hold",
-        description_ru="Общий сигнал TA: buy/sell/hold",
+        description='Overall TA signal: buy/sell/hold. Format: {"BTC": "HOLD"}',
+        description_ru='Общий сигнал TA: buy/sell/hold. Формат: {"BTC": "HOLD"}',
     )

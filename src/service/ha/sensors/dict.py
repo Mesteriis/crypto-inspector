@@ -226,6 +226,10 @@ class IndicatorDictSensor(DictSensor):
 
         result = {}
         for symbol, value in data.items():
+            # Skip None values (they indicate no data available)
+            if value is None:
+                continue
+
             # Handle various value types
             if isinstance(value, (int, float, Decimal)):
                 float_val = float(value)

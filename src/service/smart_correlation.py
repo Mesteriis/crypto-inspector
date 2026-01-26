@@ -245,7 +245,10 @@ class SmartCorrelationEngine:
             limit_map = {"15m": 96, "1h": 168, "4h": 126, "1d": 90}  # ~1 week of data
             limit = limit_map.get(timeframe, 100)
 
-            candles = await fetch_candlesticks(symbol=symbol, interval=CandleInterval(timeframe), limit=limit)
+            # Добавляем /USDT если не указана пара
+            pair = symbol if "/" in symbol else f"{symbol}/USDT"
+            
+            candles = await fetch_candlesticks(symbol=pair, interval=CandleInterval(timeframe), limit=limit)
 
             if len(candles) < 20:  # Minimum data requirement
                 return None

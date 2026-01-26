@@ -808,10 +808,26 @@ class HAIntegrationManager:
             from service.trend_analyzer import get_trend_analyzer
 
             analyzer = get_trend_analyzer()
+            
+            # Get symbols from multiple sources
             symbols = list(self._prices.keys()) if self._prices else []
-
+            
+            # Fallback: get from cache
             if not symbols:
-                logger.debug("No price data available for AI trend analysis")
+                cached_prices = self._cache.get("prices", {})
+                if isinstance(cached_prices, dict):
+                    symbols = list(cached_prices.keys())
+            
+            # Fallback: get from currency list
+            if not symbols:
+                try:
+                    from core.constants import DEFAULT_SYMBOLS
+                    symbols = [s.split("/")[0] for s in DEFAULT_SYMBOLS]  # BTC/USDT -> BTC
+                except Exception:
+                    pass
+            
+            if not symbols:
+                logger.debug("No symbols available for AI trend analysis")
                 return
 
             ai_trends = {}

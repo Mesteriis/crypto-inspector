@@ -60,6 +60,9 @@ COPY --chown=root:root src ./src
 COPY --chown=root:root alembic ./alembic
 COPY --chown=root:root alembic.ini ./
 
+# Copy custom_components for user installation
+COPY --chown=root:root custom_components /custom_components
+
 # Copy rootfs (s6-overlay service scripts)
 COPY rootfs /
 

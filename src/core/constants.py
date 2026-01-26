@@ -10,7 +10,7 @@ from datetime import date
 # VERSION
 # =============================================================================
 
-APP_VERSION = "0.2.17"
+APP_VERSION = "0.2.42"
 
 # =============================================================================
 # RETRY CONFIGURATION
@@ -248,6 +248,21 @@ DEFAULT_SYMBOLS = [
     "INJ/USDT",
 ]
 DEFAULT_SYMBOLS_STR = ",".join(DEFAULT_SYMBOLS)
+
+# CoinGecko ID mapping for all supported symbols
+COINGECKO_ID_MAP = {
+    "BTC": "bitcoin",
+    "ETH": "ethereum",
+    "SOL": "solana",
+    "TON": "the-open-network",
+    "AR": "arweave",
+    "RENDER": "render-token",
+    "TAO": "bittensor",
+    "FET": "fetch-ai",
+    "NEAR": "near",
+    "INJ": "injective-protocol",
+    "NIGHT": "night-token",
+}
 
 
 # =============================================================================

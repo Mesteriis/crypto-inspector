@@ -80,6 +80,7 @@ class TraditionalFinanceStatus:
     nasdaq: TraditionalAsset | None = None
     dji: TraditionalAsset | None = None  # Dow Jones
     dax: TraditionalAsset | None = None  # German DAX
+    vix: TraditionalAsset | None = None  # VIX Volatility Index
 
     # Форекс
     eur_usd: TraditionalAsset | None = None
@@ -91,6 +92,10 @@ class TraditionalFinanceStatus:
     oil_brent: TraditionalAsset | None = None
     oil_wti: TraditionalAsset | None = None
     natural_gas: TraditionalAsset | None = None
+
+    # Treasury Bonds
+    treasury_2y: TraditionalAsset | None = None
+    treasury_10y: TraditionalAsset | None = None
 
     # Метаданные
     last_updated: datetime = field(default_factory=lambda: datetime.now(UTC))
@@ -109,6 +114,7 @@ class TraditionalFinanceStatus:
                 "nasdaq": self.nasdaq.to_dict() if self.nasdaq else None,
                 "dji": self.dji.to_dict() if self.dji else None,
                 "dax": self.dax.to_dict() if self.dax else None,
+                "vix": self.vix.to_dict() if self.vix else None,
             },
             "forex": {
                 "eur_usd": self.eur_usd.to_dict() if self.eur_usd else None,
@@ -120,6 +126,10 @@ class TraditionalFinanceStatus:
                 "oil_brent": self.oil_brent.to_dict() if self.oil_brent else None,
                 "oil_wti": self.oil_wti.to_dict() if self.oil_wti else None,
                 "natural_gas": self.natural_gas.to_dict() if self.natural_gas else None,
+            },
+            "treasury": {
+                "treasury_2y": self.treasury_2y.to_dict() if self.treasury_2y else None,
+                "treasury_10y": self.treasury_10y.to_dict() if self.treasury_10y else None,
             },
             "last_updated": self.last_updated.isoformat(),
             "status": self.status,
@@ -173,6 +183,12 @@ ASSETS_CONFIG = {
         "name_ru": "DAX",
         "class": AssetClass.INDEX,
     },
+    "vix": {
+        "yahoo": "^VIX",
+        "name": "VIX",
+        "name_ru": "Индекс VIX",
+        "class": AssetClass.INDEX,
+    },
     # Форекс
     "eur_usd": {
         "yahoo": "EURUSD=X",
@@ -216,6 +232,19 @@ ASSETS_CONFIG = {
         "name": "Natural Gas",
         "name_ru": "Природный газ",
         "class": AssetClass.COMMODITY,
+    },
+    # Treasury Bonds
+    "treasury_2y": {
+        "yahoo": "^IRX",  # 13-week T-Bill rate (proxy for short-term)
+        "name": "2Y Treasury",
+        "name_ru": "Облигации 2г",
+        "class": AssetClass.INDEX,
+    },
+    "treasury_10y": {
+        "yahoo": "^TNX",  # 10-year Treasury yield
+        "name": "10Y Treasury",
+        "name_ru": "Облигации 10л",
+        "class": AssetClass.INDEX,
     },
 }
 
@@ -348,6 +377,7 @@ class TraditionalFinanceTracker:
             status.nasdaq = await self.fetch_asset("nasdaq")
             status.dji = await self.fetch_asset("dji")
             status.dax = await self.fetch_asset("dax")
+            status.vix = await self.fetch_asset("vix")
 
             # Форекс
             status.eur_usd = await self.fetch_asset("eur_usd")
@@ -359,6 +389,10 @@ class TraditionalFinanceTracker:
             status.oil_brent = await self.fetch_asset("oil_brent")
             status.oil_wti = await self.fetch_asset("oil_wti")
             status.natural_gas = await self.fetch_asset("natural_gas")
+
+            # Treasury Bonds
+            status.treasury_2y = await self.fetch_asset("treasury_2y")
+            status.treasury_10y = await self.fetch_asset("treasury_10y")
 
             status.last_updated = datetime.now(UTC)
             status.status = "ok"
@@ -385,7 +419,7 @@ class TraditionalFinanceTracker:
     async def get_indices(self) -> dict:
         """Получить только индексы."""
         result = {}
-        for asset_id in ["sp500", "nasdaq", "dji", "dax"]:
+        for asset_id in ["sp500", "nasdaq", "dji", "dax", "vix"]:
             asset = await self.fetch_asset(asset_id)
             if asset:
                 result[asset_id] = asset.to_dict()

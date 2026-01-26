@@ -17,7 +17,7 @@ class EthGasSlowSensor(ScalarSensor):
         unit="Gwei",
         description="Gas price for slow transactions",
         description_ru="Цена газа для медленных транзакций",
-        value_type="int",
+        value_type="float",
         min_value=0,
     )
 
@@ -34,7 +34,7 @@ class EthGasStandardSensor(ScalarSensor):
         unit="Gwei",
         description="Gas price for standard transactions",
         description_ru="Цена газа для стандартных транзакций",
-        value_type="int",
+        value_type="float",
         min_value=0,
     )
 
@@ -51,7 +51,7 @@ class EthGasFastSensor(ScalarSensor):
         unit="Gwei",
         description="Gas price for fast transactions",
         description_ru="Цена газа для быстрых транзакций",
-        value_type="int",
+        value_type="float",
         min_value=0,
     )
 

@@ -14,7 +14,7 @@ from typing import Any
 
 import numpy as np
 from scipy import stats
-from service.technical import TechnicalAnalyzer
+from service.analysis.technical import TechnicalAnalyzer
 
 from core.constants import DEFAULT_SYMBOLS
 from service.candlestick import CandleInterval, fetch_candlesticks
@@ -173,9 +173,9 @@ class AITrendAnalyzer:
                 raise ValueError(f"Insufficient data for {symbol}: {len(candles)} candles")
 
             # Extract price data
-            prices = [float(c.close) for c in candles]
+            prices = [float(c.close_price) for c in candles]
             volumes = [float(c.volume) for c in candles]
-            timestamps = [c.timestamp for c in candles]
+            timestamps = [datetime.fromtimestamp(c.timestamp / 1000) for c in candles]
 
             # Perform analyses
             tech_analysis = await self._analyze_technical_indicators(prices, volumes)

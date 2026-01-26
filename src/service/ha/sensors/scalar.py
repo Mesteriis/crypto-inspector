@@ -100,6 +100,50 @@ class PercentSensor(ScalarSensor):
         return f"{value:.1f}"
 
 
+class PnlPercentSensor(ScalarSensor):
+    """Sensor for P&L percentage values that can be negative.
+
+    Used for portfolio PnL where values can range from -100% to +∞%.
+    """
+
+    def validate(self, data: Any) -> float:
+        """Validate P&L percentage value.
+
+        Args:
+            data: Value to validate
+
+        Returns:
+            Validated float percentage
+
+        Raises:
+            ValueError: If value is invalid
+        """
+        if data is None:
+            return 0.0
+
+        try:
+            value = float(data)
+        except (ValueError, TypeError) as e:
+            raise ValueError(f"Invalid P&L percentage value: {data}") from e
+
+        # PnL can be negative (losses) or positive (gains)
+        # No upper/lower bounds - crypto can have extreme moves
+        return value
+
+    def format_state(self, value: float) -> str:
+        """Format P&L percentage with sign.
+
+        Args:
+            value: Validated percentage
+
+        Returns:
+            Formatted string with sign (e.g., "+5.5" or "-3.2")
+        """
+        if value == int(value):
+            return f"{int(value):+d}" if value != 0 else "0"
+        return f"{value:+.1f}" if value != 0 else "0.0"
+
+
 class StatusSensor(ScalarSensor):
     """Sensor for text status values.
 
