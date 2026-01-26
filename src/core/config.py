@@ -149,6 +149,10 @@ class Settings(BaseSettings):
     MCP_PORT: int = 9998
     MCP_HOST: str = "0.0.0.0"
 
+    # ESPHome Native API (for HA auto-discovery without custom_component)
+    ESPHOME_API_ENABLED: bool = True
+    ESPHOME_API_PORT: int = 6053
+
     # Backfill Settings
     BACKFILL_ENABLED: bool = True
     BACKFILL_CRYPTO_YEARS: int = 10

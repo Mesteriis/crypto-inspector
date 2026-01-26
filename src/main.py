@@ -132,6 +132,65 @@ async def stop_mcp_server() -> None:
         pass  # MCP not available
 
 
+async def start_esphome_api_server() -> None:
+    """Start ESPHome Native API server for HA auto-discovery."""
+    try:
+        from service.esphome_api import (
+            setup_esphome_api,
+            start_esphome_api,
+            get_esphome_server,
+        )
+        from service.ha.core.registry import SensorRegistry
+
+        # Get sensor registry metadata
+        registry = SensorRegistry()
+        sensor_metadata = {}
+        for sensor_id, sensor in registry._sensors.items():
+            sensor_metadata[sensor_id] = {
+                "name": sensor.name,
+                "name_ru": sensor.name_ru,
+                "icon": sensor.icon,
+                "unit": sensor.unit,
+                "device_class": sensor.device_class,
+                "value_type": sensor.value_type,
+            }
+
+        # Get state getter from HA manager
+        from service.ha import get_ha_manager
+        ha_manager = get_ha_manager()
+
+        def get_sensor_state(sensor_id: str):
+            """Get sensor state from HA manager."""
+            return ha_manager.get_sensor_value(sensor_id)
+
+        # Setup and start
+        await setup_esphome_api(get_sensor_state, sensor_metadata)
+
+        server = get_esphome_server()
+        server.port = settings.ESPHOME_API_PORT
+
+        success = await start_esphome_api()
+        if success:
+            logger.info(
+                "ESPHome API started on port %d (%d sensors)",
+                settings.ESPHOME_API_PORT,
+                len(sensor_metadata),
+            )
+        else:
+            logger.warning("ESPHome API failed to start")
+    except Exception as e:
+        logger.warning("ESPHome API not available: %s", e)
+
+
+async def stop_esphome_api_server() -> None:
+    """Stop ESPHome API server."""
+    try:
+        from service.esphome_api import stop_esphome_api
+        await stop_esphome_api()
+    except ImportError:
+        pass
+
+
 async def run_initial_backfill() -> None:
     """Run initial data backfill if enabled."""
     if not settings.BACKFILL_ENABLED:
@@ -168,6 +227,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         services_info.append(f"API (port {settings.API_PORT})")
     if settings.MCP_ENABLED:
         services_info.append(f"MCP (port {settings.MCP_PORT})")
+    if settings.ESPHOME_API_ENABLED:
+        services_info.append(f"ESPHome API (port {settings.ESPHOME_API_PORT})")
     if settings.STREAMING_ENABLED:
         services_info.append("WebSocket Streaming")
 
@@ -218,6 +279,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     else:
         logger.info("MCP server disabled by configuration")
 
+    # Start ESPHome Native API (for HA auto-discovery)
+    if settings.ESPHOME_API_ENABLED:
+        await start_esphome_api_server()
+    else:
+        logger.info("ESPHome API disabled by configuration")
+
     # Run initial backfill (background task)
     await run_initial_backfill()
 
@@ -226,6 +293,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         yield
 
     # Stop services
+    if settings.ESPHOME_API_ENABLED:
+        await stop_esphome_api_server()
     if settings.MCP_ENABLED:
         await stop_mcp_server()
     await stop_websocket_streaming()

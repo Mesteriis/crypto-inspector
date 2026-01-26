@@ -22,9 +22,11 @@ services:
 ports:
   9999/tcp: 9999
   9998/tcp: 9998
+  6053/tcp: 6053
 ports_description:
   9999/tcp: "API порт для сенсоров Home Assistant"
   9998/tcp: "MCP сервер для интеграции с AI-агентами"
+  6053/tcp: "ESPHome Native API для авто-обнаружения"
 
 # Минимальные настройки - всё работает из коробки
 options:
