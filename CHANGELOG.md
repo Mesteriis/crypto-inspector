@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1 - Symbol Format Fix
+- **Date**: 2026-01-27
+- **Fixed**: Symbol normalization - `BTCUSDT` now correctly converts to `BTC/USDT` (was `BTCUSDT/USDT`)
+- **Fixed**: All exchanges now receive valid symbol format for candlestick fetching
+
 ## 1.0.0 - Stable Release
 - **Date**: 2026-01-26
 - **Status**: Stable (removed experimental flag)
