@@ -151,4 +151,3 @@ class StablecoinFlow24hSensor(ScalarSensor):
         description_ru="Поток стейблкоинов за 24ч (положительный=приток, отрицательный=отток)",
         value_type="float",
     )
-

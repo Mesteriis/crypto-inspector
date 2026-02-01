@@ -96,10 +96,7 @@ async def get_sensor_registry() -> dict[str, Any]:
             "value_type": config.value_type,
         }
 
-    categories = {
-        cat: SensorRegistry.get_by_category(cat)
-        for cat in SensorRegistry.get_categories()
-    }
+    categories = {cat: SensorRegistry.get_by_category(cat) for cat in SensorRegistry.get_categories()}
 
     return {
         "sensors": sensors,
@@ -188,9 +185,7 @@ async def download_integration() -> StreamingResponse:
     return StreamingResponse(
         iter([zip_buffer.getvalue()]),
         media_type="application/zip",
-        headers={
-            "Content-Disposition": f"attachment; filename=crypto_inspect_integration_v{APP_VERSION}.zip"
-        },
+        headers={"Content-Disposition": f"attachment; filename=crypto_inspect_integration_v{APP_VERSION}.zip"},
     )
 
 

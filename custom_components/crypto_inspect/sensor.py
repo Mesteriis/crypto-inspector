@@ -793,7 +793,7 @@ class CryptoInspectSensor(CoordinatorEntity[CryptoInspectCoordinator], SensorEnt
 
         # Entity attributes
         self._attr_unique_id = f"crypto_inspect_{sensor_id}"
-        
+
         # Use localized name based on language
         if language == "ru" and "name_ru" in definition:
             self._attr_name = definition["name_ru"]
@@ -834,7 +834,7 @@ class CryptoInspectSensor(CoordinatorEntity[CryptoInspectCoordinator], SensorEnt
     def native_value(self) -> Any:
         """Return the state of the sensor."""
         value = self.coordinator.get_sensor_value(self._sensor_id)
-        
+
         if value is None:
             return None
 
@@ -860,7 +860,7 @@ class CryptoInspectSensor(CoordinatorEntity[CryptoInspectCoordinator], SensorEnt
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return additional attributes."""
         attrs = self.coordinator.get_sensor_attributes(self._sensor_id)
-        
+
         # Add sensor metadata
         attrs["sensor_type"] = self._definition.get("type", SENSOR_TYPE_SCALAR)
         attrs["category"] = self._definition.get("category", "misc")

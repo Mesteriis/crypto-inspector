@@ -49,16 +49,16 @@ async def main():
     print("=" * 50)
     print("CoinGecko Client Test with Retry/Backoff")
     print("=" * 50)
-    
+
     altseason_ok = await test_altseason()
     stablecoin_ok = await test_stablecoins()
-    
+
     print("\n" + "=" * 50)
     print("Results:")
     print(f"  Altseason: {'PASS' if altseason_ok else 'FAIL'}")
     print(f"  Stablecoin: {'PASS' if stablecoin_ok else 'FAIL'}")
     print("=" * 50)
-    
+
     return altseason_ok and stablecoin_ok
 
 

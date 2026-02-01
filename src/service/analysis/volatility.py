@@ -214,11 +214,11 @@ class VolatilityTracker:
             avg_historical=avg_historical,
             current_price=prices[-1] if prices else 0,
         )
-        
+
         # Сохраняем в кеш
         _volatility_cache[cache_key] = (datetime.now(), result)
         logger.debug(f"Volatility cached for {symbol}: {vol_30d:.2f}%")
-        
+
         return result
 
     async def _fetch_prices(self, client: httpx.AsyncClient, symbol: str, days: int) -> list[float]:
@@ -232,12 +232,12 @@ class VolatilityTracker:
             params = {"vs_currency": "usd", "days": days}
 
             response = await client.get(url, params=params)
-            
+
             # Handle rate limiting
             if response.status_code == 429:
                 logger.warning(f"CoinGecko rate limited for {symbol}")
                 return []
-            
+
             response.raise_for_status()
             data = response.json()
 
@@ -251,8 +251,8 @@ class VolatilityTracker:
     async def _fetch_prices_from_db(self, symbol: str, days: int) -> list[float]:
         """Fallback: получить цены из локальной БД candlestick."""
         try:
-            from service.candlestick import fetch_candlesticks, CandleInterval
-            
+            from service.candlestick import CandleInterval, fetch_candlesticks
+
             # Используем дневные свечи
             pair = f"{symbol}/USDT"
             candles = await fetch_candlesticks(
@@ -260,15 +260,15 @@ class VolatilityTracker:
                 interval=CandleInterval.DAY_1,
                 limit=days,
             )
-            
+
             if candles:
                 prices = [float(c.close) for c in candles]
                 logger.info(f"Got {len(prices)} prices from DB for {symbol}")
                 return prices
-            
+
         except Exception as e:
             logger.warning(f"DB fallback failed for {symbol}: {e}")
-        
+
         return []
 
     def _calculate_volatility(self, returns: list[float]) -> float:

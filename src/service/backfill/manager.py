@@ -191,7 +191,7 @@ class BackfillManager:
     async def _backfill_crypto(self):
         """
         Backfill crypto candlesticks.
-        
+
         Raises:
             RuntimeError: If any symbol fails to backfill (strict mode)
         """
@@ -245,7 +245,7 @@ class BackfillManager:
     async def _backfill_traditional(self):
         """
         Backfill traditional assets.
-        
+
         Raises:
             RuntimeError: If any asset fails to backfill (strict mode)
         """

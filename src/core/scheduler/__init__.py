@@ -436,6 +436,7 @@ async def _run_startup_jobs() -> None:
     to populate sensors with real data.
     """
     import asyncio
+
     from core.config import settings
 
     logger.info("Initializing sensor values...")
@@ -444,7 +445,7 @@ async def _run_startup_jobs() -> None:
     await _set_initial_sensor_values()
 
     logger.info("Sensor initialization completed")
-    
+
     # Run critical jobs in background to populate sensors with real data
     # This doesn't block startup but ensures sensors get data quickly
     _startup_task = asyncio.create_task(_run_critical_startup_jobs())
@@ -455,101 +456,102 @@ async def _run_startup_jobs() -> None:
 async def _run_critical_startup_jobs() -> None:
     """
     Run critical jobs to populate sensors with real data after startup.
-    
+
     Runs in background to not block application startup.
     """
     import asyncio
+
     from core.config import settings
-    
+
     logger.info("Starting critical startup jobs to populate sensor data...")
-    
+
     # Small delay to ensure HA connection is established
     await asyncio.sleep(2)
-    
+
     try:
         from core.scheduler.jobs import (
-            investor_analysis_job,
-            bybit_sync_job,
-            gas_tracker_job,
+            ai_analysis_job,
             altseason_job,
+            backtest_job,
+            briefing_job,
+            bybit_sync_job,
+            correlation_job,
             currency_list_monitor_job,
             divergence_job,
-            correlation_job,
-            ai_analysis_job,
-            briefing_job,
-            portfolio_job,
-            liquidation_job,
             exchange_flow_job,
-            volatility_job,
-            stablecoin_job,
+            gas_tracker_job,
+            investor_analysis_job,
+            liquidation_job,
             macro_job,
-            traditional_finance_job,
             ml_prediction_job,
-            backtest_job,
+            portfolio_job,
             profit_taking_job,
+            stablecoin_job,
+            traditional_finance_job,
+            volatility_job,
         )
-        
+
         jobs_to_run = []
-        
+
         # Currency list and unified sensors - most critical
         jobs_to_run.append(("currency_list_monitor", currency_list_monitor_job))
-        
+
         # Always run investor analysis to populate market data
         jobs_to_run.append(("investor_analysis", investor_analysis_job))
-        
+
         # Run Bybit sync if configured
         if settings.has_bybit_credentials():
             jobs_to_run.append(("bybit_sync", bybit_sync_job))
-        
+
         # Always run gas tracker - it's fast
         jobs_to_run.append(("gas_tracker", gas_tracker_job))
-        
+
         # Altseason index
         jobs_to_run.append(("altseason", altseason_job))
-        
+
         # Technical analysis (RSI, MACD, trends)
         jobs_to_run.append(("divergence", divergence_job))
-        
+
         # Correlation analysis
         jobs_to_run.append(("correlation", correlation_job))
-        
+
         # Volatility tracker - updates volatility_30d, adaptive_volatilities
         jobs_to_run.append(("volatility", volatility_job))
-        
+
         # Liquidation levels
         jobs_to_run.append(("liquidation", liquidation_job))
-        
+
         # Exchange flow (netflows)
         jobs_to_run.append(("exchange_flow", exchange_flow_job))
-        
+
         # Stablecoin flow
         jobs_to_run.append(("stablecoin", stablecoin_job))
-        
+
         # Macro calendar
         jobs_to_run.append(("macro", macro_job))
-        
+
         # Traditional finance (gold, indices, forex)
         jobs_to_run.append(("traditional_finance", traditional_finance_job))
-        
+
         # AI analysis if enabled
         if settings.AI_ENABLED:
             jobs_to_run.append(("ai_analysis", ai_analysis_job))
-        
+
         # Briefing sensors
         jobs_to_run.append(("briefing", briefing_job))
-        
+
         # Portfolio tracker - always run to update portfolio values
         jobs_to_run.append(("portfolio", portfolio_job))
-        
+
         # ML predictions - critical for ml_* and price_predictions sensors
         jobs_to_run.append(("ml_prediction", ml_prediction_job))
-        
+
         # Profit taking - updates tp_levels and greed_level
         jobs_to_run.append(("profit_taking", profit_taking_job))
-        
+
         # Backtest - updates backtest_* sensors (normally weekly, but run at startup)
         jobs_to_run.append(("backtest", backtest_job))
-        
+
         for name, job in jobs_to_run:
             try:
                 logger.info(f"Startup job: Running {name}...")
@@ -559,9 +561,9 @@ async def _run_critical_startup_jobs() -> None:
                 logger.warning(f"Startup job {name} failed: {e}")
             # Small delay between jobs
             await asyncio.sleep(1)
-        
+
         logger.info("Critical startup jobs completed")
-        
+
     except Exception as e:
         logger.error(f"Error running critical startup jobs: {e}")
 
@@ -573,11 +575,11 @@ async def _set_initial_sensor_values() -> None:
     This sets informative values for disabled features instead of 'unknown'.
     """
     from core.config import settings
-    from service.ha import get_sensors_manager, get_currency_list
+    from service.ha import get_currency_list, get_sensors_manager
 
     sensors = get_sensors_manager()
     disabled_dict: dict = {}
-    
+
     # Get real currency list
     try:
         currency_list = get_currency_list()
@@ -689,7 +691,6 @@ async def _set_initial_sensor_values() -> None:
         ("candles_count", 0),
         ("database_size", 0),
         ("crypto_history_status", {}),
-        
         # === Market Overview ===
         ("fear_greed", 50),
         ("fear_greed_alert", "—"),
@@ -702,75 +703,62 @@ async def _set_initial_sensor_values() -> None:
         ("price_alert", "—"),
         ("price_context", {}),
         ("crypto_currency_list", currency_list),
-        
         # === Volatility ===
         ("volatility_30d", {}),
         ("volatility_percentile", 50),
         ("volatility_status", "Загрузка..."),
         ("vix_index", 0),
-        
         # === Market Pulse ===
         ("market_pulse", "Загрузка..."),
         ("market_pulse_confidence", 0),
         ("market_tension", 0),
-        
         # === Altseason ===
         ("altseason_index", 0),
         ("altseason_status", "Загрузка..."),
-        
         # === Stablecoins ===
         ("stablecoin_total", 0),
         ("stablecoin_dominance", 0),
         ("stablecoin_flow", "Загрузка..."),
         ("stablecoin_flow_24h", 0),
-        
         # === Whales ===
         ("whale_alerts_24h", 0),
         ("whale_last_alert", "—"),
         ("whale_net_flow", 0),
         ("whale_signal", "—"),
-        
         # === Exchange Flow ===
         ("exchange_flow_signal", "Загрузка..."),
         ("exchange_netflows", {}),
-        
         # === Liquidation ===
         ("liq_levels", {}),
         ("liq_risk_level", "Загрузка..."),
-        
         # === Unlocks ===
         ("unlock_next_event", "Загрузка..."),
         ("unlock_risk_level", "Загрузка..."),
         ("unlocks_next_7d", 0),
         ("unlocks_next_event", "—"),
-        
         # === Profit taking ===
         ("tp_levels", {}),
         ("greed_level", 0),
         ("profit_action", "Загрузка..."),
         ("stop_loss_recommendation", {}),
         ("success_rate", 0),
-        
         # === Alerts ===
         ("active_alerts_count", 0),
         ("triggered_alerts_24h", 0),
         ("pending_alerts_count", 0),
         ("pending_alerts_critical", 0),
-        
         # === Smart summary ===
         ("today_action", "Загрузка..."),
         ("today_action_priority", "low"),
         ("next_action_timer", "—"),
         ("weekly_outlook", "Загрузка..."),
         ("weekly_insight", "—"),
-        
         # === Investor ===
         ("do_nothing_ok", True),
         ("investor_phase", "Загрузка..."),
         ("calm_indicator", 50),
         ("red_flags", 0),
         ("risk_status", "Загрузка..."),
-        
         # === Technical Analysis ===
         ("divergences", {}),
         ("divergences_active", 0),
@@ -783,18 +771,15 @@ async def _set_initial_sensor_values() -> None:
         ("ta_confluence", 0),
         ("ta_signal", {}),
         ("ta_bb_position", {}),
-        
         # === Signals ===
         ("signals_today", 0),
         ("signals_last", "—"),
         ("signals_win_rate", 0),
-        
         # === Gas ===
         ("eth_gas_fast", 0),
         ("eth_gas_standard", 0),
         ("eth_gas_slow", 0),
         ("eth_gas_status", "Загрузка..."),
-        
         # === Correlation ===
         ("btc_eth_correlation", 0),
         ("btc_sp500_correlation", 0),
@@ -804,27 +789,22 @@ async def _set_initial_sensor_values() -> None:
         ("correlation_strongest_positive", "—"),
         ("correlation_strongest_negative", "—"),
         ("correlation_dominant_patterns", {}),
-        
         # === DCA ===
         ("dca_signal", "Загрузка..."),
         ("dca_zone", "Загрузка..."),
         ("dca_next_level", 0),
         ("dca_risk_score", 50),
         ("dca_result", 0),
-        
         # === Arbitrage ===
         ("arb_opportunity", "Нет"),
         ("arb_spreads", {}),
         ("funding_arb_best", "—"),
-        
         # === Macro ===
         ("days_to_fomc", 0),
         ("macro_risk_week", "Загрузка..."),
         ("next_macro_event", "—"),
-        
         # === Derivatives ===
         ("derivatives", {}),
-        
         # === Traditional Finance ===
         ("sp500_price", 0),
         ("nasdaq_price", 0),
@@ -841,7 +821,6 @@ async def _set_initial_sensor_values() -> None:
         ("gbp_usd", 0),
         ("treasury_yield_2y", 0),
         ("treasury_yield_10y", 0),
-        
         # === Portfolio (advanced) ===
         ("portfolio_value", 0),
         ("portfolio_pnl", 0),
@@ -854,19 +833,16 @@ async def _set_initial_sensor_values() -> None:
         ("portfolio_var_95", 0),
         ("portfolio_max_drawdown", 0),
         ("portfolio_current_drawdown", 0),
-        
         # === Briefings ===
         ("morning_briefing", "Ожидание..."),
         ("evening_briefing", "Ожидание..."),
         ("daily_digest_ready", False),
         ("briefing_last_sent", "—"),
-        
         # === Backtest ===
         ("backtest_dca_roi", 0),
         ("backtest_lump_sum_roi", 0),
         ("backtest_smart_dca_roi", 0),
         ("backtest_best_strategy", "—"),
-        
         # === ML ===
         ("ml_system_status", "Загрузка..."),
         ("ml_accuracy_rate", 0),
@@ -876,14 +852,12 @@ async def _set_initial_sensor_values() -> None:
         ("ml_portfolio_health", "Загрузка..."),
         ("ml_risk_warning", "—"),
         ("ml_investment_opportunity", "Загрузка..."),
-        
         # === Economic Calendar ===
         ("economic_calendar_status", "Загрузка..."),
         ("economic_upcoming_events_24h", 0),
         ("economic_important_events", 0),
         ("economic_sentiment_score", 0),
         ("economic_breaking_news", "—"),
-        
         # === Adaptive Notifications ===
         ("adaptive_notifications_status", "Загрузка..."),
         ("adaptive_notification_count_24h", 0),

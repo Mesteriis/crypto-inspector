@@ -156,15 +156,11 @@ class TraditionalBackfill:
         if self._http_client is None:
             self._http_client = httpx.AsyncClient(
                 timeout=30.0,
-                headers={
-                    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
-                },
+                headers={"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"},
             )
         return self._http_client
 
-    async def _fetch_from_stooq(
-        self, stooq_symbol: str, start_date: datetime, end_date: datetime
-    ) -> pd.DataFrame:
+    async def _fetch_from_stooq(self, stooq_symbol: str, start_date: datetime, end_date: datetime) -> pd.DataFrame:
         """
         Fetch data from Stooq.com (free, no API key needed).
 
@@ -227,9 +223,7 @@ class TraditionalBackfill:
 
         return pd.DataFrame()
 
-    async def _fetch_from_yahoo(
-        self, yahoo_ticker: str, start_date: datetime, end_date: datetime
-    ) -> pd.DataFrame:
+    async def _fetch_from_yahoo(self, yahoo_ticker: str, start_date: datetime, end_date: datetime) -> pd.DataFrame:
         """Fetch data from Yahoo Finance with retry."""
         for attempt in range(MAX_RETRIES):
             try:
@@ -388,13 +382,6 @@ class TraditionalBackfill:
             return 0
 
         # Normalize column names (Stooq uses different names)
-        column_map = {
-            "Open": "Open",
-            "High": "High",
-            "Low": "Low",
-            "Close": "Close",
-            "Volume": "Volume",
-        }
 
         # Save to database
         total_records = 0

@@ -10,7 +10,11 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
-from tests.e2e.framework.data_loader import BacktestPeriod, CandleData, HistoricalDataLoader
+from tests.e2e.framework.data_loader import (
+    BacktestPeriod,
+    CandleData,
+    HistoricalDataLoader,
+)
 from tests.e2e.framework.signal_validator import (
     AccuracyReport,
     SignalPrediction,

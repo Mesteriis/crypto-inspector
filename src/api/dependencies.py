@@ -19,7 +19,7 @@ from models.session import async_session_maker
 
 async def get_db() -> AsyncGenerator[AsyncSession]:
     """Get database session.
-    
+
     Yields:
         AsyncSession for database operations
     """
@@ -40,14 +40,15 @@ async def get_candlestick_repository(
     session: DBSession,
 ):
     """Get CandlestickRepository instance.
-    
+
     Args:
         session: Database session (injected)
-        
+
     Returns:
         CandlestickRepository instance
     """
     from models.repositories.candlestick import CandlestickRepository
+
     return CandlestickRepository(session)
 
 
@@ -55,14 +56,15 @@ async def get_ml_prediction_repository(
     session: DBSession,
 ):
     """Get MLPredictionRepository instance.
-    
+
     Args:
         session: Database session (injected)
-        
+
     Returns:
         MLPredictionRepository instance
     """
     from models.repositories.ml_predictions import MLPredictionRepository
+
     return MLPredictionRepository(session)
 
 
@@ -73,51 +75,56 @@ async def get_ml_prediction_repository(
 
 async def get_investor_analyzer():
     """Get LazyInvestorAnalyzer instance.
-    
+
     Returns:
         LazyInvestorAnalyzer singleton
     """
     from service.analysis.investor import get_investor_analyzer
+
     return get_investor_analyzer()
 
 
 async def get_portfolio_manager():
     """Get PortfolioManager instance.
-    
+
     Returns:
         PortfolioManager singleton
     """
     from service.portfolio import get_portfolio_manager
+
     return get_portfolio_manager()
 
 
 async def get_alert_manager():
     """Get AlertManager instance.
-    
+
     Returns:
         AlertManager singleton
     """
     from service.alerts import get_alert_manager
+
     return get_alert_manager()
 
 
 async def get_ha_manager():
     """Get HAIntegrationManager instance.
-    
+
     Returns:
         HAIntegrationManager singleton
     """
     from service.ha import get_ha_manager
+
     return get_ha_manager()
 
 
 async def get_backfill_manager():
     """Get BackfillManager instance.
-    
+
     Returns:
         BackfillManager singleton
     """
     from service.backfill import get_backfill_manager
+
     return get_backfill_manager()
 
 

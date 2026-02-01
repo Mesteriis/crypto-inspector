@@ -50,7 +50,7 @@ class CacheEntry:
 class ResilientHttpClient:
     """
     HTTP client with built-in retry, backoff, rate limiting, and caching.
-    
+
     Features:
     - Exponential backoff on 429/5xx errors
     - Rate limiting to stay within API limits
@@ -117,12 +117,12 @@ class ResilientHttpClient:
     async def _wait_for_rate_limit(self) -> None:
         """Wait if necessary to respect rate limits."""
         now = time.time()
-        
+
         # Reset counter every minute
         if now - self._rate_limit_window_start > 60:
             self._request_count = 0
             self._rate_limit_window_start = now
-        
+
         # Check if we've hit the rate limit
         if self._request_count >= self._rate_limit_config.requests_per_minute:
             wait_time = 60 - (now - self._rate_limit_window_start)
@@ -131,24 +131,24 @@ class ResilientHttpClient:
                 await asyncio.sleep(wait_time)
                 self._request_count = 0
                 self._rate_limit_window_start = time.time()
-        
+
         # Enforce minimum interval between requests
         elapsed = now - self._last_request_time
         if elapsed < self._rate_limit_config.min_request_interval:
             await asyncio.sleep(self._rate_limit_config.min_request_interval - elapsed)
-        
+
         self._last_request_time = time.time()
         self._request_count += 1
 
     def _calculate_backoff(self, attempt: int) -> float:
         """Calculate backoff delay with jitter."""
         import random
-        
+
         delay = min(
-            self._retry_config.base_delay * (self._retry_config.exponential_base ** attempt),
+            self._retry_config.base_delay * (self._retry_config.exponential_base**attempt),
             self._retry_config.max_delay,
         )
-        
+
         # Add jitter
         jitter = delay * self._retry_config.jitter * random.random()
         return delay + jitter
@@ -162,34 +162,34 @@ class ResilientHttpClient:
     ) -> dict | list | None:
         """
         Make GET request with retry and caching.
-        
+
         Args:
             url: URL to fetch
             params: Query parameters
             use_cache: Whether to use cached response
             cache_ttl: Custom cache TTL for this request
-            
+
         Returns:
             JSON response or None on failure
         """
         cache_key = self._get_cache_key("GET", url, params)
-        
+
         # Check cache first
         if use_cache:
             cached = self._get_cached(cache_key)
             if cached is not None:
                 return cached
-        
+
         client = await self._get_client()
         last_error: Exception | None = None
-        
+
         for attempt in range(self._retry_config.max_retries):
             try:
                 # Respect rate limits
                 await self._wait_for_rate_limit()
-                
+
                 response = await client.get(url, params=params)
-                
+
                 # Handle rate limiting
                 if response.status_code == 429:
                     retry_after = int(response.headers.get("Retry-After", 60))
@@ -200,7 +200,7 @@ class ResilientHttpClient:
                     )
                     await asyncio.sleep(backoff)
                     continue
-                
+
                 # Handle server errors
                 if response.status_code in self._retry_config.retry_on_status:
                     backoff = self._calculate_backoff(attempt)
@@ -210,16 +210,16 @@ class ResilientHttpClient:
                     )
                     await asyncio.sleep(backoff)
                     continue
-                
+
                 response.raise_for_status()
                 data = response.json()
-                
+
                 # Cache successful response
                 if use_cache:
                     self._set_cached(cache_key, data, cache_ttl)
-                
+
                 return data
-                
+
             except httpx.HTTPStatusError as e:
                 last_error = e
                 if e.response.status_code not in self._retry_config.retry_on_status:
@@ -243,7 +243,7 @@ class ResilientHttpClient:
                 last_error = e
                 logger.error(f"Unexpected error on {url}: {e}")
                 raise
-        
+
         # All retries exhausted
         logger.error(f"All {self._retry_config.max_retries} retries exhausted for {url}")
         if last_error:
@@ -266,12 +266,12 @@ class ResilientHttpClient:
 class CoinGeckoClient(ResilientHttpClient):
     """
     CoinGecko API client with proper rate limiting.
-    
+
     Free tier limits:
     - 10-30 requests per minute
     - No API key required
     """
-    
+
     def __init__(self):
         super().__init__(
             base_url="https://api.coingecko.com/api/v3",

@@ -26,7 +26,7 @@ class HyperparameterOptimizer:
     def __init__(self):
         """Initialize optimizer."""
         if not OPTUNA_AVAILABLE:
-            raise ImportError("optuna not installed. " "Install with: pip install optuna")
+            raise ImportError("optuna not installed. Install with: pip install optuna")
 
         self.backtester = ForecastBacktester()
         self.study_cache: dict[str, optuna.Study] = {}
@@ -324,7 +324,7 @@ class HyperparameterOptimizer:
     def save_study(self, study_name: str, filepath: str) -> None:
         """Save study to file."""
         if study_name in self.study_cache:
-            study = self.study_cache[study_name]
+            self.study_cache[study_name]
             optuna.storages.RDBStorage(url=f"sqlite:///{filepath}")
             logger.info(f"Saved study {study_name} to {filepath}")
 

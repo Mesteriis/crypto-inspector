@@ -44,10 +44,7 @@ class SensorRegistry:
             sensor_id = sensor_class.config.sensor_id
 
             if sensor_id in cls._sensors:
-                raise ValueError(
-                    f"Sensor '{sensor_id}' already registered by "
-                    f"{cls._sensors[sensor_id].__name__}"
-                )
+                raise ValueError(f"Sensor '{sensor_id}' already registered by {cls._sensors[sensor_id].__name__}")
 
             cls._sensors[sensor_id] = sensor_class
             cls._categories.setdefault(category, []).append(sensor_id)

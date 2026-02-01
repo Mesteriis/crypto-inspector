@@ -22,7 +22,7 @@ class TestSensorDefinitions:
             assert sensor_class is not None, f"Sensor '{key}' not registered"
             # Verify class has config
             instance = sensor_class.__new__(sensor_class)
-            assert hasattr(instance, 'config'), f"Sensor '{key}' missing 'config'"
+            assert hasattr(instance, "config"), f"Sensor '{key}' missing 'config'"
 
     def test_sensor_count(self, all_sensor_keys):
         """Verify we have the expected number of sensors."""

@@ -174,9 +174,7 @@ class StatusSensor(ScalarSensor):
         value = str(data)
 
         if self.allowed_values and value.lower() not in {v.lower() for v in self.allowed_values}:
-            raise ValueError(
-                f"Invalid status '{value}'. Allowed: {self.allowed_values}"
-            )
+            raise ValueError(f"Invalid status '{value}'. Allowed: {self.allowed_values}")
 
         return value
 

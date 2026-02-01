@@ -134,7 +134,9 @@ class GasTracker:
         self._client: httpx.AsyncClient | None = None
         self._timeout = timeout
         # Support both ENV formats: ETHERSCAN_API_KEY and etherscan_api_key
-        self._etherscan_key = etherscan_api_key or os.environ.get("ETHERSCAN_API_KEY") or os.environ.get("etherscan_api_key")
+        self._etherscan_key = (
+            etherscan_api_key or os.environ.get("ETHERSCAN_API_KEY") or os.environ.get("etherscan_api_key")
+        )
 
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create HTTP client."""
@@ -230,14 +232,14 @@ class GasTracker:
             response.raise_for_status()
             data = response.json()
             logger.debug(f"Beaconcha.in response: {data}")
-            
+
             # Beaconcha.in returns data directly, not nested under "data"
             gas_data = data.get("data", data)  # Try both formats
             rapid = gas_data.get("rapid", 35e9)
             fast = gas_data.get("fast", 30e9)
             standard = gas_data.get("standard", 25e9)
             slow = gas_data.get("slow", 20e9)
-            
+
             # Convert Wei to Gwei if values are large (> 1000)
             if slow > 1000:
                 slow = slow / 1e9
@@ -247,7 +249,7 @@ class GasTracker:
                 fast = fast / 1e9
             if rapid > 1000:
                 rapid = rapid / 1e9
-            
+
             return GasData(
                 timestamp=datetime.now(),
                 slow=slow,

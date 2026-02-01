@@ -3,9 +3,15 @@
 from service.ha.core.base import SensorConfig
 from service.ha.core.registry import register_sensor
 from service.ha.sensors.dict import DictSensor
-from service.ha.sensors.scalar import CountSensor, PercentSensor, ScalarSensor, StatusSensor
+from service.ha.sensors.scalar import (
+    CountSensor,
+    PercentSensor,
+    ScalarSensor,
+    StatusSensor,
+)
 
 # === Liquidations ===
+
 
 @register_sensor(category="misc")
 class LiqLevelsSensor(DictSensor):
@@ -37,6 +43,7 @@ class LiqRiskLevelSensor(StatusSensor):
 
 # === Divergences ===
 
+
 @register_sensor(category="misc")
 class DivergencesSensor(DictSensor):
     """Price and indicator divergences."""
@@ -66,6 +73,7 @@ class DivergencesActiveSensor(CountSensor):
 
 
 # === Signals ===
+
 
 @register_sensor(category="misc")
 class SignalsWinRateSensor(PercentSensor):
@@ -112,6 +120,7 @@ class SignalsLastSensor(StatusSensor):
 
 # === Arbitrage ===
 
+
 @register_sensor(category="misc")
 class ArbSpreadsSensor(DictSensor):
     """Arbitrage spreads between exchanges."""
@@ -155,6 +164,7 @@ class ArbOpportunitySensor(StatusSensor):
 
 
 # === Take Profit ===
+
 
 @register_sensor(category="misc")
 class TpLevelsSensor(DictSensor):
@@ -200,6 +210,7 @@ class GreedLevelSensor(PercentSensor):
 
 # === Token Unlocks ===
 
+
 @register_sensor(category="misc")
 class UnlocksNext7dSensor(CountSensor):
     """Token unlocks in next 7 days."""
@@ -243,6 +254,7 @@ class UnlockRiskLevelSensor(StatusSensor):
 
 
 # === Goals ===
+
 
 @register_sensor(category="misc")
 class GoalTargetSensor(ScalarSensor):
@@ -454,4 +466,3 @@ class MarketSentimentUnifiedSensor(DictSensor):
         description='Market sentiment. Format: {"BTC": 65, "ETH": 58}',
         description_ru='Настроение рынка. Формат: {"BTC": 65, "ETH": 58}',
     )
-

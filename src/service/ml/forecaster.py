@@ -47,13 +47,13 @@ class PriceForecaster:
             except Exception as e:
                 logger.warning(f"Failed to initialize {model_name}: {e}")
                 # Will be created on-demand if needed
-        
+
         # Set fallback default if primary default is unavailable
         if self.default_model not in self._models and self._models:
             fallback = list(self._models.keys())[0]
             logger.warning(f"Default model {self.default_model} unavailable, using {fallback}")
             self.default_model = fallback
-        
+
         logger.info(f"ML Forecaster ready with {len(self._models)} models: {list(self._models.keys())}")
 
     def _get_model(self, model_name: str) -> BaseForecaster:

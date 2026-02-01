@@ -84,7 +84,7 @@ class AltseasonData:
 class AltseasonAnalyzer:
     """
     Altcoin Season analyzer using CoinGecko markets endpoint.
-    
+
     Uses resilient HTTP client with retry and backoff to avoid 429 errors.
     Single API call to get all coin data with 90d performance.
     """
@@ -99,13 +99,13 @@ class AltseasonAnalyzer:
     async def analyze(self) -> AltseasonData:
         """
         Calculate Altcoin Season Index using market data.
-        
+
         Uses price_change_percentage_30d as approximation for 90d performance.
         CoinGecko free tier doesn't support 90d directly.
-        
+
         Returns:
             AltseasonData with index and analysis
-            
+
         Raises:
             RuntimeError: If not enough altcoin data received
         """
@@ -123,7 +123,7 @@ class AltseasonAnalyzer:
         }
 
         data = await client.get("/coins/markets", params=params)
-        
+
         if not data:
             raise RuntimeError("Failed to fetch market data from CoinGecko")
 
@@ -131,7 +131,7 @@ class AltseasonAnalyzer:
         btc_data = next((c for c in data if c["id"] == "bitcoin"), None)
         if not btc_data:
             raise RuntimeError("BTC data not found in CoinGecko response")
-            
+
         # Use 30d performance as proxy for quarterly
         btc_perf = btc_data.get("price_change_percentage_30d_in_currency", 0) or 0
 
@@ -141,15 +141,11 @@ class AltseasonAnalyzer:
         exclude = {"bitcoin"} | stablecoins | wrapped
 
         altcoins = [
-            c
-            for c in data
-            if c["id"] not in exclude and c.get("price_change_percentage_30d_in_currency") is not None
+            c for c in data if c["id"] not in exclude and c.get("price_change_percentage_30d_in_currency") is not None
         ]
 
         if len(altcoins) < self.MIN_ALTCOINS_REQUIRED:
-            raise RuntimeError(
-                f"Not enough altcoin data: got {len(altcoins)}, need {self.MIN_ALTCOINS_REQUIRED}"
-            )
+            raise RuntimeError(f"Not enough altcoin data: got {len(altcoins)}, need {self.MIN_ALTCOINS_REQUIRED}")
 
         # Calculate stats
         alts_beating_btc = sum(

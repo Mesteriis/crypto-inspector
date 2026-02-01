@@ -49,7 +49,7 @@ async def validate_connection(
         async with session.get(url, timeout=10) as response:
             if response.status != 200:
                 raise ConnectionError(f"API returned status {response.status}")
-            
+
             data = await response.json()
             return {
                 "title": f"Crypto Inspect ({host}:{port})",

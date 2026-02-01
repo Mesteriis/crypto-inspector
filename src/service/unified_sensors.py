@@ -29,7 +29,7 @@ class UnifiedSensorManager:
     # These sensors are already registered in SensorRegistry via category modules
     CONSOLIDATED_SENSORS = [
         "price_predictions",
-        "ai_trend_directions", 
+        "ai_trend_directions",
         "technical_indicators",
         "market_volatility",
         "market_sentiment",
@@ -56,7 +56,7 @@ class UnifiedSensorManager:
 
     async def create_consolidated_sensors(self) -> None:
         """Mark consolidated sensors as ready.
-        
+
         Note: Actual sensor registration happens via SensorRegistry during startup.
         This method just marks them as initialized.
         """
@@ -116,7 +116,7 @@ class UnifiedSensorManager:
                 resp = await client.get(url)
                 if resp.status_code == 200:
                     data = resp.json()
-                    
+
                     # Build cache with data by symbol
                     for coin in data:
                         symbol = coin.get("symbol", "").upper()
@@ -158,10 +158,7 @@ class UnifiedSensorManager:
                     continue
 
             # Update sensor using publish_sensor
-            await self.sensors_manager.publish_sensor(
-                "price_predictions", 
-                predictions_data
-            )
+            await self.sensors_manager.publish_sensor("price_predictions", predictions_data)
 
         except Exception as e:
             logger.error(f"Error updating price predictions sensor: {e}")
@@ -182,10 +179,7 @@ class UnifiedSensorManager:
                     logger.debug(f"Could not get AI trend for {currency}: {e}")
                     continue
 
-            await self.sensors_manager.publish_sensor(
-                "ai_trend_directions",
-                trends_data
-            )
+            await self.sensors_manager.publish_sensor("ai_trend_directions", trends_data)
 
         except Exception as e:
             logger.error(f"Error updating AI trends sensor: {e}")
@@ -206,10 +200,7 @@ class UnifiedSensorManager:
                     logger.debug(f"Could not get technical indicators for {currency}: {e}")
                     continue
 
-            await self.sensors_manager.publish_sensor(
-                "technical_indicators",
-                tech_data
-            )
+            await self.sensors_manager.publish_sensor("technical_indicators", tech_data)
 
         except Exception as e:
             logger.error(f"Error updating technical indicators sensor: {e}")
@@ -230,10 +221,7 @@ class UnifiedSensorManager:
                     logger.debug(f"Could not get volatility for {currency}: {e}")
                     continue
 
-            await self.sensors_manager.publish_sensor(
-                "market_volatility",
-                volatility_data
-            )
+            await self.sensors_manager.publish_sensor("market_volatility", volatility_data)
 
         except Exception as e:
             logger.error(f"Error updating volatility sensor: {e}")
@@ -254,10 +242,7 @@ class UnifiedSensorManager:
                     logger.debug(f"Could not get sentiment for {currency}: {e}")
                     continue
 
-            await self.sensors_manager.publish_sensor(
-                "market_sentiment",
-                sentiment_data
-            )
+            await self.sensors_manager.publish_sensor("market_sentiment", sentiment_data)
 
         except Exception as e:
             logger.error(f"Error updating market sentiment sensor: {e}")
@@ -302,7 +287,7 @@ class UnifiedSensorManager:
         price = data.get("price")
         high = data.get("high_24h")
         low = data.get("low_24h")
-        ath = data.get("ath")
+        data.get("ath")
 
         if not all([price, high, low]):
             return None
@@ -341,7 +326,7 @@ class UnifiedSensorManager:
     async def _get_market_sentiment(self, currency: str) -> str | None:
         """Get market sentiment for a currency."""
         from core.translations import t
-        
+
         base = currency.split("/")[0] if "/" in currency else currency
         data = self._cache.get(base)
         if not data:

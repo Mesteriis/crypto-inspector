@@ -31,7 +31,7 @@ class ChronosBoltForecaster(BaseForecaster):
             model_name: HuggingFace model identifier
         """
         if not CHRONOS_AVAILABLE:
-            raise ImportError("chronos-forecasting not installed. " "Install with: pip install chronos-forecasting")
+            raise ImportError("chronos-forecasting not installed. Install with: pip install chronos-forecasting")
 
         self.model_name = model_name
         self.pipeline = None

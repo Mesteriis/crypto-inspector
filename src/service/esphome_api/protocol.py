@@ -99,7 +99,7 @@ def decode_frame(data: bytes) -> tuple[int, bytes, int] | None:
     msg_type, type_consumed = decode_varint(data, payload_start)
 
     # Extract payload
-    payload = data[payload_start + type_consumed:total_len]
+    payload = data[payload_start + type_consumed : total_len]
 
     return msg_type, payload, total_len
 
@@ -162,11 +162,11 @@ def decode_protobuf_fields(data: bytes) -> list[ParsedField]:
         elif wire_type == 2:  # Length-delimited
             length, consumed = decode_varint(data, offset)
             offset += consumed
-            value = data[offset:offset + length]
+            value = data[offset : offset + length]
             offset += length
             fields.append(ParsedField(field_num, wire_type, value))
         elif wire_type == 5:  # 32-bit
-            value = data[offset:offset + 4]
+            value = data[offset : offset + 4]
             offset += 4
             fields.append(ParsedField(field_num, wire_type, value))
         else:

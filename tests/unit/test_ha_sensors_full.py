@@ -1,6 +1,5 @@
 """100% coverage tests for services/ha module (new modular architecture)."""
 
-import json
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -9,8 +8,8 @@ import pytest
 from service.ha import (
     HAIntegrationManager,
     SensorRegistry,
-    get_sensors_manager,
     get_currency_list,
+    get_sensors_manager,
 )
 
 # ═══════════════════════════════════════════════════════════════════════════

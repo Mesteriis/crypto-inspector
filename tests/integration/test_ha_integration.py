@@ -12,7 +12,6 @@
 Тесты фокусируются на позитивных сценариях использования (happy path).
 """
 
-import json
 import os
 import sys
 from decimal import Decimal
@@ -310,9 +309,7 @@ class TestHAIntegrationManagerИнтеграция:
 
     def test_инициализация_менеджера_создает_все_сенсоры(self, ha_manager):
         """При инициализации менеджера создаются экземпляры всех сенсоров."""
-        assert len(ha_manager._sensors) >= 130, (
-            f"Ожидалось минимум 130 сенсоров, получено {len(ha_manager._sensors)}"
-        )
+        assert len(ha_manager._sensors) >= 130, f"Ожидалось минимум 130 сенсоров, получено {len(ha_manager._sensors)}"
 
     def test_device_info_содержит_корректные_данные(self, ha_manager):
         """Device info содержит все необходимые поля."""
@@ -496,7 +493,6 @@ class TestSupervisorAPIClientИнтеграция:
         )
 
         assert result is True
-
 
 
 # =============================================================================
@@ -903,6 +899,7 @@ class TestГлобальноеСостояние:
         # Сбрасываем
         import service.ha.core.manager as manager_module
         from service.ha import HAIntegrationManager, get_ha_manager
+
         manager_module._manager = None
 
         manager = get_ha_manager()
@@ -914,6 +911,7 @@ class TestГлобальноеСостояние:
         """get_sensors_manager - алиас для get_ha_manager."""
         import service.ha.core.manager as manager_module
         from service.ha import get_ha_manager, get_sensors_manager
+
         manager_module._manager = None
 
         manager1 = get_ha_manager()

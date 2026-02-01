@@ -164,7 +164,7 @@ class CandleBuffer:
 
         total_written = 0
         max_retries = self.config.max_retries
-        
+
         for attempt in range(max_retries):
             try:
                 async with async_session_maker() as session:
@@ -239,11 +239,13 @@ class CandleBuffer:
 
                     await session.commit()
                     return total_written
-                    
+
             except Exception as e:
                 if attempt < max_retries - 1:
-                    wait_time = (2 ** attempt) * 0.5  # Exponential backoff: 0.5s, 1s, 2s
-                    logger.warning(f"[Buffer] DB write failed (attempt {attempt + 1}/{max_retries}), retrying in {wait_time}s: {e}")
+                    wait_time = (2**attempt) * 0.5  # Exponential backoff: 0.5s, 1s, 2s
+                    logger.warning(
+                        f"[Buffer] DB write failed (attempt {attempt + 1}/{max_retries}), retrying in {wait_time}s: {e}"
+                    )
                     await asyncio.sleep(wait_time)
                 else:
                     logger.error(f"[Buffer] DB write failed after {max_retries} attempts: {e}")
