@@ -103,9 +103,7 @@ class ESPHomeDiscovery:
         """Stop mDNS service."""
         if self._zeroconf and self._service_info:
             try:
-                await self._zeroconf.async_unregister_service(
-                    self._service_info
-                )
+                await self._zeroconf.async_unregister_service(self._service_info)
                 await self._zeroconf.async_close()
             except Exception as e:
                 logger.error("ESPHome Discovery: Failed to stop: %s", e)

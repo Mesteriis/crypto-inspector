@@ -12,10 +12,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class BaseSchema(BaseModel):
     """Base schema with common configuration.
-    
+
     All schemas should inherit from this class for consistent behavior.
     """
-    
+
     model_config = ConfigDict(
         # Allow population by field name or alias
         populate_by_name=True,
@@ -31,7 +31,7 @@ class BaseSchema(BaseModel):
             datetime: lambda v: v.isoformat() if v is not None else None,
         },
     )
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary with proper serialization."""
         return self.model_dump(mode="json")
@@ -39,20 +39,20 @@ class BaseSchema(BaseModel):
 
 class TimestampMixin(BaseModel):
     """Mixin for models with timestamp."""
-    
+
     timestamp: datetime = Field(default_factory=datetime.now)
 
 
 class BilingualMixin(BaseModel):
     """Mixin for bilingual (EN/RU) fields."""
-    
+
     def get_localized(self, field: str, lang: str = "en") -> str:
         """Get localized field value.
-        
+
         Args:
             field: Base field name (e.g., 'name')
             lang: Language code ('en' or 'ru')
-            
+
         Returns:
             Localized value, falls back to English if Russian not found.
         """

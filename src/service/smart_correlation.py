@@ -247,7 +247,7 @@ class SmartCorrelationEngine:
 
             # Добавляем /USDT если не указана пара
             pair = symbol if "/" in symbol else f"{symbol}/USDT"
-            
+
             candles = await fetch_candlesticks(symbol=pair, interval=CandleInterval(timeframe), limit=limit)
 
             if len(candles) < 20:  # Minimum data requirement

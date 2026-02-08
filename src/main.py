@@ -1,5 +1,6 @@
 # Load environment variables FIRST, before any other imports
 from dotenv import load_dotenv
+
 load_dotenv()
 
 import logging
@@ -28,6 +29,8 @@ class IngressMiddleware(BaseHTTPMiddleware):
             # Set root_path for correct URL generation
             request.scope["root_path"] = ingress_path
         return await call_next(request)
+
+
 from core.scheduler import scheduler_lifespan
 
 # Configure logging with file rotation
@@ -136,9 +139,9 @@ async def start_esphome_api_server() -> None:
     """Start ESPHome Native API server for HA auto-discovery."""
     try:
         from service.esphome_api import (
+            get_esphome_server,
             setup_esphome_api,
             start_esphome_api,
-            get_esphome_server,
         )
         from service.ha.core.registry import SensorRegistry
 
@@ -157,6 +160,7 @@ async def start_esphome_api_server() -> None:
 
         # Get state getter from HA manager
         from service.ha import get_ha_manager
+
         ha_manager = get_ha_manager()
 
         def get_sensor_state(sensor_id: str):
@@ -186,6 +190,7 @@ async def stop_esphome_api_server() -> None:
     """Stop ESPHome API server."""
     try:
         from service.esphome_api import stop_esphome_api
+
         await stop_esphome_api()
     except ImportError:
         pass

@@ -126,7 +126,7 @@ class StablecoinFlowData:
 class StablecoinAnalyzer:
     """
     Analyzer for stablecoin flows.
-    
+
     Uses resilient HTTP client with retry and backoff.
     """
 
@@ -140,10 +140,10 @@ class StablecoinAnalyzer:
     async def analyze(self) -> StablecoinFlowData:
         """
         Analyze stablecoin market caps and flows.
-        
+
         Returns:
             StablecoinFlowData with analysis
-            
+
         Raises:
             RuntimeError: If not enough stablecoin data received
         """
@@ -218,7 +218,7 @@ class StablecoinAnalyzer:
         }
 
         data = await client.get("/coins/markets", params=params)
-        
+
         if not data:
             return []
 
@@ -242,7 +242,7 @@ class StablecoinAnalyzer:
     async def _fetch_total_market_cap(self, client) -> float:
         """Fetch total crypto market cap."""
         data = await client.get("/global")
-        
+
         if not data:
             logger.warning("Failed to fetch global market data, using 0")
             return 0

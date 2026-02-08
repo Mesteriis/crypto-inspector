@@ -1,13 +1,13 @@
 """Pydantic models for candlestick data."""
 
 from decimal import Decimal
-from enum import Enum
+from enum import StrEnum
 from typing import Self
 
 from pydantic import BaseModel, Field, field_validator
 
 
-class CandleInterval(str, Enum):
+class CandleInterval(StrEnum):
     """Supported candlestick time intervals."""
 
     MINUTE_1 = "1m"

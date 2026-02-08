@@ -226,7 +226,11 @@ class TestCandlestickSyncJob:
         from core.scheduler.jobs import candlestick_sync_job
 
         with (
-            patch("core.scheduler.jobs.get_currency_list_async", new_callable=AsyncMock, return_value=["BTC/USDT", "ETH/USDT"]),
+            patch(
+                "core.scheduler.jobs.get_currency_list_async",
+                new_callable=AsyncMock,
+                return_value=["BTC/USDT", "ETH/USDT"],
+            ),
             patch("core.scheduler.jobs.get_intervals_to_fetch", return_value=["1m"]),
             patch("core.scheduler.jobs.fetch_and_save_candlesticks", new_callable=AsyncMock) as mock_fetch,
             patch("service.ha_integration.notify_error", new_callable=AsyncMock),

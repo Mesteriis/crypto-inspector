@@ -233,7 +233,6 @@ class TestSupportResistance:
 
         # Create candles with clear levels
         candles = []
-        base_price = 100
         for i in range(60):
             if i % 10 < 5:
                 # Oscillate between 95-100

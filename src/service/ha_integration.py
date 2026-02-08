@@ -8,7 +8,7 @@ import asyncio
 import logging
 import os
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
 import httpx
 
@@ -23,7 +23,7 @@ HA_CONNECTION_RETRIES = 5
 HA_RETRY_DELAY_SECONDS = 3
 
 
-class NotificationType(str, Enum):
+class NotificationType(StrEnum):
     """Notification types for HA."""
 
     INFO = "info"
@@ -66,17 +66,17 @@ class SupervisorAPIClient:
     async def check_connection(self, retries: int = HA_CONNECTION_RETRIES) -> bool:
         """
         Check connection to Supervisor API with retries.
-        
+
         Args:
             retries: Number of retry attempts
-            
+
         Returns:
             True if connection successful
         """
         if not self.is_available:
             logger.info("Supervisor token not found, running in standalone mode")
             return False
-        
+
         for attempt in range(1, retries + 1):
             try:
                 client = await self._get_client()
@@ -87,23 +87,18 @@ class SupervisorAPIClient:
                     logger.info("Successfully connected to Home Assistant Supervisor API")
                     return True
             except httpx.HTTPError as e:
-                logger.warning(
-                    f"HA Supervisor connection attempt {attempt}/{retries} failed: {e}"
-                )
+                logger.warning(f"HA Supervisor connection attempt {attempt}/{retries} failed: {e}")
             except Exception as e:
-                logger.warning(
-                    f"HA Supervisor connection attempt {attempt}/{retries} error: {e}"
-                )
-            
+                logger.warning(f"HA Supervisor connection attempt {attempt}/{retries} error: {e}")
+
             if attempt < retries:
                 logger.info(f"Retrying in {HA_RETRY_DELAY_SECONDS} seconds...")
                 await asyncio.sleep(HA_RETRY_DELAY_SECONDS)
-        
+
         self._connection_checked = True
         self._connection_available = False
         logger.warning(
-            f"Could not connect to HA Supervisor after {retries} attempts. "
-            "Continuing without HA integration."
+            f"Could not connect to HA Supervisor after {retries} attempts. Continuing without HA integration."
         )
         return False
 

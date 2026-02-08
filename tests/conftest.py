@@ -29,11 +29,12 @@ sys.path.insert(0, os.path.join(project_root, "src"))
 # FAKER CONFIGURATION
 # =============================================================================
 
+
 @pytest.fixture(scope="session")
 def faker() -> Faker:
     """
     Создает Faker инстанс с фиксированным seed для воспроизводимости.
-    
+
     Returns:
         Faker: Инстанс Faker с русской и английской локализацией
     """
@@ -47,11 +48,12 @@ def faker() -> Faker:
 # ASYNC FIXTURES
 # =============================================================================
 
+
 @pytest.fixture(scope="session")
 def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
     """
     Создает event loop для асинхронных тестов.
-    
+
     Scope: session - один loop на весь сеанс тестирования.
     """
     loop = asyncio.new_event_loop()
@@ -62,6 +64,7 @@ def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
 # =============================================================================
 # MOCK FIXTURES - БАЗОВЫЕ
 # =============================================================================
+
 
 @pytest.fixture
 def mock_async() -> AsyncMock:
@@ -79,12 +82,21 @@ def mock_sync() -> MagicMock:
 # CRYPTO DATA FIXTURES
 # =============================================================================
 
+
 @pytest.fixture
 def crypto_symbols() -> list[str]:
     """Список поддерживаемых криптовалютных пар."""
     return [
-        "BTC/USDT", "ETH/USDT", "SOL/USDT", "AR/USDT", "TON/USDT",
-        "BNB/USDT", "XRP/USDT", "ADA/USDT", "DOGE/USDT", "AVAX/USDT"
+        "BTC/USDT",
+        "ETH/USDT",
+        "SOL/USDT",
+        "AR/USDT",
+        "TON/USDT",
+        "BNB/USDT",
+        "XRP/USDT",
+        "ADA/USDT",
+        "DOGE/USDT",
+        "AVAX/USDT",
     ]
 
 
@@ -92,7 +104,7 @@ def crypto_symbols() -> list[str]:
 def sample_price_data(faker: Faker) -> dict[str, float]:
     """
     Генерирует реалистичные данные о ценах криптовалют.
-    
+
     Returns:
         dict: {symbol: price}
     """
@@ -109,7 +121,7 @@ def sample_price_data(faker: Faker) -> dict[str, float]:
 def sample_change_data(faker: Faker) -> dict[str, float]:
     """
     Генерирует данные об изменении цены за 24ч.
-    
+
     Returns:
         dict: {symbol: change_percent}
     """
@@ -126,14 +138,16 @@ def sample_change_data(faker: Faker) -> dict[str, float]:
 # CANDLESTICK DATA FIXTURES
 # =============================================================================
 
+
 @pytest.fixture
 def candle_factory(faker: Faker):
     """
     Фабрика для создания свечей.
-    
+
     Returns:
         callable: Функция для генерации свечей
     """
+
     def _create_candle(
         timestamp: int | None = None,
         open_price: float | None = None,
@@ -144,12 +158,12 @@ def candle_factory(faker: Faker):
     ) -> dict[str, Any]:
         base_price = open_price or faker.pyfloat(min_value=90000, max_value=110000)
         volatility = base_price * 0.02
-        
+
         _open = open_price or base_price
         _close = close_price or (base_price + faker.pyfloat(min_value=-volatility, max_value=volatility))
         _high = high_price or (max(_open, _close) * (1 + faker.pyfloat(min_value=0, max_value=0.015)))
         _low = low_price or (min(_open, _close) * (1 - faker.pyfloat(min_value=0, max_value=0.015)))
-        
+
         return {
             "timestamp": timestamp or int(datetime.now(UTC).timestamp() * 1000),
             "open": round(_open, 2),
@@ -158,7 +172,7 @@ def candle_factory(faker: Faker):
             "close": round(_close, 2),
             "volume": volume or faker.pyfloat(min_value=1000, max_value=5000),
         }
-    
+
     return _create_candle
 
 
@@ -166,20 +180,20 @@ def candle_factory(faker: Faker):
 def sample_candles(candle_factory) -> list[dict]:
     """
     Генерирует список свечей для тестирования (300 дней).
-    
+
     Returns:
         list[dict]: Список свечей
     """
     candles = []
     base_price = 50000
     start_date = datetime.now(UTC) - timedelta(days=300)
-    
+
     for i in range(300):
         daily_return = random.gauss(0.001, 0.02)
-        base_price *= (1 + daily_return)
+        base_price *= 1 + daily_return
         ts = int((start_date + timedelta(days=i)).timestamp() * 1000)
         candles.append(candle_factory(timestamp=ts, open_price=base_price))
-    
+
     return candles
 
 
@@ -189,21 +203,23 @@ def bullish_candles() -> list[dict]:
     candles = []
     base_price = 40000
     start_date = datetime.now(UTC) - timedelta(days=300)
-    
+
     for i in range(300):
         daily_return = random.gauss(0.004, 0.015)  # Сильный бычий bias
-        base_price *= (1 + daily_return)
+        base_price *= 1 + daily_return
         ts = int((start_date + timedelta(days=i)).timestamp() * 1000)
-        
-        candles.append({
-            "timestamp": ts,
-            "open": round(base_price * random.uniform(0.995, 1.005), 2),
-            "high": round(base_price * random.uniform(1.0, 1.025), 2),
-            "low": round(base_price * random.uniform(0.975, 1.0), 2),
-            "close": round(base_price, 2),
-            "volume": random.uniform(1000, 5000),
-        })
-    
+
+        candles.append(
+            {
+                "timestamp": ts,
+                "open": round(base_price * random.uniform(0.995, 1.005), 2),
+                "high": round(base_price * random.uniform(1.0, 1.025), 2),
+                "low": round(base_price * random.uniform(0.975, 1.0), 2),
+                "close": round(base_price, 2),
+                "volume": random.uniform(1000, 5000),
+            }
+        )
+
     return candles
 
 
@@ -213,21 +229,23 @@ def bearish_candles() -> list[dict]:
     candles = []
     base_price = 60000
     start_date = datetime.now(UTC) - timedelta(days=300)
-    
+
     for i in range(300):
         daily_return = random.gauss(-0.003, 0.015)  # Медвежий bias
-        base_price *= (1 + daily_return)
+        base_price *= 1 + daily_return
         ts = int((start_date + timedelta(days=i)).timestamp() * 1000)
-        
-        candles.append({
-            "timestamp": ts,
-            "open": round(base_price * random.uniform(0.995, 1.005), 2),
-            "high": round(base_price * random.uniform(1.0, 1.025), 2),
-            "low": round(base_price * random.uniform(0.975, 1.0), 2),
-            "close": round(base_price, 2),
-            "volume": random.uniform(1000, 5000),
-        })
-    
+
+        candles.append(
+            {
+                "timestamp": ts,
+                "open": round(base_price * random.uniform(0.995, 1.005), 2),
+                "high": round(base_price * random.uniform(1.0, 1.025), 2),
+                "low": round(base_price * random.uniform(0.975, 1.0), 2),
+                "close": round(base_price, 2),
+                "volume": random.uniform(1000, 5000),
+            }
+        )
+
     return candles
 
 
@@ -237,23 +255,25 @@ def sideways_candles() -> list[dict]:
     candles = []
     base_price = 50000
     start_date = datetime.now(UTC) - timedelta(days=300)
-    
+
     for i in range(300):
         daily_return = random.gauss(0, 0.01)  # Нет bias
-        base_price *= (1 + daily_return)
+        base_price *= 1 + daily_return
         # Держим цену в диапазоне
         base_price = max(45000, min(55000, base_price))
         ts = int((start_date + timedelta(days=i)).timestamp() * 1000)
-        
-        candles.append({
-            "timestamp": ts,
-            "open": round(base_price * random.uniform(0.995, 1.005), 2),
-            "high": round(base_price * random.uniform(1.0, 1.015), 2),
-            "low": round(base_price * random.uniform(0.985, 1.0), 2),
-            "close": round(base_price, 2),
-            "volume": random.uniform(1000, 5000),
-        })
-    
+
+        candles.append(
+            {
+                "timestamp": ts,
+                "open": round(base_price * random.uniform(0.995, 1.005), 2),
+                "high": round(base_price * random.uniform(1.0, 1.015), 2),
+                "low": round(base_price * random.uniform(0.985, 1.0), 2),
+                "close": round(base_price, 2),
+                "volume": random.uniform(1000, 5000),
+            }
+        )
+
     return candles
 
 
@@ -261,11 +281,12 @@ def sideways_candles() -> list[dict]:
 # TECHNICAL ANALYSIS FIXTURES
 # =============================================================================
 
+
 @pytest.fixture
 def sample_ta_indicators(faker: Faker) -> dict[str, dict[str, Any]]:
     """
     Генерирует данные технического анализа.
-    
+
     Returns:
         dict: Технические индикаторы по символам
     """
@@ -315,11 +336,12 @@ def overbought_indicators() -> dict[str, Any]:
 # INVESTOR/PORTFOLIO FIXTURES
 # =============================================================================
 
+
 @pytest.fixture
 def sample_investor_data(faker: Faker) -> dict[str, Any]:
     """
     Генерирует данные инвестора.
-    
+
     Returns:
         dict: Данные инвестора
     """
@@ -337,13 +359,13 @@ def sample_investor_data(faker: Faker) -> dict[str, Any]:
 def sample_portfolio_data(faker: Faker) -> dict[str, Any]:
     """
     Генерирует данные портфеля.
-    
+
     Returns:
         dict: Данные портфеля
     """
     total_value = faker.pyfloat(min_value=50000, max_value=200000)
     total_cost = total_value * faker.pyfloat(min_value=0.8, max_value=1.2)
-    
+
     return {
         "total_value": round(total_value, 2),
         "total_cost": round(total_cost, 2),
@@ -361,16 +383,17 @@ def sample_portfolio_data(faker: Faker) -> dict[str, Any]:
 # MARKET DATA FIXTURES
 # =============================================================================
 
+
 @pytest.fixture
 def sample_market_data(faker: Faker) -> dict[str, Any]:
     """
     Генерирует рыночные данные.
-    
+
     Returns:
         dict: Рыночные данные
     """
     fear_greed_value = faker.pyint(min_value=0, max_value=100)
-    
+
     if fear_greed_value < 25:
         classification = "Extreme Fear"
     elif fear_greed_value < 45:
@@ -381,7 +404,7 @@ def sample_market_data(faker: Faker) -> dict[str, Any]:
         classification = "Greed"
     else:
         classification = "Extreme Greed"
-    
+
     return {
         "fear_greed": {"value": fear_greed_value, "classification": classification},
         "btc_dominance": faker.pyfloat(min_value=45, max_value=60),
@@ -394,11 +417,12 @@ def sample_market_data(faker: Faker) -> dict[str, Any]:
 # BACKTEST FIXTURES
 # =============================================================================
 
+
 @pytest.fixture
 def backtest_config() -> dict[str, Any]:
     """
     Базовая конфигурация для backtesting.
-    
+
     Returns:
         dict: Конфигурация backtest
     """
@@ -417,7 +441,7 @@ def backtest_config() -> dict[str, Any]:
 def hyperparameter_space() -> dict[str, list]:
     """
     Пространство гиперпараметров для оптимизации.
-    
+
     Returns:
         dict: Параметры и их возможные значения
     """
@@ -437,6 +461,7 @@ def hyperparameter_space() -> dict[str, list]:
 # =============================================================================
 # DATABASE/API MOCK FIXTURES
 # =============================================================================
+
 
 @pytest.fixture
 def mock_db_session() -> MagicMock:
@@ -474,21 +499,22 @@ def mock_http_client() -> AsyncMock:
 # UTILITY FUNCTIONS
 # =============================================================================
 
+
 def make_candle(timestamp: int, close: float) -> dict:
     """
     Хелпер для создания одной свечи.
-    
+
     Args:
         timestamp: Временная метка в миллисекундах
         close: Цена закрытия
-        
+
     Returns:
         dict: Данные свечи
     """
     open_price = close * random.uniform(0.995, 1.005)
     high = max(open_price, close) * random.uniform(1.0, 1.015)
     low = min(open_price, close) * random.uniform(0.985, 1.0)
-    
+
     return {
         "timestamp": timestamp,
         "open": round(open_price, 2),

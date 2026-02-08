@@ -2,7 +2,13 @@
 
 from service.ha.core.base import SensorConfig
 from service.ha.core.registry import register_sensor
-from service.ha.sensors.scalar import BoolSensor, CountSensor, PercentSensor, ScalarSensor, StatusSensor
+from service.ha.sensors.scalar import (
+    BoolSensor,
+    CountSensor,
+    PercentSensor,
+    ScalarSensor,
+    StatusSensor,
+)
 
 
 @register_sensor(category="investor")

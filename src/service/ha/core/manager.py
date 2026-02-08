@@ -28,13 +28,13 @@ class DynamicCurrencyManager:
     Dynamic currency list manager that combines:
     1. User-configured symbols (from env/config) OR defaults
     2. Symbols from Bybit balances (wallet + earn)
-    
+
     Refreshes Bybit symbols at runtime, not just at startup.
     Automatically triggers historical data backfill for new symbols.
     """
-    
+
     _instance: "DynamicCurrencyManager | None" = None
-    
+
     def __init__(self):
         self._configured_symbols: list[str] = []
         self._bybit_symbols: set[str] = set()
@@ -43,14 +43,14 @@ class DynamicCurrencyManager:
         self._bybit_refresh_interval = timedelta(minutes=5)
         self._bybit_configured: bool | None = None  # Cached config check
         self._backfill_in_progress: set[str] = set()  # Prevent duplicate backfills
-    
+
     @classmethod
     def get_instance(cls) -> "DynamicCurrencyManager":
         """Get singleton instance."""
         if cls._instance is None:
             cls._instance = cls()
         return cls._instance
-    
+
     def _load_configured_symbols(self) -> list[str]:
         """Load user-configured symbols from env or defaults."""
         # Check environment variable first
@@ -76,41 +76,41 @@ class DynamicCurrencyManager:
                     # Assume USDT pair
                     normalized.append(f"{s}/USDT")
             return normalized
-        
+
         # Fallback to defaults
         return DEFAULT_SYMBOLS.copy()
-    
+
     async def _refresh_bybit_symbols(self) -> None:
         """Fetch symbols from Bybit wallet and earn positions."""
         try:
             from service.exchange import get_bybit_portfolio
-            
+
             portfolio = get_bybit_portfolio()
-            
+
             # Cache the configured check
             if self._bybit_configured is None:
                 self._bybit_configured = portfolio.is_configured
-            
+
             if not self._bybit_configured:
                 return
-            
+
             account = await portfolio.get_account()
-            
+
             new_symbols: set[str] = set()
-            
+
             # Add symbols from wallet balances (non-zero balance)
             for balance in account.balances:
                 if balance.wallet_balance > 0 or balance.usd_value > 1:  # Min $1 value
                     coin = balance.coin
                     if coin not in ("USDT", "USDC", "USD"):  # Skip stablecoins
                         new_symbols.add(f"{coin}/USDT")
-            
+
             # Add symbols from earn positions
             for earn in account.earn_positions:
                 coin = earn.coin
                 if coin not in ("USDT", "USDC", "USD"):
                     new_symbols.add(f"{coin}/USDT")
-            
+
             if new_symbols != self._bybit_symbols:
                 added = new_symbols - self._bybit_symbols
                 removed = self._bybit_symbols - new_symbols
@@ -121,37 +121,37 @@ class DynamicCurrencyManager:
                 if removed:
                     logger.info(f"Bybit symbols removed: {removed}")
                 self._bybit_symbols = new_symbols
-            
+
             self._last_bybit_refresh = datetime.now(UTC)
-            
+
         except Exception as e:
             logger.debug(f"Failed to refresh Bybit symbols: {e}")
-    
+
     async def _backfill_new_symbols(self, symbols: set[str]) -> None:
         """Trigger historical data backfill for newly discovered symbols."""
         import asyncio
-        
+
         for symbol in symbols:
             # Skip if already backfilled or in progress
             if symbol in self._backfilled_symbols or symbol in self._backfill_in_progress:
                 continue
-            
+
             self._backfill_in_progress.add(symbol)
             logger.info(f"Triggering historical backfill for new Bybit symbol: {symbol}")
-            
+
             try:
                 from service.backfill.crypto_backfill import CryptoBackfill
-                
+
                 backfill = CryptoBackfill()
-                
+
                 # Backfill key intervals for analysis
                 intervals = [
-                    ("4h", 1),    # 1 year of 4h data (for divergence/S-R)
-                    ("1d", 2),    # 2 years of daily data
+                    ("4h", 1),  # 1 year of 4h data (for divergence/S-R)
+                    ("1d", 2),  # 2 years of daily data
                     ("1h", 0.5),  # 6 months of hourly data
                     ("15m", 0.25),  # 3 months of 15m data
                 ]
-                
+
                 total_candles = 0
                 for interval, years in intervals:
                     try:
@@ -165,45 +165,45 @@ class DynamicCurrencyManager:
                         await asyncio.sleep(0.5)  # Rate limiting
                     except Exception as e:
                         logger.warning(f"Failed to backfill {interval} for {symbol}: {e}")
-                
+
                 self._backfilled_symbols.add(symbol)
                 logger.info(f"Backfill complete for {symbol}: {total_candles} total candles")
-                
+
             except Exception as e:
                 logger.error(f"Backfill failed for {symbol}: {e}")
             finally:
                 self._backfill_in_progress.discard(symbol)
-    
+
     def _needs_bybit_refresh(self) -> bool:
         """Check if Bybit symbols need refresh."""
         if self._last_bybit_refresh is None:
             return True
         return datetime.now(UTC) - self._last_bybit_refresh > self._bybit_refresh_interval
-    
+
     async def get_symbols_async(self) -> list[str]:
         """Get combined currency list (async version for runtime refresh)."""
         # Refresh Bybit symbols if needed
         if self._needs_bybit_refresh():
             await self._refresh_bybit_symbols()
-        
+
         return self._get_combined_symbols()
-    
+
     def get_symbols_sync(self) -> list[str]:
         """Get combined currency list (sync version - uses cached Bybit data)."""
         return self._get_combined_symbols()
-    
+
     def _get_combined_symbols(self) -> list[str]:
         """Combine configured and Bybit symbols."""
         configured = self._load_configured_symbols()
-        
+
         # Merge: configured + bybit (deduped, maintaining order)
         combined: list[str] = list(configured)
         for sym in sorted(self._bybit_symbols):
             if sym not in combined:
                 combined.append(sym)
-        
+
         return combined
-    
+
     def force_refresh(self) -> None:
         """Force Bybit refresh on next call."""
         self._last_bybit_refresh = None
@@ -212,11 +212,11 @@ class DynamicCurrencyManager:
 
 def get_currency_list() -> list[str]:
     """Get the dynamic currency list.
-    
+
     Combines:
     1. User-configured symbols (from HA_SYMBOLS env) OR defaults
     2. Symbols from Bybit wallet/earn positions (cached)
-    
+
     This is the single source of truth for currency selections.
     For async contexts, use get_currency_list_async() for fresh Bybit data.
 
@@ -229,7 +229,7 @@ def get_currency_list() -> list[str]:
 
 async def get_currency_list_async() -> list[str]:
     """Get the dynamic currency list with fresh Bybit data.
-    
+
     Use this in async contexts (scheduler jobs, API handlers) to get
     up-to-date Bybit symbols.
 
@@ -244,7 +244,6 @@ def refresh_currency_list() -> None:
     """Force refresh of Bybit symbols on next call."""
     manager = DynamicCurrencyManager.get_instance()
     manager.force_refresh()
-
 
 
 class HAIntegrationManager:
@@ -532,12 +531,16 @@ class HAIntegrationManager:
             flags_count = int(flags_data) if flags_data else 0
             flags_list = ""
         emoji = "🟢" if flags_count == 0 else ("🟡" if flags_count <= 2 else "🔴")
-        await self.publish_sensor("red_flags", flags_count, {
-            "status_emoji": emoji,
-            "count": flags_count,
-            "flags_list": flags_list,
-            "last_updated": timestamp,
-        })
+        await self.publish_sensor(
+            "red_flags",
+            flags_count,
+            {
+                "status_emoji": emoji,
+                "count": flags_count,
+                "flags_list": flags_list,
+                "last_updated": timestamp,
+            },
+        )
 
         # market_tension - handle nested dict format
         tension = status_data.get("tension", {})
@@ -626,20 +629,32 @@ class HAIntegrationManager:
         timestamp = datetime.now(UTC).isoformat()
 
         if fear_greed is not None:
-            await self.publish_sensor("fear_greed", fear_greed, {
-                "value": fear_greed,
-                "last_updated": timestamp,
-            })
+            await self.publish_sensor(
+                "fear_greed",
+                fear_greed,
+                {
+                    "value": fear_greed,
+                    "last_updated": timestamp,
+                },
+            )
 
         if btc_dominance is not None:
-            await self.publish_sensor("btc_dominance", btc_dominance, {
-                "last_updated": timestamp,
-            })
+            await self.publish_sensor(
+                "btc_dominance",
+                btc_dominance,
+                {
+                    "last_updated": timestamp,
+                },
+            )
 
         if derivatives_data is not None:
-            await self.publish_sensor("derivatives", derivatives_data, {
-                "last_updated": timestamp,
-            })
+            await self.publish_sensor(
+                "derivatives",
+                derivatives_data,
+                {
+                    "last_updated": timestamp,
+                },
+            )
 
     # === Sync Status Methods ===
 
@@ -660,11 +675,15 @@ class HAIntegrationManager:
         """
         timestamp = datetime.now(UTC).isoformat()
 
-        await self.publish_sensor("sync_status", status, {
-            "success_count": success_count,
-            "failure_count": failure_count,
-            "last_updated": timestamp,
-        })
+        await self.publish_sensor(
+            "sync_status",
+            status,
+            {
+                "success_count": success_count,
+                "failure_count": failure_count,
+                "last_updated": timestamp,
+            },
+        )
 
         await self.publish_sensor("last_sync", timestamp)
 
@@ -685,11 +704,15 @@ class HAIntegrationManager:
         if "pulse" in summary_data:
             pulse = summary_data["pulse"]
             confidence = summary_data.get("pulse_confidence")
-            await self.publish_sensor("market_pulse", pulse, {
-                "confidence": confidence,
-                "pulse_ru": summary_data.get("pulse_ru", pulse),
-                "last_updated": timestamp,
-            })
+            await self.publish_sensor(
+                "market_pulse",
+                pulse,
+                {
+                    "confidence": confidence,
+                    "pulse_ru": summary_data.get("pulse_ru", pulse),
+                    "last_updated": timestamp,
+                },
+            )
             if confidence is not None:
                 await self.publish_sensor("market_pulse_confidence", confidence)
 
@@ -697,11 +720,15 @@ class HAIntegrationManager:
         if "health" in summary_data:
             health = summary_data["health"]
             score = summary_data.get("health_score")
-            await self.publish_sensor("portfolio_health", health, {
-                "score": score,
-                "health_ru": summary_data.get("health_ru", health),
-                "last_updated": timestamp,
-            })
+            await self.publish_sensor(
+                "portfolio_health",
+                health,
+                {
+                    "score": score,
+                    "health_ru": summary_data.get("health_ru", health),
+                    "last_updated": timestamp,
+                },
+            )
             if score is not None:
                 await self.publish_sensor("portfolio_health_score", score)
 
@@ -709,20 +736,28 @@ class HAIntegrationManager:
         if "action" in summary_data:
             action = summary_data["action"]
             priority = summary_data.get("action_priority", "low")
-            await self.publish_sensor("today_action", action, {
-                "priority": priority,
-                "action_ru": summary_data.get("action_ru", action),
-                "last_updated": timestamp,
-            })
+            await self.publish_sensor(
+                "today_action",
+                action,
+                {
+                    "priority": priority,
+                    "action_ru": summary_data.get("action_ru", action),
+                    "last_updated": timestamp,
+                },
+            )
             await self.publish_sensor("today_action_priority", priority)
 
         # Weekly outlook
         if "outlook" in summary_data:
             outlook = summary_data["outlook"]
-            await self.publish_sensor("weekly_outlook", outlook, {
-                "outlook_ru": summary_data.get("outlook_ru", outlook),
-                "last_updated": timestamp,
-            })
+            await self.publish_sensor(
+                "weekly_outlook",
+                outlook,
+                {
+                    "outlook_ru": summary_data.get("outlook_ru", outlook),
+                    "last_updated": timestamp,
+                },
+            )
 
     # === Notification Status Methods ===
 
@@ -744,9 +779,13 @@ class HAIntegrationManager:
             await self.publish_sensor("daily_digest_ready", status_data["daily_digest_ready"])
 
         if "mode" in status_data:
-            await self.publish_sensor("notification_mode", status_data["mode"], {
-                "last_updated": timestamp,
-            })
+            await self.publish_sensor(
+                "notification_mode",
+                status_data["mode"],
+                {
+                    "last_updated": timestamp,
+                },
+            )
 
     # === ML/AI Methods ===
 
@@ -759,13 +798,17 @@ class HAIntegrationManager:
         timestamp = datetime.now(UTC).isoformat()
 
         if "portfolio_sentiment" in ml_data:
-            await self.publish_sensor("portfolio_health", ml_data["portfolio_sentiment"], {
-                "opportunity_signals": ml_data.get("opportunity_signals", 0),
-                "risk_signals": ml_data.get("risk_signals", 0),
-                "hold_signals": ml_data.get("hold_signals", 0),
-                "recommendation": ml_data.get("recommendation", ""),
-                "last_updated": timestamp,
-            })
+            await self.publish_sensor(
+                "portfolio_health",
+                ml_data["portfolio_sentiment"],
+                {
+                    "opportunity_signals": ml_data.get("opportunity_signals", 0),
+                    "risk_signals": ml_data.get("risk_signals", 0),
+                    "hold_signals": ml_data.get("hold_signals", 0),
+                    "recommendation": ml_data.get("recommendation", ""),
+                    "last_updated": timestamp,
+                },
+            )
 
     def _get_accuracy_rating(self, accuracy: float) -> str:
         """Get Russian accuracy rating label.
@@ -797,27 +840,39 @@ class HAIntegrationManager:
 
         # Latest predictions
         if "latest_predictions" in prediction_data:
-            await self.publish_sensor("ml_latest_predictions", prediction_data["latest_predictions"], {
-                "last_updated": timestamp,
-            })
+            await self.publish_sensor(
+                "ml_latest_predictions",
+                prediction_data["latest_predictions"],
+                {
+                    "last_updated": timestamp,
+                },
+            )
 
         # Correct predictions count
         if "correct_predictions" in prediction_data:
-            await self.publish_sensor("ml_correct_predictions", prediction_data["correct_predictions"], {
-                "incorrect": prediction_data.get("incorrect_predictions", 0),
-                "total": prediction_data.get("total_predictions", 0),
-                "last_updated": timestamp,
-            })
+            await self.publish_sensor(
+                "ml_correct_predictions",
+                prediction_data["correct_predictions"],
+                {
+                    "incorrect": prediction_data.get("incorrect_predictions", 0),
+                    "total": prediction_data.get("total_predictions", 0),
+                    "last_updated": timestamp,
+                },
+            )
 
         # Accuracy rate
         if "accuracy_percentage" in prediction_data:
             accuracy = prediction_data["accuracy_percentage"]
             rating = self._get_accuracy_rating(accuracy)
-            await self.publish_sensor("ml_accuracy_rate", accuracy, {
-                "rating": rating,
-                "rating_ru": rating,
-                "last_updated": timestamp,
-            })
+            await self.publish_sensor(
+                "ml_accuracy_rate",
+                accuracy,
+                {
+                    "rating": rating,
+                    "rating_ru": rating,
+                    "last_updated": timestamp,
+                },
+            )
 
     async def update_ai_trend_sensors(self) -> None:
         """Update AI trend analysis sensors."""
@@ -825,24 +880,25 @@ class HAIntegrationManager:
             from service.trend_analyzer import get_trend_analyzer
 
             analyzer = get_trend_analyzer()
-            
+
             # Get symbols from multiple sources
             symbols = list(self._prices.keys()) if self._prices else []
-            
+
             # Fallback: get from cache
             if not symbols:
                 cached_prices = self._cache.get("prices", {})
                 if isinstance(cached_prices, dict):
                     symbols = list(cached_prices.keys())
-            
+
             # Fallback: get from currency list
             if not symbols:
                 try:
                     from core.constants import DEFAULT_SYMBOLS
+
                     symbols = [s.split("/")[0] for s in DEFAULT_SYMBOLS]  # BTC/USDT -> BTC
                 except Exception:
                     pass
-            
+
             if not symbols:
                 logger.debug("No symbols available for AI trend analysis")
                 return
@@ -857,31 +913,45 @@ class HAIntegrationManager:
                     result = await analyzer.analyze_trend(symbol)
                     if result:
                         # TrendAnalysis object - access attributes directly
-                        ai_trends[symbol] = result.direction.value if hasattr(result, 'direction') else "Neutral"
-                        ai_confidences[symbol] = round(result.confidence, 1) if hasattr(result, 'confidence') else 50
-                        ai_forecasts[symbol] = round(result.predicted_price_24h, 2) if hasattr(result, 'predicted_price_24h') else None
-                        ai_details[symbol] = result.to_dict() if hasattr(result, 'to_dict') else {}
+                        ai_trends[symbol] = result.direction.value if hasattr(result, "direction") else "Neutral"
+                        ai_confidences[symbol] = round(result.confidence, 1) if hasattr(result, "confidence") else 50
+                        ai_forecasts[symbol] = (
+                            round(result.predicted_price_24h, 2) if hasattr(result, "predicted_price_24h") else None
+                        )
+                        ai_details[symbol] = result.to_dict() if hasattr(result, "to_dict") else {}
                 except Exception as e:
                     logger.debug(f"AI trend analysis failed for {symbol}: {e}")
 
             timestamp = datetime.now(UTC).isoformat()
 
             if ai_trends:
-                await self.publish_sensor("ai_trends", ai_trends, {
-                    "details": ai_details,
-                    "last_updated": timestamp,
-                })
+                await self.publish_sensor(
+                    "ai_trends",
+                    ai_trends,
+                    {
+                        "details": ai_details,
+                        "last_updated": timestamp,
+                    },
+                )
 
             if ai_confidences:
-                await self.publish_sensor("ai_confidences", ai_confidences, {
-                    "last_updated": timestamp,
-                })
+                await self.publish_sensor(
+                    "ai_confidences",
+                    ai_confidences,
+                    {
+                        "last_updated": timestamp,
+                    },
+                )
 
             if ai_forecasts:
-                await self.publish_sensor("ai_price_forecasts_24h", ai_forecasts, {
-                    "last_updated": timestamp,
-                })
-            
+                await self.publish_sensor(
+                    "ai_price_forecasts_24h",
+                    ai_forecasts,
+                    {
+                        "last_updated": timestamp,
+                    },
+                )
+
             logger.info(f"AI trend sensors updated for {len(ai_trends)} symbols")
 
         except ImportError as e:

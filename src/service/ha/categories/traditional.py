@@ -288,4 +288,3 @@ class TreasuryYield10ySensor(ScalarSensor):
         description_ru="Доходность 10-летних облигаций США",
         value_type="float",
     )
-

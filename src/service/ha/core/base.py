@@ -110,15 +110,11 @@ class BaseSensor(ABC):
         # Range validation
         if self.config.min_value is not None and isinstance(data, (int, float)):
             if data < self.config.min_value:
-                raise ValueError(
-                    f"{self.sensor_id}: value {data} below minimum {self.config.min_value}"
-                )
+                raise ValueError(f"{self.sensor_id}: value {data} below minimum {self.config.min_value}")
 
         if self.config.max_value is not None and isinstance(data, (int, float)):
             if data > self.config.max_value:
-                raise ValueError(
-                    f"{self.sensor_id}: value {data} above maximum {self.config.max_value}"
-                )
+                raise ValueError(f"{self.sensor_id}: value {data} above maximum {self.config.max_value}")
 
         return data
 
@@ -179,7 +175,7 @@ class BaseSensor(ABC):
         """
         # Unique ID for HA entity registry management
         unique_id = f"crypto_inspect_{self.config.sensor_id}"
-        
+
         data = {
             "friendly_name": self.config.name,
             "icon": self.config.icon,

@@ -28,7 +28,7 @@ class StatsForecastForecaster(BaseForecaster):
     def __init__(self):
         """Initialize StatsForecast forecaster."""
         if not STATSFORCEAST_AVAILABLE:
-            raise ImportError("statsforecast not installed. " "Install with: pip install statsforecast")
+            raise ImportError("statsforecast not installed. Install with: pip install statsforecast")
 
         self.model = None
         self._initialize_model()

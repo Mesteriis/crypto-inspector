@@ -11,7 +11,10 @@ import logging
 import time
 from collections.abc import Sequence
 
-from service.candlestick.exceptions import AllExchangesFailedError, CandlestickServiceError
+from service.candlestick.exceptions import (
+    AllExchangesFailedError,
+    CandlestickServiceError,
+)
 from service.candlestick.exchanges.base import BaseExchange
 from service.candlestick.exchanges.binance import BinanceExchange
 from service.candlestick.exchanges.bybit import BybitExchange

@@ -764,12 +764,14 @@ class SmartSummaryService:
 
             events = []
             for event in analysis.events[:5]:
-                events.append({
-                    "name": event.name,
-                    "name_ru": event.event_type.name_ru,
-                    "date": event.date.strftime("%Y-%m-%d"),
-                    "days_until": event.days_until,
-                })
+                events.append(
+                    {
+                        "name": event.name,
+                        "name_ru": event.event_type.name_ru,
+                        "date": event.date.strftime("%Y-%m-%d"),
+                        "days_until": event.days_until,
+                    }
+                )
             return events
         except Exception as e:
             logger.warning(f"Failed to get macro events: {e}")

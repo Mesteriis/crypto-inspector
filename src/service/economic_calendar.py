@@ -306,7 +306,7 @@ class EconomicCalendar:
 
     async def get_calendar_summary(self) -> dict[str, Any]:
         """Get summary of current calendar status."""
-        now = datetime.now()
+        datetime.now()
 
         upcoming_24h = await self.get_upcoming_events(24)
         upcoming_48h = await self.get_upcoming_events(48)

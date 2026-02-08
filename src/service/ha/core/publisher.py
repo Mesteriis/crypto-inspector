@@ -23,7 +23,7 @@ class SupervisorPublisher:
     DEVICE_ID = "crypto_inspect"
     DEVICE_NAME = "Crypto Inspect"
     ENTITY_PREFIX = "sensor.crypto_inspect_"
-    
+
     # Store background tasks to prevent garbage collection
     _background_tasks: set = set()
 

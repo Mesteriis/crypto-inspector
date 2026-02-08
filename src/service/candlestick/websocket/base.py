@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from decimal import Decimal
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 import websockets
@@ -17,7 +17,7 @@ from service.candlestick.models import CandleInterval, Candlestick
 logger = logging.getLogger(__name__)
 
 
-class ConnectionState(str, Enum):
+class ConnectionState(StrEnum):
     """WebSocket connection states."""
 
     DISCONNECTED = "disconnected"

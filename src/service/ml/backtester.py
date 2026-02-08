@@ -66,7 +66,7 @@ class ForecastBacktester:
         val_data = prices[n_train : n_train + n_val]
         test_data = prices[n_train + n_val :]
 
-        logger.info(f"Backtest data split: " f"train={len(train_data)}, val={len(val_data)}, test={len(test_data)}")
+        logger.info(f"Backtest data split: train={len(train_data)}, val={len(val_data)}, test={len(test_data)}")
 
         # Generate predictions on test set
         predictions = []

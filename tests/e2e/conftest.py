@@ -23,7 +23,6 @@ pytestmark = [pytest.mark.e2e]
 @pytest.fixture
 def bullish_candles() -> list[dict]:
     """Generate bullish trending candle data."""
-    import random
 
     candles = []
     base_price = 40000
@@ -53,7 +52,6 @@ def bullish_candles() -> list[dict]:
 @pytest.fixture
 def bearish_candles() -> list[dict]:
     """Generate bearish trending candle data."""
-    import random
 
     candles = []
     base_price = 60000
@@ -83,7 +81,6 @@ def bearish_candles() -> list[dict]:
 @pytest.fixture
 def rsi_oversold_candles() -> list[dict]:
     """Generate candles that create RSI oversold conditions."""
-    import random
 
     candles = []
     base_price = 50000
@@ -109,7 +106,6 @@ def rsi_oversold_candles() -> list[dict]:
 @pytest.fixture
 def golden_cross_candles() -> list[dict]:
     """Generate candles with golden cross pattern."""
-    import random
 
     candles = []
     base_price = 50000
@@ -141,7 +137,6 @@ def golden_cross_candles() -> list[dict]:
 
 def _make_candle(timestamp: int, close: float) -> dict:
     """Helper to create a candle dict."""
-    import random
 
     open_price = close * random.uniform(0.995, 1.005)
     high = max(open_price, close) * random.uniform(1.0, 1.015)

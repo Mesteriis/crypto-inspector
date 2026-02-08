@@ -7,7 +7,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import TYPE_CHECKING, Any, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 from .messages import (
     DeviceInfo,
@@ -304,14 +305,10 @@ class ESPHomeAPIServer:
 
         if sensor:
             for client in self._clients:
-                await client.send_state_update(
-                    sensor.key, state, is_text=False
-                )
+                await client.send_state_update(sensor.key, state, is_text=False)
         elif text_sensor:
             for client in self._clients:
-                await client.send_state_update(
-                    text_sensor.key, state, is_text=True
-                )
+                await client.send_state_update(text_sensor.key, state, is_text=True)
 
 
 # Global server instance

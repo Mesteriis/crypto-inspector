@@ -11,7 +11,7 @@ Analyzes Bitcoin market cycles based on:
 import logging
 from dataclasses import dataclass
 from datetime import date
-from enum import Enum
+from enum import StrEnum
 
 from core.constants import (
     HALVING_DATES,
@@ -22,7 +22,7 @@ from core.constants import (
 logger = logging.getLogger(__name__)
 
 
-class CyclePhase(str, Enum):
+class CyclePhase(StrEnum):
     """Market cycle phases."""
 
     CAPITULATION = "capitulation"

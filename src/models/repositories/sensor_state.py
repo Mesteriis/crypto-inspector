@@ -64,9 +64,7 @@ class SensorStateRepository:
     async def get(self, unique_id: str) -> SensorState | None:
         """Get sensor state by unique_id."""
         try:
-            result = await self.session.execute(
-                select(SensorState).where(SensorState.unique_id == unique_id)
-            )
+            result = await self.session.execute(select(SensorState).where(SensorState.unique_id == unique_id))
             return result.scalar_one_or_none()
         except Exception as e:
             logger.error(f"Failed to get sensor state {unique_id}: {e}")

@@ -13,14 +13,14 @@ Detects chart patterns:
 
 import logging
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
 from service.analysis.technical import CandleDict, TechnicalAnalyzer
 
 logger = logging.getLogger(__name__)
 
 
-class PatternType(str, Enum):
+class PatternType(StrEnum):
     """Pattern types."""
 
     GOLDEN_CROSS = "golden_cross"

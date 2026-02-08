@@ -46,7 +46,7 @@ class CryptoInspectCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._port = port
         self._entry_id = entry_id
         self._base_url = f"http://{host}:{port}"
-        
+
         # Cached sensor registry (metadata)
         self._sensor_registry: dict[str, dict] = {}
         self._registry_loaded = False
@@ -76,14 +76,14 @@ class CryptoInspectCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     raise UpdateFailed(
                         f"API returned status {response.status}"
                     )
-                
+
                 data = await response.json()
-                
+
                 _LOGGER.debug(
                     "Fetched %d sensors from Crypto Inspect",
                     len(data.get("sensors", {})),
                 )
-                
+
                 return data
 
         except Exception as err:
@@ -127,13 +127,13 @@ class CryptoInspectCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Get value for a specific sensor from cached data."""
         if not self.data:
             return None
-        
+
         sensors = self.data.get("sensors", {})
         sensor_data = sensors.get(sensor_id)
-        
+
         if sensor_data is None:
             return None
-        
+
         # Handle both simple values and dicts with 'value' key
         if isinstance(sensor_data, dict):
             return sensor_data.get("value", sensor_data)
@@ -143,13 +143,13 @@ class CryptoInspectCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Get attributes for a specific sensor."""
         if not self.data:
             return {}
-        
+
         sensors = self.data.get("sensors", {})
         sensor_data = sensors.get(sensor_id)
-        
+
         if not isinstance(sensor_data, dict):
             return {}
-        
+
         # Extract attributes, excluding 'value' key
         return {k: v for k, v in sensor_data.items() if k != "value"}
 

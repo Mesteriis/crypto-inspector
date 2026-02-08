@@ -133,7 +133,7 @@
   condition:
     - condition: template
       value_template: >
-        {{ trigger.from_state.state != trigger.to_state.state and 
+        {{ trigger.from_state.state != trigger.to_state.state and
            trigger.from_state.state not in ['unknown', 'unavailable'] }}
   action:
     - service: notify.mobile_app

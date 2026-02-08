@@ -9,7 +9,7 @@ import asyncio
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from service.candlestick.models import CandleInterval, Candlestick
@@ -25,7 +25,7 @@ from service.candlestick.websocket.bybit import BybitWebSocketStream
 logger = logging.getLogger(__name__)
 
 
-class StreamSource(str, Enum):
+class StreamSource(StrEnum):
     """Stream data source."""
 
     BYBIT = "bybit"

@@ -113,7 +113,7 @@ class LazyInvestorMLAdvisor:
     ) -> list[InvestmentSignal]:
         """Transform raw predictions into investment awareness signals."""
         signals = []
-        current_price = prices[-1]
+        prices[-1]
 
         # Ensemble analysis
         if predictions:
@@ -295,9 +295,9 @@ class LazyInvestorMLAdvisor:
 
         briefing = f"""
 🌅 DAILY INVESTMENT BRIEFING
-📅 {datetime.now().strftime('%Y-%m-%d')}
-📊 Portfolio Health: {portfolio_health['portfolio_sentiment'].upper()}
-💡 Recommendation: {portfolio_health['recommendation']}
+📅 {datetime.now().strftime("%Y-%m-%d")}
+📊 Portfolio Health: {portfolio_health["portfolio_sentiment"].upper()}
+💡 Recommendation: {portfolio_health["recommendation"]}
 
 🔔 KEY SIGNALS TODAY:
 """
@@ -324,10 +324,10 @@ class LazyInvestorMLAdvisor:
 
         briefing += f"""
 📈 PORTFOLIO METRICS:
-• Opportunities: {portfolio_health['opportunity_signals']}
-• Risk Warnings: {portfolio_health['risk_signals']}
-• Hold Signals: {portfolio_health['hold_signals']}
-• Total Assets Monitored: {portfolio_health['total_analyzed']}
+• Opportunities: {portfolio_health["opportunity_signals"]}
+• Risk Warnings: {portfolio_health["risk_signals"]}
+• Hold Signals: {portfolio_health["hold_signals"]}
+• Total Assets Monitored: {portfolio_health["total_analyzed"]}
 
 🎯 LAZY INVESTOR STRATEGY:
 • Don't panic sell on negative signals

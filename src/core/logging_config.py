@@ -12,9 +12,8 @@ Rotation: 10MB max, 7 days retention
 """
 
 import logging
-import os
 import sys
-from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 # Log directory (project root / logs)
@@ -110,10 +109,14 @@ def setup_logging(
     )
     jobs_handler.setLevel(logging.DEBUG)
     jobs_handler.setFormatter(formatter)
-    jobs_handler.addFilter(LoggerFilter([
-        "core.scheduler",
-        "apscheduler",
-    ]))
+    jobs_handler.addFilter(
+        LoggerFilter(
+            [
+                "core.scheduler",
+                "apscheduler",
+            ]
+        )
+    )
     root_logger.addHandler(jobs_handler)
 
     # === Services log (analysis, exchange, etc.) ===
@@ -125,18 +128,22 @@ def setup_logging(
     )
     services_handler.setLevel(logging.DEBUG)
     services_handler.setFormatter(formatter)
-    services_handler.addFilter(LoggerFilter([
-        "service.analysis",
-        "service.exchange",
-        "service.candlestick",
-        "service.backfill",
-        "service.portfolio",
-        "service.alerts",
-        "service.investor",
-        "service.ml",
-        "service.ai",
-        "service.mcp",
-    ]))
+    services_handler.addFilter(
+        LoggerFilter(
+            [
+                "service.analysis",
+                "service.exchange",
+                "service.candlestick",
+                "service.backfill",
+                "service.portfolio",
+                "service.alerts",
+                "service.investor",
+                "service.ml",
+                "service.ai",
+                "service.mcp",
+            ]
+        )
+    )
     root_logger.addHandler(services_handler)
 
     # === Home Assistant log ===
@@ -148,11 +155,15 @@ def setup_logging(
     )
     ha_handler.setLevel(logging.DEBUG)
     ha_handler.setFormatter(formatter)
-    ha_handler.addFilter(LoggerFilter([
-        "service.ha",
-        "service.ha_integration",
-        "service.ha_init",
-    ]))
+    ha_handler.addFilter(
+        LoggerFilter(
+            [
+                "service.ha",
+                "service.ha_integration",
+                "service.ha_init",
+            ]
+        )
+    )
     root_logger.addHandler(ha_handler)
 
     # === API log ===
@@ -164,11 +175,15 @@ def setup_logging(
     )
     api_handler.setLevel(logging.DEBUG)
     api_handler.setFormatter(formatter)
-    api_handler.addFilter(LoggerFilter([
-        "api.",
-        "uvicorn",
-        "fastapi",
-    ]))
+    api_handler.addFilter(
+        LoggerFilter(
+            [
+                "api.",
+                "uvicorn",
+                "fastapi",
+            ]
+        )
+    )
     root_logger.addHandler(api_handler)
 
     # Reduce noise from external libraries

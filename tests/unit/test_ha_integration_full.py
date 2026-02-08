@@ -1,6 +1,5 @@
 """100% coverage tests for services/ha_integration.py."""
 
-import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
@@ -283,7 +282,6 @@ class TestSupervisorAPIClient:
             assert result is False
 
 
-
 # ═══════════════════════════════════════════════════════════════════════════
 #                      Global Functions Tests
 # ═══════════════════════════════════════════════════════════════════════════
@@ -415,5 +413,3 @@ class TestConstants:
         from service.ha_integration import SUPERVISOR_URL
 
         assert SUPERVISOR_URL == "http://supervisor"
-
-

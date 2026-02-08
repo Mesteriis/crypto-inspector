@@ -68,7 +68,7 @@ class TestRussianMLSensors(unittest.IsolatedAsyncioTestCase):
 
         # Verify publish_sensor was called with portfolio_health
         self.sensor_manager.publisher.publish_sensor.assert_called()
-        
+
         # Check that the call included the sentiment data
         calls = self.sensor_manager.publisher.publish_sensor.call_args_list
         sensor_ids_called = [call[0][0] for call in calls]
@@ -92,10 +92,10 @@ class TestRussianMLSensors(unittest.IsolatedAsyncioTestCase):
 
         # Verify publish_sensor was called for prediction sensors
         self.sensor_manager.publisher.publish_sensor.assert_called()
-        
+
         calls = self.sensor_manager.publisher.publish_sensor.call_args_list
         sensor_ids_called = [call[0][0] for call in calls]
-        
+
         # Check that prediction sensors were published
         self.assertIn("ml_latest_predictions", sensor_ids_called)
         self.assertIn("ml_correct_predictions", sensor_ids_called)

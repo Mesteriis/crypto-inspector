@@ -8,7 +8,8 @@ as an ESPHome device without custom components.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 from .discovery import (
     ESPHomeDiscovery,
@@ -77,9 +78,17 @@ async def setup_esphome_api(
         is_numeric = (
             unit is not None
             or value_type in ("float", "int", "percentage", "currency")
-            or metadata.get("device_class") in (
-                "temperature", "humidity", "pressure", "power",
-                "energy", "monetary", "battery", "voltage", "current",
+            or metadata.get("device_class")
+            in (
+                "temperature",
+                "humidity",
+                "pressure",
+                "power",
+                "energy",
+                "monetary",
+                "battery",
+                "voltage",
+                "current",
             )
         )
 

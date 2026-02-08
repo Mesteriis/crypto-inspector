@@ -12,8 +12,8 @@
   trigger:
     - platform: template
       value_template: >
-        {{ states('sensor.crypto_inspect_prices') | from_json | default({}) 
-           | selectattr('BTC') | first | default(0) > 
+        {{ states('sensor.crypto_inspect_prices') | from_json | default({})
+           | selectattr('BTC') | first | default(0) >
            state_attr('sensor.crypto_inspect_prices', 'btc_ath') | default(100000) }}
   condition:
     - condition: state
@@ -66,7 +66,7 @@
   condition:
     - condition: template
       value_template: >
-        {{ trigger.to_state.state != trigger.from_state.state and 
+        {{ trigger.to_state.state != trigger.from_state.state and
            'near_support' in trigger.to_state.attributes.get('status', '') }}
   action:
     - service: notify.mobile_app
@@ -86,7 +86,7 @@
   condition:
     - condition: template
       value_template: >
-        {{ trigger.to_state.state != trigger.from_state.state and 
+        {{ trigger.to_state.state != trigger.from_state.state and
            'near_resistance' in trigger.to_state.attributes.get('status', '') }}
   action:
     - service: notify.mobile_app

@@ -23,6 +23,7 @@ pytestmark = [pytest.mark.integration]
 # DATABASE FIXTURES
 # =============================================================================
 
+
 @pytest.fixture
 def mock_db_connection():
     """Мок подключения к базе данных."""
@@ -48,6 +49,7 @@ def mock_redis_connection():
 # =============================================================================
 # HA INTEGRATION FIXTURES
 # =============================================================================
+
 
 @pytest.fixture
 def mock_mqtt_broker():

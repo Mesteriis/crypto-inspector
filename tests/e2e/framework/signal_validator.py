@@ -8,14 +8,14 @@ accuracy metrics for different signal types.
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 
 from tests.e2e.framework.data_loader import BacktestPeriod
 
 logger = logging.getLogger(__name__)
 
 
-class SignalType(str, Enum):
+class SignalType(StrEnum):
     """Types of signals that can be generated."""
 
     STRONG_BUY = "strong_buy"
@@ -25,7 +25,7 @@ class SignalType(str, Enum):
     STRONG_SELL = "strong_sell"
 
 
-class OutcomeType(str, Enum):
+class OutcomeType(StrEnum):
     """Outcome classifications based on returns."""
 
     STRONG_GAIN = "strong_gain"  # > 10%

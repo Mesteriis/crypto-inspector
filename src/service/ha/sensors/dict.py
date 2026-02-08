@@ -236,13 +236,9 @@ class IndicatorDictSensor(DictSensor):
 
                 # Range validation
                 if self.min_value is not None and float_val < self.min_value:
-                    raise ValueError(
-                        f"{symbol} indicator {float_val} below min {self.min_value}"
-                    )
+                    raise ValueError(f"{symbol} indicator {float_val} below min {self.min_value}")
                 if self.max_value is not None and float_val > self.max_value:
-                    raise ValueError(
-                        f"{symbol} indicator {float_val} above max {self.max_value}"
-                    )
+                    raise ValueError(f"{symbol} indicator {float_val} above max {self.max_value}")
 
                 result[str(symbol)] = float_val
 

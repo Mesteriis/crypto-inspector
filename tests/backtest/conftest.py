@@ -10,12 +10,9 @@
 import os
 import random
 import sys
-from collections.abc import Generator
-from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
-from faker import Faker
 
 # Добавляем src в путь
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -25,6 +22,7 @@ sys.path.insert(0, os.path.join(project_root, "src"))
 # =============================================================================
 # BACKTEST CONFIGURATION FIXTURES
 # =============================================================================
+
 
 @pytest.fixture
 def backtest_base_config() -> dict[str, Any]:
@@ -63,9 +61,11 @@ def hyperparameter_config() -> dict[str, Any]:
 # DATA GENERATION FIXTURES
 # =============================================================================
 
+
 @pytest.fixture
 def generate_price_series():
     """Фабрика для генерации ценовых серий."""
+
     def _generate(
         n_points: int = 365,
         start_price: float = 50000,
@@ -73,7 +73,7 @@ def generate_price_series():
         volatility: float = 0.02,
     ) -> list[float]:
         prices = [start_price]
-        
+
         if trend == "bullish":
             drift = 0.003
         elif trend == "bearish":
@@ -82,14 +82,14 @@ def generate_price_series():
             drift = 0.0
         else:
             drift = random.gauss(0, 0.001)
-        
+
         for _ in range(n_points - 1):
             daily_return = random.gauss(drift, volatility)
             new_price = prices[-1] * (1 + daily_return)
             prices.append(max(new_price, 100))  # Минимальная цена
-        
+
         return prices
-    
+
     return _generate
 
 
@@ -152,6 +152,7 @@ def volatile_market_prices(generate_price_series) -> list[float]:
 # HYPERPARAMETER SPACE FIXTURES
 # =============================================================================
 
+
 @pytest.fixture
 def chronos_param_space() -> dict[str, list]:
     """Пространство параметров для Chronos."""
@@ -213,6 +214,7 @@ def technical_param_space() -> dict[str, list]:
 # RESULTS STORAGE FIXTURES
 # =============================================================================
 
+
 @pytest.fixture
 def optimization_results_path(tmp_path) -> str:
     """Временный путь для сохранения результатов оптимизации."""
@@ -230,6 +232,7 @@ def best_params_storage() -> dict[str, dict]:
 # =============================================================================
 # MOCK FIXTURES FOR SLOW TESTS
 # =============================================================================
+
 
 @pytest.fixture
 def mock_backtest_metrics():

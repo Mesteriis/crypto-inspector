@@ -68,7 +68,7 @@ class MLPredictionRepository:
 
         logger.info(
             f"Saved prediction: {symbol} {interval} {model_name} "
-            f"predicted {predicted_price} at {datetime.fromtimestamp(prediction_timestamp/1000)}"
+            f"predicted {predicted_price} at {datetime.fromtimestamp(prediction_timestamp / 1000)}"
         )
 
         return record
@@ -240,9 +240,7 @@ class MLPredictionRepository:
         direction_correct = [p.direction_correct for p in predictions if p.direction_correct is not None]
 
         mean_absolute_error = Decimal(str(sum(absolute_errors) / len(absolute_errors))) if absolute_errors else None
-        mean_percentage_error = (
-            Decimal(str(sum(percentage_errors) / len(percentage_errors))) if percentage_errors else None
-        )
+        (Decimal(str(sum(percentage_errors) / len(percentage_errors))) if percentage_errors else None)
         direction_accuracy = (
             Decimal(str(sum(direction_correct) / len(direction_correct) * 100)) if direction_correct else None
         )

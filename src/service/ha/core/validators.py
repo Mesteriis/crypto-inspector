@@ -175,7 +175,6 @@ class TechnicalIndicatorValue(BaseModel):
         if v is None:
             return v
 
-        allowed = {"buy", "sell", "hold", "strong_buy", "strong_sell", "neutral"}
         # Accept any value for flexibility
         return v
 
